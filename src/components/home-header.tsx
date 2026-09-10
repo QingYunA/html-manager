@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
+import { BrandLogo } from "@/components/brand-logo";
 import { useLanguage } from "@/lib/i18n/context";
 import { Plus, User, LogOut, Compass, Sparkles, CreditCard, LayoutDashboard } from "lucide-react";
 import type { CurrentUser } from "@/lib/auth";
@@ -31,24 +31,7 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-sm text-foreground group">
-            <div className="relative w-5 h-5 rounded-md overflow-hidden flex items-center justify-center shrink-0">
-              <Image
-                src="/brand/pagepod-logo-monochrome.png"
-                alt="Pagepod"
-                width={20}
-                height={20}
-                className="w-5 h-5 object-contain dark:hidden"
-                priority
-              />
-              <Image
-                src="/brand/pagepod-logo-dark.png"
-                alt="Pagepod"
-                width={20}
-                height={20}
-                className="w-5 h-5 object-contain hidden dark:block"
-                priority
-              />
-            </div>
+            <BrandLogo size={24} className="w-6 h-6" />
             <span>Pagepod</span>
           </Link>
 

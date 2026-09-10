@@ -27,14 +27,20 @@ export const metadata: Metadata = {
   creator: "Pagepod",
   alternates: {
     canonical: "/",
+    languages: {
+      "en-US": "/",
+      "zh-CN": "/",
+    },
   },
   icons: {
     icon: [
-      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
-      { url: "/brand/pagepod-logo-monochrome.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon.ico?v=2" },
+      { url: "/favicon.png?v=2", sizes: "32x32", type: "image/png" },
+      { url: "/brand/pagepod-logo-monochrome.png?v=2", sizes: "192x192", type: "image/png" },
     ],
+    shortcut: ["/favicon.ico?v=2"],
     apple: [
-      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-icon.png?v=2", sizes: "180x180", type: "image/png" },
     ],
   },
   openGraph: {
@@ -88,7 +94,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning className="h-full antialiased">
+    <html lang="en" suppressHydrationWarning className="h-full antialiased">
       <head>
         <script
           type="application/ld+json"

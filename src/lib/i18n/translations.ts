@@ -49,6 +49,10 @@ export const translations = {
       apiPush: "REST API 自动化上传",
       e2eeReady: "端到端零知识加密",
       copyright: "开源且支持在 Vercel 免费自建。",
+      about: "关于 Pagepod",
+      privacy: "隐私政策",
+      terms: "服务条款",
+      status: "系统状态",
     },
     runner: {
       back: "返回画廊",
@@ -236,6 +240,10 @@ export const translations = {
       apiPush: "REST API Automation",
       e2eeReady: "Zero-Knowledge E2EE",
       copyright: "Open source & self-hosted on Vercel.",
+      about: "About Pagepod",
+      privacy: "Privacy Policy",
+      terms: "Terms of Service",
+      status: "System Status",
     },
     runner: {
       back: "Back to Gallery",

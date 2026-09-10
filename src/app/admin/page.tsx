@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { BrandLogo } from "@/components/brand-logo";
 import { getAllProjects, getSetting } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -59,24 +59,7 @@ export default async function AdminDashboardPage() {
       <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-4 sm:px-8 h-12 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <Link href="/" className="flex items-center gap-2 font-semibold text-xs tracking-tight">
-            <div className="relative w-5 h-5 rounded-md overflow-hidden flex items-center justify-center shrink-0">
-              <Image
-                src="/brand/pagepod-logo-monochrome.png"
-                alt="Pagepod"
-                width={20}
-                height={20}
-                className="w-5 h-5 object-contain dark:hidden"
-                priority
-              />
-              <Image
-                src="/brand/pagepod-logo-dark.png"
-                alt="Pagepod"
-                width={20}
-                height={20}
-                className="w-5 h-5 object-contain hidden dark:block"
-                priority
-              />
-            </div>
+            <BrandLogo size={22} className="w-5.5 h-5.5" />
             <span>Pagepod</span>
           </Link>
           <span className="text-border">/</span>
