@@ -26,6 +26,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { scanHtmlForSensitiveData, type SensitiveRiskMatch } from "@/lib/scanner/sensitive-scanner";
+import { PublicRiskDialog } from "@/components/public-risk-dialog";
 
 interface EditorClientProps {
   project: Project;
@@ -57,6 +59,11 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Public Risk Dialog states
+  const [showRiskDialog, setShowRiskDialog] = useState(false);
+  const [detectedRisks, setDetectedRisks] = useState<SensitiveRiskMatch[]>([]);
+  const [bypassedRiskCheck, setBypassedRiskCheck] = useState(false);
+
   const handleAddTag = (t: string) => {
     const trimmed = t.trim();
     if (trimmed && !tags.includes(trimmed)) {
@@ -69,7 +76,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
     setTags(tags.filter((item) => item !== t));
   };
 
-  const handleSave = () => {
+  const performSave = (targetVisibility?: "public" | "unlisted" | "private") => {
     setErrorMsg("");
     setSavedSuccess(false);
 
@@ -80,7 +87,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
           description,
           category,
           tags,
-          visibility,
+          visibility: targetVisibility || visibility,
           isPinned,
           htmlCode: project.assetType === "single_html" ? code : undefined,
         });
@@ -91,6 +98,18 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
         setErrorMsg((err as Error)?.message || "保存失败");
       }
     });
+  };
+
+  const handleSave = () => {
+    // Intercept when project is public and risk check hasn't been confirmed yet
+    if (visibility === "public" && !bypassedRiskCheck) {
+      const scanResult = scanHtmlForSensitiveData(code);
+      setDetectedRisks(scanResult.matches);
+      setShowRiskDialog(true);
+      return;
+    }
+
+    performSave();
   };
 
   return (
@@ -181,7 +200,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
                   <span className="font-mono flex items-center gap-1.5 text-[11px]">
                     <Code2 className="w-3 h-3 text-sky-400" /> {project.entryPath}
                   </span>
-                  <span className="text-[11px]">快捷保存 Ctrl/Cmd+S</span>
+                  <span className="text-[11px]">修改后点击右上角保存即可生效</span>
                 </div>
                 <div className="flex-1 overflow-auto">
                   <CodeMirror
@@ -189,7 +208,10 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
                     height="100%"
                     theme="dark"
                     extensions={[html()]}
-                    onChange={(val) => setCode(val)}
+                    onChange={(val) => {
+                      setCode(val);
+                      setBypassedRiskCheck(false);
+                    }}
                     className="text-xs h-full"
                   />
                 </div>
@@ -334,12 +356,15 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
                     <label className="block text-xs font-medium text-foreground mb-1.5">公开状态</label>
                     <select
                       value={visibility}
-                      onChange={(e) => setVisibility(e.target.value as "public" | "unlisted" | "private")}
+                      onChange={(e) => {
+                        setVisibility(e.target.value as "public" | "unlisted" | "private");
+                        setBypassedRiskCheck(false);
+                      }}
                       className="w-full bg-muted/30 border border-input rounded-md px-3 h-8 text-xs text-foreground outline-none focus:border-ring"
                     >
                       <option value="public">公开 (Showcase 展示)</option>
                       <option value="unlisted">仅链接 (Unlisted)</option>
-                      <option value="private">私有 (Private)</option>
+                      <option value="private">私有 (Private，完全隐蔽)</option>
                     </select>
                   </div>
 
@@ -360,6 +385,23 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
           </div>
         )}
       </div>
+
+      {/* Public Risk Dialog for Editor */}
+      <PublicRiskDialog
+        open={showRiskDialog}
+        onOpenChange={setShowRiskDialog}
+        matches={detectedRisks}
+        onConfirmPublic={() => {
+          setShowRiskDialog(false);
+          setBypassedRiskCheck(true);
+          performSave("public");
+        }}
+        onSwitchToPrivate={() => {
+          setShowRiskDialog(false);
+          setVisibility("private");
+          performSave("private");
+        }}
+      />
     </div>
   );
 }

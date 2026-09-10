@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { getAllProjects, getSetting } from "@/db";
+import { getCurrentUser } from "@/lib/auth";
 import {
-  UploadCloud,
   Layers,
   Eye,
   LogOut,
   ExternalLink,
   Plus,
   Globe,
+  ShieldAlert,
 } from "lucide-react";
 import { logoutAdmin } from "@/app/actions/auth";
 import AdminTable from "./admin-table";
@@ -20,9 +21,33 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  const projects = await getAllProjects({ includePrivate: true });
-  const apiTokens = await getSetting("api_tokens", "");
+  const currentUser = await getCurrentUser();
 
+  // Strict Privacy Enforcement:
+  // 1. If selfhost admin: can view all public projects and local projects.
+  // 2. In Cloud mode:
+  //    - If standard user: ONLY views projects belonging to their own userId.
+  //    - If platform admin: ONLY permitted to manage and inspect PUBLIC projects. User-private projects are strictly hidden!
+  let projects = [];
+  if (currentUser?.id === "selfhost-admin") {
+    projects = await getAllProjects({ includePrivate: true });
+  } else if (currentUser?.id) {
+    // User sees their own projects (including their own private ones)
+    const myProjects = await getAllProjects({ userId: currentUser.id });
+    if (currentUser.role === "admin") {
+      // Platform admin also sees public items from everyone for moderation, but NEVER others' private items!
+      const publicProjects = await getAllProjects({ includePrivate: false });
+      const map = new Map();
+      [...myProjects, ...publicProjects].forEach((p) => map.set(p.id, p));
+      projects = Array.from(map.values());
+    } else {
+      projects = myProjects;
+    }
+  } else {
+    projects = await getAllProjects({ includePrivate: false });
+  }
+
+  const apiTokens = await getSetting("api_tokens", "");
   const totalViews = projects.reduce((sum, p) => sum + (p.viewCount || 0), 0);
   const publicCount = projects.filter((p) => p.visibility === "public").length;
 
@@ -38,7 +63,9 @@ export default async function AdminDashboardPage() {
             <span>HTML Manager</span>
           </Link>
           <span className="text-border">/</span>
-          <Badge variant="outline" className="text-[10px] font-mono">console</Badge>
+          <Badge variant="outline" className="text-[10px] font-mono">
+            {currentUser?.role === "admin" ? "console (admin)" : "workspace"}
+          </Badge>
         </div>
 
         <div className="flex items-center gap-2">
@@ -86,7 +113,7 @@ export default async function AdminDashboardPage() {
             <CardContent className="p-4 pt-0">
               <div className="text-2xl font-bold font-mono tracking-tight">{projects.length}</div>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                包含公开与私密单页
+                {currentUser?.role === "admin" ? "平台公开单页与个人项目" : "你的个人项目总数"}
               </p>
             </CardContent>
           </Card>
@@ -122,13 +149,13 @@ export default async function AdminDashboardPage() {
           </Card>
         </div>
 
-        {/* API Token Bar */}
-        <div className="rounded-lg border border-border bg-card/60 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-xs font-semibold text-foreground">API 自动化推送支持 (CLI / Cursor / AI Agent)</h3>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              通过 <code className="font-mono text-foreground">POST /api/upload</code> 接口由脚本或 AI 生成后一键推送。
-            </p>
+        {/* Privacy Boundary Banner */}
+        <div className="rounded-lg border border-border bg-card/60 p-4 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span className="text-muted-foreground">
+              <strong>隐私安全承诺</strong>：管理员仅可监管公开内容，用户的私有项目（Private / E2EE）受物理权限隔离，管理员及第三方绝对无法接触。
+            </span>
           </div>
           <ApiTokenGuideModal configuredTokens={apiTokens} />
         </div>

@@ -19,7 +19,7 @@ import {
   X,
   Upload,
   ShieldCheck,
-  Key,
+  Lock,
   Copy,
   Check,
 } from "lucide-react";
@@ -30,6 +30,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { encryptArtifact, encryptWithRawKey } from "@/lib/crypto/e2ee";
+import { scanHtmlForSensitiveData, type SensitiveRiskMatch } from "@/lib/scanner/sensitive-scanner";
+import { PublicRiskDialog } from "@/components/public-risk-dialog";
 
 const CATEGORIES = [
   { id: "tools", label: "实用工具", icon: Wrench },
@@ -63,6 +65,11 @@ export default function AdminUploadPage() {
   const [enableE2EE, setEnableE2EE] = useState(false);
   const [e2eeKeyResult, setE2eeKeyResult] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
+
+  // Public Risk Dialog & Sensitive Matches
+  const [showRiskDialog, setShowRiskDialog] = useState(false);
+  const [detectedRisks, setDetectedRisks] = useState<SensitiveRiskMatch[]>([]);
+  const [bypassedRiskCheck, setBypassedRiskCheck] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
@@ -162,8 +169,9 @@ export default function AdminUploadPage() {
     setTags(tags.filter((item) => item !== t));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const performActualSubmit = async (overrideVisibility?: "public" | "private") => {
+    const targetVisibility = overrideVisibility || visibility;
+    const shouldEncrypt = targetVisibility === "private" ? true : enableE2EE;
     setErrorMessage("");
 
     let finalTitle = title.trim();
@@ -188,10 +196,11 @@ export default function AdminUploadPage() {
     }
 
     if (!finalSlug) {
-      finalSlug = finalTitle
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/[\s_-]+/g, "-") || "project";
+      finalSlug =
+        finalTitle
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_-]+/g, "-") || "project";
     }
 
     startTransition(async () => {
@@ -199,8 +208,7 @@ export default function AdminUploadPage() {
         let preUploadedStoragePath = "";
         let encryptionIv = "";
 
-        // 1. If E2EE enabled: Encrypt in memory first
-        if (enableE2EE) {
+        if (shouldEncrypt) {
           let rawBytes: Uint8Array;
           if (mode === "file" && file) {
             const buf = await file.arrayBuffer();
@@ -209,7 +217,6 @@ export default function AdminUploadPage() {
             rawBytes = new TextEncoder().encode(pasteContent);
           }
 
-          // Request S3 Presigned direct PUT URL from server (which also supplies the user-scoped master key if authenticated)
           const presignRes = await fetch("/api/upload/presign", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -232,7 +239,6 @@ export default function AdminUploadPage() {
 
           let encryptedCiphertext: Uint8Array;
           if (presignData.userKey) {
-            // Seamless encryption bound to user master key
             const res = await encryptWithRawKey(rawBytes, presignData.userKey);
             encryptedCiphertext = res.ciphertext;
             encryptionIv = res.ivBase64;
@@ -243,7 +249,6 @@ export default function AdminUploadPage() {
             setE2eeKeyResult(res.keyBase64);
           }
 
-          // Direct PUT to Cloudflare R2 / S3 storage (zero server bandwidth consumption)
           const uploadRes = await fetch(presignData.uploadUrl, {
             method: presignData.uploadMethod || "PUT",
             headers: { "Content-Type": "application/octet-stream" },
@@ -257,7 +262,6 @@ export default function AdminUploadPage() {
           preUploadedStoragePath = presignData.storagePath;
         }
 
-        // 2. Submit metadata to server action
         const formData = new FormData();
         formData.append("uploadType", mode);
         formData.append("title", finalTitle);
@@ -265,10 +269,10 @@ export default function AdminUploadPage() {
         formData.append("description", description);
         formData.append("category", category);
         formData.append("tags", tags.join(","));
-        formData.append("visibility", visibility);
+        formData.append("visibility", targetVisibility);
         formData.append("isPinned", String(isPinned));
 
-        if (enableE2EE) {
+        if (shouldEncrypt) {
           formData.append("isEncrypted", "true");
           formData.append("encryptionIv", encryptionIv);
           formData.append("preUploadedStoragePath", preUploadedStoragePath);
@@ -290,6 +294,31 @@ export default function AdminUploadPage() {
         setErrorMessage((err as Error)?.message || "发布过程中出现异常，请重试");
       }
     });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+
+    // If user chose "public" and hasn't explicitly confirmed disclaimer yet
+    if (visibility === "public" && !bypassedRiskCheck) {
+      let codeToScan = pasteContent;
+      if (mode === "file" && file && (file.name.endsWith(".html") || file.name.endsWith(".htm"))) {
+        try {
+          codeToScan = await file.text();
+        } catch {
+          codeToScan = "";
+        }
+      }
+
+      // Perform static credential & token scan
+      const scanResult = scanHtmlForSensitiveData(codeToScan);
+      setDetectedRisks(scanResult.matches);
+      setShowRiskDialog(true);
+      return;
+    }
+
+    await performActualSubmit();
   };
 
   const handleCopySecretUrl = () => {
@@ -385,6 +414,7 @@ export default function AdminUploadPage() {
                   setSlug("");
                   setDescription("");
                   setTags([]);
+                  setBypassedRiskCheck(false);
                 }}
               >
                 继续上传下一个
@@ -421,12 +451,17 @@ export default function AdminUploadPage() {
                           : "border-border hover:border-foreground/40 bg-muted/10 hover:bg-muted/30"
                       }`}
                     >
-                      <UploadCloud className={`w-10 h-10 mb-2 transition-colors ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
+                      <UploadCloud
+                        className={`w-10 h-10 mb-2 transition-colors ${
+                          isDragging ? "text-primary" : "text-muted-foreground"
+                        }`}
+                      />
                       <p className="text-xs font-medium text-foreground">
                         {isDragging ? "松开鼠标即可上传该文件" : "点击选择 或 直接将文件拖拽至此处"}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-1">
-                        支持单个 <code className="font-mono text-foreground font-semibold">.html</code> 或包含子资源的 <code className="font-mono text-foreground font-semibold">.zip</code> 压缩包
+                        支持单个 <code className="font-mono text-foreground font-semibold">.html</code> 或包含子资源的{" "}
+                        <code className="font-mono text-foreground font-semibold">.zip</code> 压缩包
                       </p>
 
                       <Button
@@ -676,12 +711,15 @@ export default function AdminUploadPage() {
                     </label>
                     <select
                       value={visibility}
-                      onChange={(e) => setVisibility(e.target.value as "public" | "unlisted" | "private")}
+                      onChange={(e) => {
+                        setVisibility(e.target.value as "public" | "unlisted" | "private");
+                        setBypassedRiskCheck(false);
+                      }}
                       className="w-full bg-muted/30 border border-input rounded-md px-3 h-8 text-xs text-foreground outline-none focus:border-ring"
                     >
                       <option value="public">公开 (Showcase 画廊展示)</option>
                       <option value="unlisted">仅链接可见 (Unlisted)</option>
-                      <option value="private">私有 (仅自己可见)</option>
+                      <option value="private">私有 (仅自己可见，绝对保密)</option>
                     </select>
                   </div>
 
@@ -717,6 +755,24 @@ export default function AdminUploadPage() {
           </form>
         )}
       </div>
+
+      {/* Public Risk Check & Disclaimer Dialog */}
+      <PublicRiskDialog
+        open={showRiskDialog}
+        onOpenChange={setShowRiskDialog}
+        matches={detectedRisks}
+        onConfirmPublic={() => {
+          setShowRiskDialog(false);
+          setBypassedRiskCheck(true);
+          performActualSubmit("public");
+        }}
+        onSwitchToPrivate={() => {
+          setShowRiskDialog(false);
+          setVisibility("private");
+          setEnableE2EE(true); // Automatically turn on E2EE vault for sensitive credentials!
+          performActualSubmit("private");
+        }}
+      />
     </div>
   );
 }

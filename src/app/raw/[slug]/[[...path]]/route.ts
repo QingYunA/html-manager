@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProjectBySlug, incrementViewCount } from "@/db";
 import { getStorage } from "@/lib/storage";
-import { verifyAdminTokenFromRequest } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{
@@ -18,11 +18,23 @@ export async function GET(request: Request, context: RouteParams) {
     return new NextResponse("Project not found", { status: 404 });
   }
 
-  // If private, only admin can view
-  if (project.visibility === "private") {
-    const isAdmin = await verifyAdminTokenFromRequest(request);
-    if (!isAdmin) {
-      return new NextResponse("Unauthorized: This project is private", { status: 403 });
+  const currentUser = await getCurrentUser();
+
+  // Strict Privacy Enforcement:
+  // If a project is private or encrypted, ONLY the exact project creator can access raw endpoints.
+  // Platform admins CANNOT inspect or access other users' private/encrypted projects!
+  if (project.visibility === "private" || project.isEncrypted) {
+    const isExactCreator = Boolean(
+      currentUser &&
+        (project.userId
+          ? currentUser.id === project.userId
+          : currentUser.id === "selfhost-admin")
+    );
+
+    if (!isExactCreator) {
+      return new NextResponse("403 Forbidden: Private Resource. Only the project owner can access this content.", {
+        status: 403,
+      });
     }
   }
 
@@ -46,6 +58,10 @@ export async function GET(request: Request, context: RouteParams) {
   headers.set("Content-Type", file.contentType);
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("Cache-Control", "public, max-age=60, s-maxage=300");
+
+  if (project.visibility === "private") {
+    headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
 
   if (isHtml) {
     // Sandbox CSP: enables full script execution and forms, but blocks access to parent origin cookies & local storage

@@ -29,20 +29,43 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
   const storage = getStorage();
 
   const currentUser = await getCurrentUser();
-  const isOwner = Boolean(
+
+  // Strict Ownership: Platform admins DO NOT have permission to decrypt or peek at another user's private/encrypted project.
+  // Only the exact user who created the project is granted owner rights!
+  const isExactCreator = Boolean(
     currentUser &&
-      (currentUser.role === "admin" ||
-        (project.userId && currentUser.id === project.userId) ||
-        currentUser.id === "selfhost-admin")
+      (project.userId
+        ? currentUser.id === project.userId
+        : currentUser.id === "selfhost-admin")
   );
 
+  // If project is explicitly private, reject unauthenticated / unauthorized access directly
+  if (project.visibility === "private" && !isExactCreator) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-foreground p-6 text-center antialiased">
+        <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mb-4 border border-destructive/20 font-bold text-lg">
+          403
+        </div>
+        <h1 className="text-base font-semibold">私有资源，禁止未授权访问</h1>
+        <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4 leading-relaxed">
+          该 HTML 项目已被所有者设置为完全私有保护。管理员及外部访客无权查阅内容。
+        </p>
+        <a
+          href="/admin/login"
+          className="text-xs text-foreground underline underline-offset-4 hover:opacity-80"
+        >
+          登录拥有者账号
+        </a>
+      </div>
+    );
+  }
+
   if (project.isEncrypted) {
-    // If encrypted and current user is owner / admin, decrypt seamlessly on server/client pipeline
-    if (isOwner && project.encryptionIv) {
+    // If encrypted, only the exact owner can trigger seamless user master key decryption
+    if (isExactCreator && project.encryptionIv) {
       try {
         const file = await storage.getFile(`${project.storagePrefix}/${project.entryPath}`);
         if (file) {
-          // Decrypt with user master key (derived from user id)
           const targetUserId = project.userId || currentUser!.id;
           initialDecryptedHtml = await decryptArtifactForUser(
             file.data,
@@ -71,7 +94,7 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
       project={project}
       initialSourceCode={sourceCode}
       seamlessDecryptedHtml={initialDecryptedHtml}
-      isOwner={isOwner}
+      isOwner={isExactCreator}
     />
   );
 }
