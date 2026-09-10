@@ -18,6 +18,8 @@ import {
   Info,
   ShieldCheck,
   Lock,
+  Code,
+  Sparkles,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -39,6 +41,7 @@ interface RunnerClientProps {
   initialSourceCode: string;
   seamlessDecryptedHtml?: string;
   isOwner?: boolean;
+  relatedProjects?: Project[];
 }
 
 type DeviceMode = "desktop" | "tablet" | "mobile";
@@ -48,15 +51,18 @@ export default function RunnerClient({
   initialSourceCode,
   seamlessDecryptedHtml = "",
   isOwner = false,
+  relatedProjects = [],
 }: RunnerClientProps) {
   const { t } = useLanguage();
   const [device, setDevice] = useState<DeviceMode>("desktop");
   const [reloadKey, setReloadKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showCode, setShowCode] = useState(false);
+  const [showEmbed, setShowEmbed] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedEmbed, setCopiedEmbed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // E2EE Decryption States: default to seamless decrypted HTML if owner is authenticated!
@@ -239,6 +245,18 @@ export default function RunnerClient({
             <Code2 className="w-3.5 h-3.5" />
           </Button>
 
+          {!project.isEncrypted && (
+            <Button
+              variant={showEmbed ? "secondary" : "ghost"}
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowEmbed(true)}
+              title={t.runner.embed}
+            >
+              <Code className="w-3.5 h-3.5" />
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
@@ -272,30 +290,58 @@ export default function RunnerClient({
         </div>
       </header>
 
-      {/* Info Popover Banner */}
+      {/* Info & Related Projects Popover Banner */}
       {showInfo && (
-        <div className="bg-muted/60 border-b border-border px-4 py-2.5 flex items-center justify-between text-xs text-muted-foreground z-10">
-          <div className="flex flex-wrap items-center gap-4 text-[11px]">
-            <div>
-              <span className="text-muted-foreground">{t.runner.category}</span>
-              <span className="text-foreground font-medium">{project.category}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">{t.runner.status}</span>
-              <span className="text-foreground font-medium">
-                {project.isEncrypted ? (isOwner ? t.runner.seamlessDecrypted : t.runner.e2eeProtected) : t.runner.plainOutput}
-              </span>
-            </div>
-            {project.description && (
-              <div className="max-w-md truncate">
-                <span className="text-muted-foreground">{t.runner.description}</span>
-                <span className="text-foreground">{project.description}</span>
+        <div className="bg-card/95 backdrop-blur-md border-b border-border px-4 py-3 flex flex-col gap-3 text-xs text-muted-foreground z-20 shadow-md">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4 text-[11px]">
+              <div>
+                <span className="text-muted-foreground">{t.runner.category}</span>
+                <span className="text-foreground font-medium">{project.category}</span>
               </div>
-            )}
+              <div>
+                <span className="text-muted-foreground">{t.runner.status}</span>
+                <span className="text-foreground font-medium">
+                  {project.isEncrypted ? (isOwner ? t.runner.seamlessDecrypted : t.runner.e2eeProtected) : t.runner.plainOutput}
+                </span>
+              </div>
+              {project.description && (
+                <div className="max-w-md truncate">
+                  <span className="text-muted-foreground">{t.runner.description}</span>
+                  <span className="text-foreground">{project.description}</span>
+                </div>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setShowInfo(false)}>
+              {t.runner.close}
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setShowInfo(false)}>
-            {t.runner.close}
-          </Button>
+
+          {/* Related Artifacts Showcase */}
+          {relatedProjects.length > 0 && (
+            <div className="pt-2 border-t border-border/50">
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-foreground mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                <span>{t.runner.relatedTitle}</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {relatedProjects.map((rel) => (
+                  <Link
+                    key={rel.slug}
+                    href={`/p/${rel.slug}`}
+                    className="group block p-2 rounded-md bg-muted/40 hover:bg-muted/80 border border-border/50 transition-colors"
+                  >
+                    <div className="font-medium text-foreground text-xs truncate group-hover:text-primary transition-colors">
+                      {rel.title || rel.slug}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                      {rel.description || rel.category}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -423,6 +469,43 @@ export default function RunnerClient({
             <pre className="leading-relaxed whitespace-pre-wrap selection:bg-neutral-700">
               {decryptedHtml || initialSourceCode || (project.isEncrypted ? "Encrypted payload" : "No source")}
             </pre>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Embed Code Modal */}
+      <Dialog open={showEmbed} onOpenChange={setShowEmbed}>
+        <DialogContent className="max-w-xl border-border bg-card">
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle className="text-base font-semibold flex items-center gap-2">
+              <Code className="w-4 h-4 text-emerald-500" />
+              <span>{t.runner.embedTitle}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {t.runner.embedDesc}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-2">
+            <div className="relative rounded-lg bg-neutral-950 p-3 font-mono text-xs text-neutral-300 border border-border/40 overflow-x-auto selection:bg-neutral-700">
+              <code>{`<iframe\n  src="${typeof window !== "undefined" ? window.location.origin : ""}/raw/${project.slug}/"\n  width="100%"\n  height="600"\n  frameborder="0"\n  sandbox="allow-scripts allow-forms allow-popups allow-downloads"\n  loading="lazy"\n></iframe>\n<p style="font-size:12px;color:#666;">Hosted on <a href="https://pagepod.dev" target="_blank" rel="noopener">Pagepod</a></p>`}</code>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => {
+                  const embedCode = `<iframe\n  src="${window.location.origin}/raw/${project.slug}/"\n  width="100%"\n  height="600"\n  frameborder="0"\n  sandbox="allow-scripts allow-forms allow-popups allow-downloads"\n  loading="lazy"\n></iframe>\n<p style="font-size:12px;color:#666;">Hosted on <a href="https://pagepod.dev" target="_blank" rel="noopener">Pagepod</a></p>`;
+                  navigator.clipboard.writeText(embedCode);
+                  setCopiedEmbed(true);
+                  setTimeout(() => setCopiedEmbed(false), 2000);
+                }}
+              >
+                {copiedEmbed ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedEmbed ? t.runner.copied : t.runner.copyEmbed}</span>
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

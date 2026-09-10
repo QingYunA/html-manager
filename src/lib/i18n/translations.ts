@@ -82,6 +82,11 @@ export const translations = {
       decryptRun: "解密运行",
       orLoginToOpen: "或者 登录账号验证无感开启",
       copySource: "复制代码",
+      embed: "嵌入代码",
+      embedTitle: "嵌入到你的网站或博客",
+      embedDesc: "复制下方标准 iframe 代码，粘贴到你的 Notion、博客或网页中：",
+      copyEmbed: "复制嵌入代码",
+      relatedTitle: "相关单页应用推荐",
     },
     riskDialog: {
       title: "公开安全风险检测与免责声明",
@@ -273,6 +278,11 @@ export const translations = {
       decryptRun: "Decrypt & Run",
       orLoginToOpen: "Or Sign in to open seamlessly",
       copySource: "Copy Source",
+      embed: "Embed",
+      embedTitle: "Embed into your site or blog",
+      embedDesc: "Copy the standard iframe code below to embed into Notion, blogs, or websites:",
+      copyEmbed: "Copy Embed Code",
+      relatedTitle: "Related Artifacts",
     },
     riskDialog: {
       title: "Public Security Risk Check & Disclaimer",

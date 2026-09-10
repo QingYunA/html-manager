@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProjectBySlug, incrementViewCount } from "@/db";
+import { getProjectBySlug, incrementViewCount, getAllProjects } from "@/db";
 import { getStorage } from "@/lib/storage";
 import { getCurrentUser } from "@/lib/auth";
 import { decryptArtifactForUser } from "@/lib/crypto/e2ee";
@@ -176,6 +176,26 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
         }
       : null;
 
+  // Fetch related public projects for internal linking & recommendations
+  let relatedProjects: any[] = [];
+  try {
+    const allPublic = await getAllProjects({ category: project.category });
+    relatedProjects = allPublic
+      .filter((p) => p.slug !== slug && p.visibility === "public" && !p.isEncrypted)
+      .slice(0, 4);
+    
+    // If not enough in category, fetch from all categories
+    if (relatedProjects.length < 3) {
+      const moreProjects = await getAllProjects();
+      const extra = moreProjects
+        .filter((p) => p.slug !== slug && p.visibility === "public" && !p.isEncrypted && !relatedProjects.some(r => r.slug === p.slug))
+        .slice(0, 4 - relatedProjects.length);
+      relatedProjects = [...relatedProjects, ...extra];
+    }
+  } catch {
+    relatedProjects = [];
+  }
+
   return (
     <>
       {jsonLd && (
@@ -189,6 +209,7 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
         initialSourceCode={sourceCode}
         seamlessDecryptedHtml={initialDecryptedHtml}
         isOwner={isExactCreator}
+        relatedProjects={relatedProjects}
       />
     </>
   );

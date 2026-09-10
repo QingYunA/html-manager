@@ -95,9 +95,19 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
                 <div className={`p-2 rounded-lg ${isSelected ? "bg-foreground text-background" : "bg-muted text-foreground"}`}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <Badge variant="secondary" className="text-[11px] font-mono">
-                  {cat.count} {t.explore.itemsCount}
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <Badge variant="secondary" className="text-[11px] font-mono">
+                    {cat.count} {t.explore.itemsCount}
+                  </Badge>
+                  <Link
+                    href={`/explore/${cat.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    title="View dedicated page"
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </div>
               </div>
               <h3 className="text-sm font-semibold text-foreground mb-1">
                 {cat.label}
