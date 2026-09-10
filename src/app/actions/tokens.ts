@@ -23,8 +23,13 @@ export async function createTokenAction(name: string) {
       tokenRecord: result.tokenRecord,
     };
   } catch (err: unknown) {
+    const message = (err as Error)?.message || "";
     console.error("createTokenAction error:", err);
-    return { error: "生成 API 密钥失败，请稍后重试" };
+    return {
+      error: message
+        ? `生成 API 密钥失败: ${message}`
+        : "生成 API 密钥失败，请稍后重试",
+    };
   }
 }
 
@@ -39,8 +44,13 @@ export async function deleteTokenAction(tokenId: string) {
     revalidatePath("/admin/settings/tokens");
     return { success };
   } catch (err: unknown) {
+    const message = (err as Error)?.message || "";
     console.error("deleteTokenAction error:", err);
-    return { error: "撤销 API 密钥失败，请稍后重试" };
+    return {
+      error: message
+        ? `撤销 API 密钥失败: ${message}`
+        : "撤销 API 密钥失败，请稍后重试",
+    };
   }
 }
 
