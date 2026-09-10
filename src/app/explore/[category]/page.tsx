@@ -96,6 +96,8 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   };
 }
 
+export const revalidate = 60;
+
 export default async function CategoryDetailPage({ params }: CategoryPageProps) {
   const { category } = await params;
   const catInfo = CATEGORY_MAP[category];

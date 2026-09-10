@@ -6,7 +6,7 @@ import { HomeHeader } from "@/components/home-header";
 import { HeroSection } from "@/components/hero-section";
 import { SiteFooter } from "@/components/site-footer";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function HomePage({
   searchParams,
