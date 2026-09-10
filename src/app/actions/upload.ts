@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { verifyAdminTokenFromCookies } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { processAndCreateProject } from "@/lib/services/project-service";
 
 export interface UploadActionResult {
@@ -14,9 +14,9 @@ export async function handleUploadAction(
   prevState: UploadActionResult | null,
   formData: FormData
 ): Promise<UploadActionResult> {
-  const isAdmin = await verifyAdminTokenFromCookies();
-  if (!isAdmin) {
-    return { error: "无权限：请先登录管理员账号" };
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "无权限：请先登录管理员或用户账号" };
   }
 
   const uploadType = formData.get("uploadType") as string; // 'file' | 'paste'
@@ -28,19 +28,44 @@ export async function handleUploadAction(
   const visibility = ((formData.get("visibility") as string) || "public") as "public" | "unlisted" | "private";
   const isPinned = formData.get("isPinned") === "true";
 
+  // E2EE fields
+  const isEncrypted = formData.get("isEncrypted") === "true";
+  const encryptionIv = (formData.get("encryptionIv") as string) || "";
+  const preUploadedStoragePath = (formData.get("preUploadedStoragePath") as string) || "";
+
   const tags = tagsRaw
     .split(/[,，]/)
     .map((t) => t.trim())
     .filter(Boolean);
 
   try {
-    if (uploadType === "paste") {
+    if (preUploadedStoragePath) {
+      // Direct presigned upload was completed on client
+      const project = await processAndCreateProject({
+        userId: user.id,
+        title,
+        slug,
+        description,
+        category,
+        tags,
+        visibility,
+        isPinned,
+        isEncrypted,
+        encryptionIv,
+        preUploadedStoragePath,
+      });
+
+      revalidatePath("/");
+      revalidatePath("/admin");
+      return { success: true, slug: project.slug };
+    } else if (uploadType === "paste") {
       const htmlContent = formData.get("htmlContent") as string;
       if (!htmlContent || !htmlContent.trim()) {
         return { error: "请输入或粘贴 HTML 代码" };
       }
 
       const project = await processAndCreateProject({
+        userId: user.id,
         title,
         slug,
         description,
@@ -64,6 +89,7 @@ export async function handleUploadAction(
       const fileBuffer = Buffer.from(arrayBuffer);
 
       const project = await processAndCreateProject({
+        userId: user.id,
         title,
         slug,
         description,

@@ -52,4 +52,12 @@ export class LocalStorageProvider implements StorageProvider {
       fs.rmSync(fullPath, { recursive: true, force: true });
     }
   }
+
+  // Local fallback simulation of direct upload endpoint
+  async createPresignedUploadUrl(filePath: string): Promise<{ url: string; method: string }> {
+    return {
+      url: `/api/upload/direct-local?path=${encodeURIComponent(filePath)}`,
+      method: "PUT",
+    };
+  }
 }

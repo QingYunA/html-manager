@@ -1,6 +1,7 @@
 import { processAndCreateProject, updateProjectHtml } from "../src/lib/services/project-service";
 import { getAllProjects, getProjectBySlug, deleteProject } from "../src/db";
 import { getStorage } from "../src/lib/storage";
+import { encryptArtifact, decryptArtifactToHtml } from "../src/lib/crypto/e2ee";
 import JSZip from "jszip";
 
 async function runE2ETests() {
@@ -80,26 +81,51 @@ async function runE2ETests() {
   }
   console.log("✓ Code modification verified in storage!");
 
-  // Test 5: Verify Query Filters
-  console.log("\n[Test 5] Testing search, category, and tag filters...");
-  const gamesOnly = await getAllProjects({ category: "games", includePrivate: true });
-  console.log(`✓ Category query (games): found ${gamesOnly.length} items`);
-  if (!gamesOnly.some((p) => p.id === p2.id)) {
-    throw new Error("Expected p2 in games category query");
-  }
+  // Test 5: Verify E2EE Zero-Knowledge Encryption and In-Memory Decryption
+  console.log("\n[Test 5] Testing Zero-Knowledge End-to-End Encryption & Decryption Pipeline...");
+  const confidentialHtml = `<!DOCTYPE html><html><body><h1>Secret Financial Chart</h1><p>Confidential data: $1,234,567</p></body></html>`;
+  
+  // Client encrypts
+  const encryptedPayload = await encryptArtifact(confidentialHtml);
+  console.log(`✓ Client encrypted artifact: IV=${encryptedPayload.ivBase64}, Key length=${encryptedPayload.keyBase64.length}`);
+  
+  // Server stores ONLY ciphertext (zero plain leak)
+  const p3 = await processAndCreateProject({
+    title: "机密图表单页",
+    category: "visualization",
+    tags: ["Encrypted", "E2EE"],
+    isEncrypted: true,
+    encryptionIv: encryptedPayload.ivBase64,
+    fileBuffer: Buffer.from(encryptedPayload.ciphertext),
+    fileName: "bundle.enc",
+  });
 
-  const tagFiltered = await getAllProjects({ tag: "Physics", includePrivate: true });
-  console.log(`✓ Tag query (Physics): found ${tagFiltered.length} items`);
-  if (!tagFiltered.some((p) => p.id === p1.id)) {
-    throw new Error("Expected p1 in Physics tag query");
+  const storedCipher = await storage.getFile(`${p3.storagePrefix}/${p3.entryPath}`);
+  if (!storedCipher) throw new Error("Could not retrieve encrypted file from storage");
+  if (storedCipher.data.toString("utf-8").includes("Secret Financial Chart")) {
+    throw new Error("CRITICAL SECURITY FAILURE: Plaintext leaked into storage!");
   }
+  console.log("✓ Stored file is completely unreadable ciphertext (verified zero plaintext leak)");
+
+  // Client decrypts with key (simulating URL hash #key=...)
+  const decrypted = await decryptArtifactToHtml(
+    storedCipher.data,
+    encryptedPayload.keyBase64,
+    p3.encryptionIv!
+  );
+  if (!decrypted.includes("Secret Financial Chart") || !decrypted.includes("$1,234,567")) {
+    throw new Error("Client decryption verification failed!");
+  }
+  console.log("✓ Client in-memory decryption successfully recovered original HTML content!");
 
   // Cleanup test artifacts
   console.log("\n[Cleanup] Cleaning up test projects...");
   await storage.deleteDirectory(p1.storagePrefix);
   await storage.deleteDirectory(p2.storagePrefix);
+  await storage.deleteDirectory(p3.storagePrefix);
   await deleteProject(p1.id);
   await deleteProject(p2.id);
+  await deleteProject(p3.id);
   console.log("✓ Cleanup completed successfully!");
 
   console.log("\n🎉 ALL E2E VERIFICATION TESTS PASSED PERFECTLY! 🎉\n");

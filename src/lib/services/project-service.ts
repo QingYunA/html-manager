@@ -5,6 +5,7 @@ import { extractMetadataFromHtml, unpackZipBundle } from "@/lib/parser";
 import type { Project } from "@/db/schema";
 
 export interface CreateProjectInput {
+  userId?: string;
   title?: string;
   slug?: string;
   description?: string;
@@ -16,6 +17,12 @@ export interface CreateProjectInput {
   htmlContent?: string;
   fileBuffer?: Buffer;
   fileName?: string;
+  // Zero-knowledge encryption fields
+  isEncrypted?: boolean;
+  encryptionIv?: string;
+  fileSize?: number;
+  // Pre-uploaded storage path (via S3 Presigned direct PUT)
+  preUploadedStoragePath?: string;
 }
 
 export function sanitizeSlug(input: string): string {
@@ -55,7 +62,16 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
 
   const storagePrefix = `sites/${slug}`;
 
-  if (input.htmlContent) {
+  // Check if file was already directly uploaded via Presigned URL
+  if (input.preUploadedStoragePath) {
+    assetType = "single_html";
+    entryPath = input.isEncrypted ? "bundle.enc" : "index.html";
+  } else if (input.isEncrypted && input.fileBuffer) {
+    // Encrypted file stream
+    assetType = "single_html";
+    entryPath = "bundle.enc";
+    await storage.uploadFile(`${storagePrefix}/${entryPath}`, input.fileBuffer, "application/octet-stream");
+  } else if (input.htmlContent) {
     // 1. Direct HTML content
     assetType = "single_html";
     entryPath = "index.html";
@@ -96,15 +112,16 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
       await storage.uploadFile(`${storagePrefix}/index.html`, input.fileBuffer, "text/html; charset=utf-8");
     }
   } else {
-    throw new Error("Must provide either htmlContent or a valid fileBuffer");
+    throw new Error("Must provide either htmlContent, valid fileBuffer, or preUploadedStoragePath");
   }
 
   if (!title) {
-    title = "未命名项目";
+    title = input.isEncrypted ? "加密私密单页" : "未命名项目";
   }
 
   const project = await createProject({
     id: nanoid(12),
+    userId: input.userId || null,
     title,
     slug,
     description,
@@ -117,6 +134,10 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
     visibility: input.visibility || "public",
     isPinned: Boolean(input.isPinned),
     viewCount: 0,
+    isEncrypted: Boolean(input.isEncrypted),
+    encryptionIv: input.encryptionIv || null,
+    fileSize: input.fileSize || 0,
+    planTier: "free",
   });
 
   return project;

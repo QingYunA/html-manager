@@ -15,12 +15,20 @@ function getJwtSecret(): Uint8Array {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only protect /admin routes, but allow /admin/login
+  // Protect /admin routes, exempting /admin/login
   if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
-    const token = request.cookies.get(COOKIE_NAME)?.value;
     let isValid = false;
 
-    if (token) {
+    // Check Cloud Mode: look for Supabase auth cookie tokens
+    const allCookies = request.cookies.getAll();
+    const hasSupabaseAuth = allCookies.some((c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token"));
+    if (hasSupabaseAuth) {
+      isValid = true;
+    }
+
+    // Check Self-hosted Mode: JWT token
+    const token = request.cookies.get(COOKIE_NAME)?.value;
+    if (!isValid && token) {
       try {
         const { payload } = await jwtVerify(token, getJwtSecret());
         if (payload.role === "admin") {

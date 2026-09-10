@@ -16,7 +16,8 @@ import {
   Check,
   Copy,
   Info,
-  Layers,
+  ShieldCheck,
+  Lock,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { decryptArtifactToHtml, extractKeyFromUrlHash } from "@/lib/crypto/e2ee";
 
 interface RunnerClientProps {
   project: Project;
@@ -47,7 +49,53 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
   const [copiedLink, setCopiedLink] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // E2EE Decryption States
+  const [decryptedHtml, setDecryptedHtml] = useState<string | null>(null);
+  const [isDecrypting, setIsDecrypting] = useState(project.isEncrypted);
+  const [decryptError, setDecryptError] = useState<string | null>(null);
+  const [manualKeyInput, setManualKeyInput] = useState("");
+
   const rawUrl = `/raw/${project.slug}/`;
+
+  // Perform client-side decryption if encrypted
+  const attemptDecryption = async (key: string) => {
+    if (!project.isEncrypted || !project.encryptionIv) return;
+    setIsDecrypting(true);
+    setDecryptError(null);
+
+    try {
+      // 1. Fetch encrypted binary from storage endpoint
+      const res = await fetch(rawUrl);
+      if (!res.ok) throw new Error(`无法获取密文数据 (状态码: ${res.status})`);
+      const ciphertextBuffer = await res.arrayBuffer();
+
+      // 2. Decrypt locally in browser memory
+      const html = await decryptArtifactToHtml(
+        new Uint8Array(ciphertextBuffer),
+        key,
+        project.encryptionIv
+      );
+
+      setDecryptedHtml(html);
+      setIsDecrypting(false);
+    } catch (err: unknown) {
+      console.error("Decryption failed:", err);
+      setDecryptError("解密失败：提供的密钥不匹配或数据已被篡改");
+      setIsDecrypting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (project.isEncrypted) {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      const extractedKey = extractKeyFromUrlHash(hash);
+      if (extractedKey) {
+        attemptDecryption(extractedKey);
+      } else {
+        setIsDecrypting(false);
+      }
+    }
+  }, [project.isEncrypted, reloadKey]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -66,8 +114,9 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
   };
 
   const handleCopyCode = () => {
-    if (!initialSourceCode) return;
-    navigator.clipboard.writeText(initialSourceCode);
+    const codeToCopy = decryptedHtml || initialSourceCode;
+    if (!codeToCopy) return;
+    navigator.clipboard.writeText(codeToCopy);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };
@@ -97,9 +146,16 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
             <h1 className="text-xs font-semibold text-foreground truncate max-w-[140px] sm:max-w-xs md:max-w-sm">
               {project.title}
             </h1>
-            <Badge variant="outline" className="hidden sm:inline-flex text-[10px] px-1.5 py-0">
-              {project.category}
-            </Badge>
+            {project.isEncrypted ? (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1 text-emerald-500 border-emerald-500/30">
+                <ShieldCheck className="w-3 h-3" />
+                <span>E2EE 加密</span>
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="hidden sm:inline-flex text-[10px] px-1.5 py-0">
+                {project.category}
+              </Badge>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -160,17 +216,15 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
             <RotateCw className="w-3.5 h-3.5" />
           </Button>
 
-          {project.assetType === "single_html" && (
-            <Button
-              variant={showCode ? "secondary" : "ghost"}
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              onClick={() => setShowCode(true)}
-              title="查看 HTML 源码"
-            >
-              <Code2 className="w-3.5 h-3.5" />
-            </Button>
-          )}
+          <Button
+            variant={showCode ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            onClick={() => setShowCode(true)}
+            title="查看 HTML 源码"
+          >
+            <Code2 className="w-3.5 h-3.5" />
+          </Button>
 
           <Button
             variant="ghost"
@@ -182,11 +236,13 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
             {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
           </Button>
 
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
-            <a href={rawUrl} target="_blank" rel="noopener noreferrer" title="在新标签页中纯净打开">
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </Button>
+          {!project.isEncrypted && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+              <a href={rawUrl} target="_blank" rel="noopener noreferrer" title="在新标签页中纯净打开">
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </Button>
+          )}
 
           <ThemeToggle />
 
@@ -211,8 +267,8 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
               <span className="text-foreground font-medium">{project.category}</span>
             </div>
             <div>
-              <span className="text-muted-foreground">直链地址：</span>
-              <code className="text-foreground font-mono bg-muted px-1 py-0.5 rounded">{rawUrl}</code>
+              <span className="text-muted-foreground">加密状态：</span>
+              <span className="text-foreground font-medium">{project.isEncrypted ? "🔒 零知识端到端加密" : "明文直出"}</span>
             </div>
             {project.description && (
               <div className="max-w-md truncate">
@@ -245,13 +301,59 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
           )}
 
           <div className="flex-1 bg-white relative w-full h-full">
-            <iframe
-              key={reloadKey}
-              src={rawUrl}
-              title={project.title}
-              sandbox="allow-scripts allow-forms allow-downloads allow-popups"
-              className="w-full h-full border-0"
-            />
+            {project.isEncrypted ? (
+              decryptedHtml ? (
+                /* Decrypted In-Memory HTML Sandbox (Zero network plain leak) */
+                <iframe
+                  key={reloadKey}
+                  srcDoc={decryptedHtml}
+                  title={project.title}
+                  sandbox="allow-scripts allow-forms allow-downloads allow-popups"
+                  className="w-full h-full border-0"
+                />
+              ) : (
+                /* Locked Prompt if Key missing or Decrypting */
+                <div className="w-full h-full flex flex-col items-center justify-center bg-background text-foreground p-6 text-center">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-foreground mb-3 border border-border">
+                    <Lock className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <h2 className="text-sm font-semibold">此单页受端到端零知识加密保护</h2>
+                  <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4 leading-relaxed">
+                    {isDecrypting
+                      ? "正在使用 URL Hash 中的私密密钥在浏览器内存中解密..."
+                      : decryptError || "未在链接中检测到解密密钥。请输入专属密钥解密并运行："}
+                  </p>
+
+                  {!isDecrypting && (
+                    <div className="flex items-center gap-2 max-w-xs w-full">
+                      <input
+                        type="text"
+                        value={manualKeyInput}
+                        onChange={(e) => setManualKeyInput(e.target.value)}
+                        placeholder="输入 32 字节 Base64 密钥..."
+                        className="flex-1 bg-muted/40 border border-input rounded-md px-2.5 h-8 text-xs font-mono outline-none"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => attemptDecryption(manualKeyInput.trim())}
+                        className="h-8 text-xs"
+                      >
+                        解密运行
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            ) : (
+              /* Regular Unencrypted Sandbox */
+              <iframe
+                key={reloadKey}
+                src={rawUrl}
+                title={project.title}
+                sandbox="allow-scripts allow-forms allow-downloads allow-popups"
+                className="w-full h-full border-0"
+              />
+            )}
           </div>
         </div>
       </div>
@@ -265,7 +367,7 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
                 {project.entryPath}
               </DialogTitle>
               <DialogDescription className="text-[11px] text-muted-foreground">
-                HTML 源代码查看器
+                {project.isEncrypted ? "已在客户端本地内存完成解密的源代码" : "HTML 源代码查看器"}
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2 mr-6">
@@ -278,7 +380,7 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
 
           <div className="flex-1 p-4 overflow-auto bg-neutral-950 font-mono text-xs text-neutral-300">
             <pre className="leading-relaxed whitespace-pre-wrap selection:bg-neutral-700">
-              {initialSourceCode}
+              {decryptedHtml || initialSourceCode || (project.isEncrypted ? "密文未解密或无法提取" : "无法获取源码")}
             </pre>
           </div>
         </DialogContent>

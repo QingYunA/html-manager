@@ -18,6 +18,10 @@ import {
   Sparkles,
   X,
   Upload,
+  ShieldCheck,
+  Key,
+  Copy,
+  Check,
 } from "lucide-react";
 import { handleUploadAction } from "@/app/actions/upload";
 import { Button } from "@/components/ui/button";
@@ -25,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { encryptArtifact } from "@/lib/crypto/e2ee";
 
 const CATEGORIES = [
   { id: "tools", label: "实用工具", icon: Wrench },
@@ -53,6 +58,12 @@ export default function AdminUploadPage() {
   const [tagInput, setTagInput] = useState("");
   const [visibility, setVisibility] = useState<"public" | "unlisted" | "private">("public");
   const [isPinned, setIsPinned] = useState(false);
+
+  // E2EE States
+  const [enableE2EE, setEnableE2EE] = useState(false);
+  const [e2eeKeyResult, setE2eeKeyResult] = useState<string | null>(null);
+  const [copiedKey, setCopiedKey] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState("");
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
 
@@ -109,7 +120,6 @@ export default function AdminUploadPage() {
     }
   };
 
-  // Drag & Drop Handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -152,7 +162,7 @@ export default function AdminUploadPage() {
     setTags(tags.filter((item) => item !== t));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
@@ -184,30 +194,103 @@ export default function AdminUploadPage() {
         .replace(/[\s_-]+/g, "-") || "project";
     }
 
-    const formData = new FormData();
-    formData.append("uploadType", mode);
-    formData.append("title", finalTitle);
-    formData.append("slug", finalSlug);
-    formData.append("description", description);
-    formData.append("category", category);
-    formData.append("tags", tags.join(","));
-    formData.append("visibility", visibility);
-    formData.append("isPinned", String(isPinned));
-
-    if (mode === "file" && file) {
-      formData.append("file", file);
-    } else {
-      formData.append("htmlContent", pasteContent);
-    }
-
     startTransition(async () => {
-      const res = await handleUploadAction(null, formData);
-      if (res.error) {
-        setErrorMessage(res.error);
-      } else if (res.success && res.slug) {
-        setSuccessSlug(res.slug);
+      try {
+        let preUploadedStoragePath = "";
+        let encryptionIv = "";
+        let clientKey = "";
+
+        // 1. If E2EE enabled: Encrypt in memory first
+        if (enableE2EE) {
+          let rawBytes: Uint8Array;
+          if (mode === "file" && file) {
+            const buf = await file.arrayBuffer();
+            rawBytes = new Uint8Array(buf);
+          } else {
+            rawBytes = new TextEncoder().encode(pasteContent);
+          }
+
+          const encrypted = await encryptArtifact(rawBytes);
+          encryptionIv = encrypted.ivBase64;
+          clientKey = encrypted.keyBase64;
+
+          // Request S3 Presigned direct PUT URL from server
+          const presignRes = await fetch("/api/upload/presign", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              slug: finalSlug,
+              filename: "bundle.enc",
+              contentType: "application/octet-stream",
+              isEncrypted: true,
+            }),
+          });
+
+          if (!presignRes.ok) {
+            throw new Error("Failed to get presigned upload URL from storage");
+          }
+
+          const presignData = await presignRes.json();
+          if (!presignData.uploadUrl) {
+            throw new Error(presignData.error || "Presigned URL error");
+          }
+
+          // Direct PUT to Cloudflare R2 / S3 storage (zero server bandwidth consumption)
+          const uploadRes = await fetch(presignData.uploadUrl, {
+            method: presignData.uploadMethod || "PUT",
+            headers: { "Content-Type": "application/octet-stream" },
+            body: new Blob([encrypted.ciphertext as unknown as BlobPart]),
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error("Direct storage PUT upload failed");
+          }
+
+          preUploadedStoragePath = presignData.storagePath;
+          setE2eeKeyResult(clientKey);
+        }
+
+        // 2. Submit metadata to server action
+        const formData = new FormData();
+        formData.append("uploadType", mode);
+        formData.append("title", finalTitle);
+        formData.append("slug", finalSlug);
+        formData.append("description", description);
+        formData.append("category", category);
+        formData.append("tags", tags.join(","));
+        formData.append("visibility", visibility);
+        formData.append("isPinned", String(isPinned));
+
+        if (enableE2EE) {
+          formData.append("isEncrypted", "true");
+          formData.append("encryptionIv", encryptionIv);
+          formData.append("preUploadedStoragePath", preUploadedStoragePath);
+        } else {
+          if (mode === "file" && file) {
+            formData.append("file", file);
+          } else {
+            formData.append("htmlContent", pasteContent);
+          }
+        }
+
+        const res = await handleUploadAction(null, formData);
+        if (res.error) {
+          setErrorMessage(res.error);
+        } else if (res.success && res.slug) {
+          setSuccessSlug(res.slug);
+        }
+      } catch (err: unknown) {
+        setErrorMessage((err as Error)?.message || "发布过程中出现异常，请重试");
       }
     });
+  };
+
+  const handleCopySecretUrl = () => {
+    if (!successSlug || !e2eeKeyResult) return;
+    const fullUrl = `${window.location.origin}/p/${successSlug}#key=${e2eeKeyResult}`;
+    navigator.clipboard.writeText(fullUrl);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 2000);
   };
 
   return (
@@ -249,15 +332,42 @@ export default function AdminUploadPage() {
                 </code>
               </p>
             </div>
+
+            {/* E2EE Secret Link Banner */}
+            {e2eeKeyResult && (
+              <div className="p-4 rounded-lg bg-muted/60 border border-border text-left space-y-2 max-w-md mx-auto">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" /> 零知识端到端加密专属直链
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[11px] gap-1 px-2"
+                    onClick={handleCopySecretUrl}
+                  >
+                    {copiedKey ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedKey ? "已复制" : "复制密钥直链"}</span>
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  解密密钥存放在 URL 的 <code className="text-foreground">#key=...</code> 哈希片段中，绝不发送给服务器。请务必保存此链接进行访问！
+                </p>
+              </div>
+            )}
+
             <div className="pt-2 flex items-center justify-center gap-2">
               <Button size="sm" asChild>
-                <Link href={`/p/${successSlug}`}>立即在运行台体验</Link>
+                <Link href={e2eeKeyResult ? `/p/${successSlug}#key=${e2eeKeyResult}` : `/p/${successSlug}`}>
+                  立即在运行台体验
+                </Link>
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => {
                   setSuccessSlug(null);
+                  setE2eeKeyResult(null);
                   setFile(null);
                   setPasteContent("");
                   setTitle("");
@@ -379,6 +489,40 @@ export default function AdminUploadPage() {
                 </Card>
               </TabsContent>
             </Tabs>
+
+            {/* Zero-Knowledge End-to-End Encryption Banner */}
+            <Card className="border-border bg-card">
+              <CardContent className="p-4 flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-md bg-muted text-foreground shrink-0 mt-0.5 border border-border">
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-foreground">
+                        端到端零知识加密 (Zero-Knowledge E2EE)
+                      </span>
+                      <Badge variant="secondary" className="text-[10px]">
+                        隐私保险箱
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                      启用后，HTML 将在离开浏览器前由本地 AES-GCM 256 加密直传 R2 存储，密钥仅保存在 URL Hash 中。服务器和管理员完全碰不到明文。
+                    </p>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={enableE2EE}
+                    onChange={(e) => setEnableE2EE(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-foreground"></div>
+                </label>
+              </CardContent>
+            </Card>
 
             {/* Metadata Card */}
             <Card>
@@ -526,7 +670,7 @@ export default function AdminUploadPage() {
                     >
                       <option value="public">公开 (Showcase 画廊展示)</option>
                       <option value="unlisted">仅链接可见 (Unlisted)</option>
-                      <option value="private">私有 (仅管理员可见)</option>
+                      <option value="private">私有 (仅自己可见)</option>
                     </select>
                   </div>
 

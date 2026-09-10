@@ -5,6 +5,7 @@ import {
   ListObjectsV2Command,
   DeleteObjectsCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { StorageProvider, StorageFile } from "./types";
 import { getContentType } from "./mime";
 
@@ -96,5 +97,19 @@ export class CloudflareR2StorageProvider implements StorageProvider {
     } catch (err) {
       console.error("Cloudflare R2 deleteDirectory error:", err);
     }
+  }
+
+  /**
+   * Generates an S3 presigned PUT URL so the browser can directly stream or upload ciphertext
+   * into Cloudflare R2 without passing through the Next.js server (zero server bandwidth).
+   */
+  async createPresignedUploadUrl(filePath: string, contentType: string, expiresInSec = 300): Promise<{ url: string; method: string }> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: filePath,
+      ContentType: contentType,
+    });
+    const url = await getSignedUrl(this.client, command, { expiresIn: expiresInSec });
+    return { url, method: "PUT" };
   }
 }

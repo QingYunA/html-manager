@@ -3,13 +3,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifyPassword, createAdminSessionToken, COOKIE_NAME } from "@/lib/auth";
+import { createSupabaseServerClient, isCloudMode } from "@/lib/supabase/server";
 
 export async function loginAdmin(prevState: { error?: string } | null, formData: FormData) {
   const password = formData.get("password") as string;
   const redirectPath = (formData.get("from") as string) || "/admin";
 
   if (!password) {
-    return { error: "请输入管理员密码" };
+    return { error: "请输入密码" };
   }
 
   const isValid = await verifyPassword(password);
@@ -30,7 +31,54 @@ export async function loginAdmin(prevState: { error?: string } | null, formData:
   redirect(redirectPath);
 }
 
+export async function loginWithEmailAction(prevState: { error?: string } | null, formData: FormData) {
+  const email = (formData.get("email") as string)?.trim();
+  const password = (formData.get("password") as string)?.trim();
+  const isSignUp = formData.get("isSignUp") === "true";
+  const redirectPath = (formData.get("from") as string) || "/admin";
+
+  if (!email || !password) {
+    return { error: "请输入邮箱与密码" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "当前未配置 Supabase 认证环境变量" };
+  }
+
+  if (isSignUp) {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    if (error) {
+      return { error: error.message };
+    }
+  } else {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) {
+      return { error: error.message };
+    }
+  }
+
+  redirect(redirectPath);
+}
+
 export async function logoutAdmin() {
+  if (isCloudMode()) {
+    try {
+      const supabase = await createSupabaseServerClient();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
   redirect("/admin/login");

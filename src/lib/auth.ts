@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { getSetting } from "@/db";
+import { createSupabaseServerClient, isCloudMode } from "@/lib/supabase/server";
 
 const COOKIE_NAME = "html_manager_session";
 
@@ -40,32 +41,72 @@ export async function verifyAdminSessionToken(token: string): Promise<boolean> {
   }
 }
 
-export async function verifyAdminTokenFromCookies(): Promise<boolean> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get(COOKIE_NAME)?.value;
-    if (!token) return false;
-    return await verifyAdminSessionToken(token);
-  } catch {
-    return false;
+export interface CurrentUser {
+  id: string;
+  email?: string;
+  role: "admin" | "user";
+}
+
+/**
+ * Dual-mode session verification:
+ * 1. Cloud mode: Checks Supabase Auth session via cookies
+ * 2. Self-hosted mode: Checks local admin JWT cookie
+ */
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  // Check Cloud Mode first
+  if (isCloudMode()) {
+    try {
+      const supabase = await createSupabaseServerClient();
+      if (supabase) {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (!error && user) {
+          return {
+            id: user.id,
+            email: user.email,
+            role: "user",
+          };
+        }
+      }
+    } catch {
+      // Fallback
+    }
   }
+
+  // Fallback / Self-hosted check
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
+  if (token) {
+    const isValid = await verifyAdminSessionToken(token);
+    if (isValid) {
+      return {
+        id: "selfhost-admin",
+        email: "admin@selfhost.local",
+        role: "admin",
+      };
+    }
+  }
+
+  return null;
+}
+
+export async function verifyAdminTokenFromCookies(): Promise<boolean> {
+  const user = await getCurrentUser();
+  return Boolean(user);
 }
 
 export async function verifyAdminTokenFromRequest(request: Request): Promise<boolean> {
   try {
-    const cookieHeader = request.headers.get("cookie") || "";
-    const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]*)`));
-    if (match && match[1]) {
-      return await verifyAdminSessionToken(decodeURIComponent(match[1]));
-    }
-
+    // 1. Bearer Token check
     const authHeader = request.headers.get("authorization");
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.slice(7).trim();
-      return await verifyApiToken(token);
+      const validToken = await verifyApiToken(token);
+      if (validToken) return true;
     }
 
-    return false;
+    // 2. Cookie check
+    const user = await getCurrentUser();
+    return Boolean(user);
   } catch {
     return false;
   }
@@ -74,23 +115,19 @@ export async function verifyAdminTokenFromRequest(request: Request): Promise<boo
 export async function verifyApiToken(token: string): Promise<boolean> {
   if (!token) return false;
 
-  // 1. Env var API_TOKEN
   if (process.env.API_TOKEN && token === process.env.API_TOKEN) {
     return true;
   }
 
-  // 2. Or token stored in settings
   const customTokens = await getSetting("api_tokens", "");
   if (customTokens) {
     const list = customTokens.split(",").map((t) => t.trim());
     if (list.includes(token)) return true;
   }
 
-  // 3. Allow using ADMIN_PASSWORD as fallback Bearer token
   const adminPwd = await getExpectedAdminPassword();
   if (token === adminPwd) return true;
 
-  // 4. Or valid admin JWT
   return await verifyAdminSessionToken(token);
 }
 

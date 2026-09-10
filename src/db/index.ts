@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import * as schema from "./schema";
 import type { Project, NewProject } from "./schema";
 
@@ -29,7 +29,6 @@ function readLocalData(): LocalData {
     }
     const raw = fs.readFileSync(LOCAL_DB_FILE, "utf-8");
     const data = JSON.parse(raw) as LocalData;
-    // revive dates
     data.projects = data.projects.map((p) => ({
       ...p,
       createdAt: new Date(p.createdAt),
@@ -64,10 +63,10 @@ async function ensurePostgresTables() {
   if (tablesInitialized || !dbUrl) return;
   try {
     const sql = neon(dbUrl);
-    // Automatically create tables if not exists
     await sql`
       CREATE TABLE IF NOT EXISTS projects (
         id TEXT PRIMARY KEY,
+        user_id TEXT,
         title TEXT NOT NULL,
         slug TEXT NOT NULL UNIQUE,
         description TEXT DEFAULT '',
@@ -80,6 +79,10 @@ async function ensurePostgresTables() {
         visibility TEXT NOT NULL DEFAULT 'public',
         is_pinned BOOLEAN NOT NULL DEFAULT false,
         view_count INTEGER NOT NULL DEFAULT 0,
+        is_encrypted BOOLEAN NOT NULL DEFAULT false,
+        encryption_iv TEXT,
+        file_size INTEGER DEFAULT 0,
+        plan_tier TEXT DEFAULT 'free',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
@@ -99,6 +102,7 @@ async function ensurePostgresTables() {
 }
 
 export async function getAllProjects(options?: {
+  userId?: string;
   includePrivate?: boolean;
   category?: string;
   tag?: string;
@@ -109,7 +113,10 @@ export async function getAllProjects(options?: {
 
   if (db) {
     await ensurePostgresTables();
-    list = await db.select().from(schema.projects).orderBy(desc(schema.projects.isPinned), desc(schema.projects.createdAt));
+    list = await db
+      .select()
+      .from(schema.projects)
+      .orderBy(desc(schema.projects.isPinned), desc(schema.projects.createdAt));
   } else {
     const local = readLocalData();
     list = [...local.projects].sort((a, b) => {
@@ -118,7 +125,10 @@ export async function getAllProjects(options?: {
     });
   }
 
-  if (!options?.includePrivate) {
+  // Filter by user if specified (multi-tenant dashboard)
+  if (options?.userId) {
+    list = list.filter((p) => p.userId === options.userId);
+  } else if (!options?.includePrivate) {
     list = list.filter((p) => p.visibility === "public");
   }
 
@@ -173,6 +183,7 @@ export async function createProject(data: NewProject): Promise<Project> {
   const now = new Date();
   const newRecord: Project = {
     id: data.id,
+    userId: data.userId ?? null,
     title: data.title,
     slug: data.slug,
     description: data.description ?? "",
@@ -185,6 +196,10 @@ export async function createProject(data: NewProject): Promise<Project> {
     visibility: data.visibility ?? "public",
     isPinned: data.isPinned ?? false,
     viewCount: data.viewCount ?? 0,
+    isEncrypted: data.isEncrypted ?? false,
+    encryptionIv: data.encryptionIv ?? null,
+    fileSize: data.fileSize ?? 0,
+    planTier: data.planTier ?? "free",
     createdAt: now,
     updatedAt: now,
   };
@@ -258,7 +273,7 @@ export async function incrementViewCount(slug: string): Promise<void> {
           .where(eq(schema.projects.slug, slug));
       }
     } catch {
-      // non-critical operation
+      // non-critical
     }
   } else {
     const local = readLocalData();

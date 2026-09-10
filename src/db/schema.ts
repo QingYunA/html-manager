@@ -2,6 +2,7 @@ import { pgTable, text, boolean, integer, timestamp, jsonb } from "drizzle-orm/p
 
 export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
+  userId: text("user_id"), // Optional Supabase Auth user ID (for multi-tenant cloud mode)
   title: text("title").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description").default(""),
@@ -9,11 +10,18 @@ export const projects = pgTable("projects", {
   tags: jsonb("tags").$type<string[]>().default([]),
   assetType: text("asset_type").notNull().default("single_html"), // 'single_html' | 'zip_bundle'
   entryPath: text("entry_path").notNull().default("index.html"),
-  storageType: text("storage_type").notNull().default("local"), // 'vercel-blob' | 'cloudflare-r2' | 'local'
+  storageType: text("storage_type").notNull().default("local"), // 'vercel-blob' | 'cloudflare-r2' | 'local' | 'supabase'
   storagePrefix: text("storage_prefix").notNull(),
   visibility: text("visibility").notNull().default("public"), // 'public' | 'unlisted' | 'private'
   isPinned: boolean("is_pinned").notNull().default(false),
   viewCount: integer("view_count").notNull().default(0),
+  
+  // Zero-knowledge End-to-End Encryption fields
+  isEncrypted: boolean("is_encrypted").notNull().default(false),
+  encryptionIv: text("encryption_iv"), // Base64 12-byte IV for AES-GCM (public, secret key stays in URL hash)
+  fileSize: integer("file_size").default(0), // Bytes (for quota tracking)
+  planTier: text("plan_tier").default("free"), // 'free' | 'pro'
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
