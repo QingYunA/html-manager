@@ -23,6 +23,8 @@ import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
+import { useLanguage } from "@/lib/i18n/context";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +49,7 @@ export default function RunnerClient({
   seamlessDecryptedHtml = "",
   isOwner = false,
 }: RunnerClientProps) {
+  const { t } = useLanguage();
   const [device, setDevice] = useState<DeviceMode>("desktop");
   const [reloadKey, setReloadKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -71,7 +74,7 @@ export default function RunnerClient({
 
     try {
       const res = await fetch(rawUrl);
-      if (!res.ok) throw new Error(`无法获取数据 (状态码: ${res.status})`);
+      if (!res.ok) throw new Error(`Status: ${res.status}`);
       const ciphertextBuffer = await res.arrayBuffer();
 
       const html = await decryptArtifactToHtml(
@@ -84,13 +87,12 @@ export default function RunnerClient({
       setIsDecrypting(false);
     } catch (err: unknown) {
       console.error("Decryption failed:", err);
-      setDecryptError("解密失败：提供的密钥不匹配或数据已被篡改");
+      setDecryptError(t.runner.lockedTitle);
       setIsDecrypting(false);
     }
   };
 
   useEffect(() => {
-    // If owner already seamlessly decrypted on server, skip manual hash check
     if (seamlessDecryptedHtml) {
       setDecryptedHtml(seamlessDecryptedHtml);
       setIsDecrypting(false);
@@ -148,7 +150,7 @@ export default function RunnerClient({
         {/* Left: Back & Project Title */}
         <div className="flex items-center gap-2.5 min-w-0">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
-            <Link href="/" title="返回画廊">
+            <Link href="/" title={t.runner.back}>
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>
@@ -160,7 +162,7 @@ export default function RunnerClient({
             {project.isEncrypted ? (
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1 text-emerald-500 border-emerald-500/30">
                 <ShieldCheck className="w-3 h-3" />
-                <span>E2EE 加密</span>
+                <span>{t.runner.encryptedBadge}</span>
               </Badge>
             ) : (
               <Badge variant="outline" className="hidden sm:inline-flex text-[10px] px-1.5 py-0">
@@ -172,7 +174,7 @@ export default function RunnerClient({
               size="icon"
               className="h-6 w-6 text-muted-foreground hover:text-foreground"
               onClick={() => setShowInfo(!showInfo)}
-              title="查看详情"
+              title={t.runner.details}
             >
               <Info className="w-3.5 h-3.5" />
             </Button>
@@ -186,10 +188,10 @@ export default function RunnerClient({
             size="sm"
             className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
             onClick={() => setDevice("desktop")}
-            title="桌面全宽 (100%)"
+            title={t.runner.desktop}
           >
             <Monitor className="w-3.5 h-3.5" />
-            <span className="hidden md:inline text-[11px]">桌面</span>
+            <span className="hidden md:inline text-[11px]">{t.runner.desktop}</span>
           </Button>
 
           <Button
@@ -197,10 +199,10 @@ export default function RunnerClient({
             size="sm"
             className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
             onClick={() => setDevice("tablet")}
-            title="平板模式 (768px)"
+            title={t.runner.tablet}
           >
             <Tablet className="w-3.5 h-3.5" />
-            <span className="hidden md:inline text-[11px]">平板 (768px)</span>
+            <span className="hidden md:inline text-[11px]">{t.runner.tablet}</span>
           </Button>
 
           <Button
@@ -208,10 +210,10 @@ export default function RunnerClient({
             size="sm"
             className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
             onClick={() => setDevice("mobile")}
-            title="手机模式 (375px)"
+            title={t.runner.mobile}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span className="hidden md:inline text-[11px]">手机 (375px)</span>
+            <span className="hidden md:inline text-[11px]">{t.runner.mobile}</span>
           </Button>
         </div>
 
@@ -222,7 +224,7 @@ export default function RunnerClient({
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={() => setReloadKey((k) => k + 1)}
-            title="刷新页面"
+            title={t.runner.refresh}
           >
             <RotateCw className="w-3.5 h-3.5" />
           </Button>
@@ -232,7 +234,7 @@ export default function RunnerClient({
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={() => setShowCode(true)}
-            title="查看 HTML 源码"
+            title={t.runner.sourceCode}
           >
             <Code2 className="w-3.5 h-3.5" />
           </Button>
@@ -242,19 +244,20 @@ export default function RunnerClient({
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={handleCopyLink}
-            title="复制分享链接"
+            title={t.runner.copyLink}
           >
             {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
           </Button>
 
           {!project.isEncrypted && (
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
-              <a href={rawUrl} target="_blank" rel="noopener noreferrer" title="在新标签页中纯净打开">
+              <a href={rawUrl} target="_blank" rel="noopener noreferrer" title={t.runner.openNewTab}>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </Button>
           )}
 
+          <LanguageToggle />
           <ThemeToggle />
 
           <Button
@@ -262,7 +265,7 @@ export default function RunnerClient({
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={toggleFullscreen}
-            title={isFullscreen ? "退出全屏" : "全屏模式"}
+            title={isFullscreen ? t.runner.exitFullscreen : t.runner.fullscreen}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </Button>
@@ -274,24 +277,24 @@ export default function RunnerClient({
         <div className="bg-muted/60 border-b border-border px-4 py-2.5 flex items-center justify-between text-xs text-muted-foreground z-10">
           <div className="flex flex-wrap items-center gap-4 text-[11px]">
             <div>
-              <span className="text-muted-foreground">分类：</span>
+              <span className="text-muted-foreground">{t.runner.category}</span>
               <span className="text-foreground font-medium">{project.category}</span>
             </div>
             <div>
-              <span className="text-muted-foreground">加密状态：</span>
+              <span className="text-muted-foreground">{t.runner.status}</span>
               <span className="text-foreground font-medium">
-                {project.isEncrypted ? (isOwner ? "🔒 用户级认证无感解密" : "🔒 零知识端到端加密") : "明文直出"}
+                {project.isEncrypted ? (isOwner ? t.runner.seamlessDecrypted : t.runner.e2eeProtected) : t.runner.plainOutput}
               </span>
             </div>
             {project.description && (
               <div className="max-w-md truncate">
-                <span className="text-muted-foreground">简介：</span>
+                <span className="text-muted-foreground">{t.runner.description}</span>
                 <span className="text-foreground">{project.description}</span>
               </div>
             )}
           </div>
           <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setShowInfo(false)}>
-            收起
+            {t.runner.close}
           </Button>
         </div>
       )}
@@ -334,11 +337,11 @@ export default function RunnerClient({
                   <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-foreground mb-3 border border-border">
                     <Lock className="w-5 h-5 text-emerald-500" />
                   </div>
-                  <h2 className="text-sm font-semibold">此单页受端到端加密保护</h2>
+                  <h2 className="text-sm font-semibold">{t.runner.lockedTitle}</h2>
                   <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4 leading-relaxed">
                     {isDecrypting
-                      ? "正在使用授权密钥解密中..."
-                      : decryptError || "未在链接中检测到访问密钥。如果你是拥有者，登录即可无感打开："}
+                      ? t.runner.lockedDescOwner
+                      : decryptError || t.runner.lockedDescVisitor}
                   </p>
 
                   {!isDecrypting && (
@@ -348,7 +351,7 @@ export default function RunnerClient({
                           type="text"
                           value={manualKeyInput}
                           onChange={(e) => setManualKeyInput(e.target.value)}
-                          placeholder="输入 Base64 密钥..."
+                          placeholder={t.runner.inputKeyPlaceholder}
                           className="flex-1 bg-muted/40 border border-input rounded-md px-2.5 h-8 text-xs font-mono outline-none"
                         />
                         <Button
@@ -356,14 +359,13 @@ export default function RunnerClient({
                           onClick={() => attemptDecryption(manualKeyInput.trim())}
                           className="h-8 text-xs"
                         >
-                          解密运行
+                          {t.runner.decryptRun}
                         </Button>
                       </div>
 
                       <div className="text-[11px] text-muted-foreground">
-                        或者{" "}
                         <Link href={`/admin/login?from=${encodeURIComponent(`/p/${project.slug}`)}`} className="underline hover:text-foreground">
-                          登录账号验证无感开启
+                          {t.runner.orLoginToOpen}
                         </Link>
                       </div>
                     </div>
@@ -393,20 +395,20 @@ export default function RunnerClient({
                 {project.entryPath}
               </DialogTitle>
               <DialogDescription className="text-[11px] text-muted-foreground">
-                {project.isEncrypted ? "已在客户端完成解密的源代码" : "HTML 源代码查看器"}
+                {project.isEncrypted ? "Decrypted Source Code" : t.runner.sourceCode}
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2 mr-6">
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleCopyCode}>
                 {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedCode ? "已复制" : "复制源码"}</span>
+                <span>{copiedCode ? t.runner.copied : t.runner.copySource}</span>
               </Button>
             </div>
           </DialogHeader>
 
           <div className="flex-1 p-4 overflow-auto bg-neutral-950 font-mono text-xs text-neutral-300">
             <pre className="leading-relaxed whitespace-pre-wrap selection:bg-neutral-700">
-              {decryptedHtml || initialSourceCode || (project.isEncrypted ? "密文未解密或无法提取" : "无法获取源码")}
+              {decryptedHtml || initialSourceCode || (project.isEncrypted ? "Encrypted payload" : "No source")}
             </pre>
           </div>
         </DialogContent>

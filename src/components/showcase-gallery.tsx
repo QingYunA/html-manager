@@ -9,7 +9,6 @@ import {
   Pin,
   Eye,
   ExternalLink,
-  Tag,
   Maximize2,
   Share2,
   Check,
@@ -37,24 +36,24 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { useLanguage } from "@/lib/i18n/context";
 
 interface ShowcaseGalleryProps {
   initialProjects: Project[];
 }
 
-const CATEGORIES = [
-  { id: "all", label: "全部", icon: Layers },
-  { id: "tools", label: "实用工具", icon: Wrench },
-  { id: "games", label: "互动游戏", icon: Gamepad2 },
-  { id: "visualization", label: "数据可视化", icon: BarChart3 },
-  { id: "prototypes", label: "页面原型", icon: Smartphone },
-  { id: "animations", label: "动效演示", icon: Sparkles },
-  { id: "others", label: "其他", icon: Layers },
-];
-
-const CATEGORY_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
+const CATEGORY_ICONS = {
+  all: Layers,
+  tools: Wrench,
+  games: Gamepad2,
+  visualization: BarChart3,
+  prototypes: Smartphone,
+  animations: Sparkles,
+  others: Layers,
+};
 
 export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProps) {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -62,12 +61,24 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
   const [previewProject, setPreviewProject] = useState<Project | null>(null);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
+  const categories = [
+    { id: "all", label: t.categories.all, icon: CATEGORY_ICONS.all },
+    { id: "tools", label: t.categories.tools, icon: CATEGORY_ICONS.tools },
+    { id: "games", label: t.categories.games, icon: CATEGORY_ICONS.games },
+    { id: "visualization", label: t.categories.visualization, icon: CATEGORY_ICONS.visualization },
+    { id: "prototypes", label: t.categories.prototypes, icon: CATEGORY_ICONS.prototypes },
+    { id: "animations", label: t.categories.animations, icon: CATEGORY_ICONS.animations },
+    { id: "others", label: t.categories.others, icon: CATEGORY_ICONS.others },
+  ];
+
+  const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
+
   // Unique tags
   const allTags = useMemo(() => {
     const set = new Set<string>();
     initialProjects.forEach((p) => {
       if (Array.isArray(p.tags)) {
-        p.tags.forEach((t) => set.add(t));
+        p.tags.forEach((tag) => set.add(tag));
       }
     });
     return Array.from(set);
@@ -83,7 +94,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
         const matchTitle = p.title.toLowerCase().includes(q);
         const matchDesc = p.description ? p.description.toLowerCase().includes(q) : false;
         const matchSlug = p.slug.toLowerCase().includes(q);
-        const matchTag = Array.isArray(p.tags) && p.tags.some((t) => t.toLowerCase().includes(q));
+        const matchTag = Array.isArray(p.tags) && p.tags.some((tag) => tag.toLowerCase().includes(q));
         return matchTitle || matchDesc || matchSlug || matchTag;
       }
       return true;
@@ -103,9 +114,9 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
     <div className="space-y-6">
       {/* Category Tabs & Filter Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border">
-        {/* Category Pills (Subtle, clean, shadcn-inspired) */}
+        {/* Category Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
             return (
@@ -131,7 +142,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
         {/* View Mode Toggle */}
         <div className="flex items-center gap-2 self-end md:self-auto">
           <span className="text-xs text-muted-foreground hidden sm:inline">
-            共 {filteredProjects.length} 个单页
+            {t.gallery.totalCount.replace("{count}", String(filteredProjects.length))}
           </span>
           <div className="flex items-center border border-border rounded-md p-0.5 bg-muted/30">
             <Button
@@ -139,7 +150,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
               size="icon"
               className="h-7 w-7 rounded-sm"
               onClick={() => setViewMode("grid")}
-              title="网格视图"
+              title="Grid"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </Button>
@@ -148,7 +159,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
               size="icon"
               className="h-7 w-7 rounded-sm"
               onClick={() => setViewMode("list")}
-              title="列表视图"
+              title="List"
             >
               <List className="w-3.5 h-3.5" />
             </Button>
@@ -163,7 +174,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索单页标题、路由、标签..."
+            placeholder={t.gallery.searchPlaceholder}
             className="pl-8 text-xs bg-muted/20 border-border"
           />
           {search && (
@@ -189,14 +200,14 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
               </button>
             </Badge>
           ) : (
-            allTags.slice(0, 8).map((t) => (
+            allTags.slice(0, 8).map((tag) => (
               <Badge
-                key={t}
+                key={tag}
                 variant="outline"
                 className="cursor-pointer hover:bg-muted/60 transition-colors text-muted-foreground"
-                onClick={() => setSelectedTag(t)}
+                onClick={() => setSelectedTag(tag)}
               >
-                #{t}
+                #{tag}
               </Badge>
             ))
           )}
@@ -211,13 +222,13 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
               <SlidersHorizontal className="w-5 h-5" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-medium text-foreground">没有找到匹配的单页</h3>
+              <h3 className="text-sm font-medium text-foreground">{t.gallery.noProjectsTitle}</h3>
               <p className="text-xs text-muted-foreground">
-                请尝试更换关键词，或进入控制台上传你的 AI HTML 作品。
+                {t.gallery.noProjectsDesc}
               </p>
             </div>
             <Button asChild size="sm" variant="outline" className="mt-2">
-              <Link href="/admin/upload">+ 上传新作品</Link>
+              <Link href="/admin/upload">{t.gallery.uploadNow}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -225,7 +236,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
         /* GRID VIEW: High-end card with live sandboxed miniature thumbnail */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProjects.map((p) => {
-            const cat = CATEGORY_MAP[p.category] || CATEGORY_MAP["tools"];
+            const cat = categoryMap[p.category] || categoryMap["tools"];
             const CategoryIcon = cat.icon;
 
             return (
@@ -243,7 +254,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     loading="lazy"
                     className="w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white opacity-95 group-hover:opacity-100 transition-opacity"
                   />
-                  {/* Subtle hover overlay with quick action buttons */}
+                  {/* Hover Overlay */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
                     <Button
                       size="sm"
@@ -252,11 +263,11 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                       onClick={() => setPreviewProject(p)}
                     >
                       <Play className="w-3 h-3 fill-current" />
-                      <span>试玩预览</span>
+                      <span>{t.gallery.playPreview}</span>
                     </Button>
                     <Button size="sm" variant="default" className="h-8 shadow-md" asChild>
                       <Link href={`/p/${p.slug}`}>
-                        <span>运行台</span>
+                        <span>{t.gallery.openRunner}</span>
                         <ExternalLink className="w-3 h-3" />
                       </Link>
                     </Button>
@@ -276,14 +287,14 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     {p.isPinned && (
                       <Badge variant="default" className="text-[10px] gap-1 bg-amber-500/90 text-black font-semibold">
                         <Pin className="w-2.5 h-2.5 fill-black" />
-                        <span>置顶</span>
+                        <span>{t.gallery.pinned}</span>
                       </Badge>
                     )}
                   </div>
 
                   <button
                     onClick={(e) => handleShare(p.slug, e)}
-                    title="复制分享链接"
+                    title={t.runner.copyLink}
                     className="absolute top-2 right-2 p-1.5 rounded-md bg-black/60 hover:bg-black/80 text-neutral-300 hover:text-white border border-neutral-800 backdrop-blur-md transition-colors cursor-pointer"
                   >
                     {copiedSlug === p.slug ? (
@@ -307,24 +318,24 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     /p/{p.slug}
                   </div>
                   <CardDescription className="line-clamp-2 text-xs leading-relaxed pt-1">
-                    {p.description || "无项目详细描述"}
+                    {p.description || ""}
                   </CardDescription>
                 </CardHeader>
 
                 {/* Tags */}
                 {Array.isArray(p.tags) && p.tags.length > 0 && (
                   <CardContent className="p-4 pt-0 pb-3 flex flex-wrap gap-1">
-                    {p.tags.slice(0, 4).map((t) => (
+                    {p.tags.slice(0, 4).map((tag) => (
                       <Badge
-                        key={t}
+                        key={tag}
                         variant="subtle"
                         className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-muted"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedTag(t);
+                          setSelectedTag(tag);
                         }}
                       >
-                        #{t}
+                        #{tag}
                       </Badge>
                     ))}
                     {p.tags.length > 4 && (
@@ -345,11 +356,11 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     <span className="inline-flex items-center gap-1">
                       {p.assetType === "single_html" ? (
                         <>
-                          <FileCode2 className="w-3 h-3 text-sky-400" /> 单页
+                          <FileCode2 className="w-3 h-3 text-sky-400" /> {t.gallery.singleHtml}
                         </>
                       ) : (
                         <>
-                          <FolderArchive className="w-3 h-3 text-amber-400" /> Zip 包
+                          <FolderArchive className="w-3 h-3 text-amber-400" /> {t.gallery.zipBundle}
                         </>
                       )}
                     </span>
@@ -357,7 +368,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
 
                   <Button variant="ghost" size="sm" asChild className="h-6 px-2 text-xs">
                     <Link href={`/p/${p.slug}`}>
-                      打开 <ExternalLink className="w-3 h-3 ml-1" />
+                      {t.gallery.openDirect} <ExternalLink className="w-3 h-3 ml-1" />
                     </Link>
                   </Button>
                 </CardFooter>
@@ -369,7 +380,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
         /* LIST VIEW: Clean tabular rows */
         <div className="rounded-lg border border-border bg-card divide-y divide-border">
           {filteredProjects.map((p) => {
-            const cat = CATEGORY_MAP[p.category] || CATEGORY_MAP["tools"];
+            const cat = categoryMap[p.category] || categoryMap["tools"];
             const CategoryIcon = cat.icon;
             return (
               <div
@@ -390,7 +401,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                       </Link>
                       {p.isPinned && (
                         <Badge variant="default" className="text-[10px] px-1 py-0 bg-amber-500 text-black">
-                          置顶
+                          {t.gallery.pinned}
                         </Badge>
                       )}
                       <span className="text-[11px] font-mono text-muted-foreground hidden md:inline">
@@ -420,11 +431,11 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                       onClick={() => setPreviewProject(p)}
                     >
                       <Play className="w-3 h-3 fill-current" />
-                      <span>预览</span>
+                      <span>{t.gallery.playPreview}</span>
                     </Button>
                     <Button variant="default" size="sm" className="h-7 text-xs" asChild>
                       <Link href={`/p/${p.slug}`}>
-                        <span>运行</span>
+                        <span>{t.gallery.openRunner}</span>
                         <ExternalLink className="w-3 h-3" />
                       </Link>
                     </Button>
@@ -453,7 +464,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                 <Button size="sm" variant="outline" asChild className="h-7 text-xs">
                   <Link href={`/p/${previewProject.slug}`}>
                     <Maximize2 className="w-3.5 h-3.5" />
-                    <span>打开全屏运行台</span>
+                    <span>{t.gallery.openFullscreenRunner}</span>
                   </Link>
                 </Button>
               )}
