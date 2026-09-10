@@ -88,13 +88,15 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     // Non-fatal, fallback to cookie checks
   }
 
-  // 2. Check Cloud Mode via Supabase cookies
+  // 2. Check Cloud Mode via Supabase cookies (0ms local memory session check)
   if (isCloudMode()) {
     try {
       const supabase = await createSupabaseServerClient();
       if (supabase) {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (!error && user) {
+        // First try local session from signed cookie (instant memory decode without blocking HTTP roundtrip)
+        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+        const user = session?.user;
+        if (!sessionErr && user) {
           const metadata = user.user_metadata || {};
           const fullName = metadata.full_name || metadata.name || metadata.user_name;
           const avatarUrl = metadata.avatar_url || metadata.picture;
