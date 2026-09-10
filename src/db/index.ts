@@ -176,6 +176,19 @@ async function ensurePostgresTables() {
   }
 }
 
+async function withTableFallback<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: unknown) {
+    const error = err as { code?: string; message?: string };
+    if (error?.code === "42P01" || error?.message?.includes("does not exist") || error?.message?.includes("relation")) {
+      await ensurePostgresTables();
+      return await fn();
+    }
+    throw err;
+  }
+}
+
 export async function getAllProjects(options?: {
   userId?: string;
   includePrivate?: boolean;
@@ -188,11 +201,12 @@ export async function getAllProjects(options?: {
 
   if (db) {
     try {
-      await ensurePostgresTables();
-      list = await db
-        .select()
-        .from(schema.projects)
-        .orderBy(desc(schema.projects.isPinned), desc(schema.projects.createdAt));
+      list = await withTableFallback(() =>
+        db
+          .select()
+          .from(schema.projects)
+          .orderBy(desc(schema.projects.isPinned), desc(schema.projects.createdAt))
+      );
     } catch (err) {
       console.error("Database query failed, falling back to local data:", err);
       const local = readLocalData();
@@ -239,8 +253,9 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
   const db = getDatabase();
   if (db) {
     try {
-      await ensurePostgresTables();
-      const rows = await db.select().from(schema.projects).where(eq(schema.projects.slug, slug)).limit(1);
+      const rows = await withTableFallback(() =>
+        db.select().from(schema.projects).where(eq(schema.projects.slug, slug)).limit(1)
+      );
       return rows[0] || null;
     } catch (err) {
       console.error("getProjectBySlug DB query error:", err);
@@ -257,8 +272,9 @@ export async function getProjectById(id: string): Promise<Project | null> {
   const db = getDatabase();
   if (db) {
     try {
-      await ensurePostgresTables();
-      const rows = await db.select().from(schema.projects).where(eq(schema.projects.id, id)).limit(1);
+      const rows = await withTableFallback(() =>
+        db.select().from(schema.projects).where(eq(schema.projects.id, id)).limit(1)
+      );
       return rows[0] || null;
     } catch (err) {
       console.error("getProjectById DB query error:", err);
@@ -299,8 +315,9 @@ export async function createProject(data: NewProject): Promise<Project> {
 
   if (db) {
     try {
-      await ensurePostgresTables();
-      const inserted = await db.insert(schema.projects).values(newRecord).returning();
+      const inserted = await withTableFallback(() =>
+        db.insert(schema.projects).values(newRecord).returning()
+      );
       return inserted[0];
     } catch (err) {
       console.error("createProject DB insert error, saving to local fallback:", err);
@@ -323,12 +340,13 @@ export async function updateProject(id: string, updates: Partial<NewProject>): P
 
   if (db) {
     try {
-      await ensurePostgresTables();
-      const updated = await db
-        .update(schema.projects)
-        .set({ ...updates, updatedAt: now })
-        .where(eq(schema.projects.id, id))
-        .returning();
+      const updated = await withTableFallback(() =>
+        db
+          .update(schema.projects)
+          .set({ ...updates, updatedAt: now })
+          .where(eq(schema.projects.id, id))
+          .returning()
+      );
       return updated[0] || null;
     } catch (err) {
       console.error("updateProject DB query error:", err);
@@ -355,8 +373,9 @@ export async function deleteProject(id: string): Promise<boolean> {
   const db = getDatabase();
   if (db) {
     try {
-      await ensurePostgresTables();
-      await db.delete(schema.projects).where(eq(schema.projects.id, id));
+      await withTableFallback(() =>
+        db.delete(schema.projects).where(eq(schema.projects.id, id))
+      );
       return true;
     } catch (err) {
       console.error("deleteProject DB error:", err);
@@ -375,13 +394,14 @@ export async function incrementViewCount(slug: string): Promise<void> {
   const db = getDatabase();
   if (db) {
     try {
-      await ensurePostgresTables();
       const proj = await getProjectBySlug(slug);
       if (proj) {
-        await db
-          .update(schema.projects)
-          .set({ viewCount: proj.viewCount + 1 })
-          .where(eq(schema.projects.slug, slug));
+        await withTableFallback(() =>
+          db
+            .update(schema.projects)
+            .set({ viewCount: proj.viewCount + 1 })
+            .where(eq(schema.projects.slug, slug))
+        );
       }
     } catch {
       // non-critical
@@ -400,8 +420,9 @@ export async function getSetting(key: string, defaultValue = ""): Promise<string
   const db = getDatabase();
   if (db) {
     try {
-      await ensurePostgresTables();
-      const rows = await db.select().from(schema.settings).where(eq(schema.settings.key, key)).limit(1);
+      const rows = await withTableFallback(() =>
+        db.select().from(schema.settings).where(eq(schema.settings.key, key)).limit(1)
+      );
       return rows[0]?.value ?? defaultValue;
     } catch {
       return defaultValue;
@@ -417,14 +438,15 @@ export async function setSetting(key: string, value: string): Promise<void> {
   const now = new Date();
   if (db) {
     try {
-      await ensurePostgresTables();
-      await db
-        .insert(schema.settings)
-        .values({ key, value, updatedAt: now })
-        .onConflictDoUpdate({
-          target: schema.settings.key,
-          set: { value, updatedAt: now },
-        });
+      await withTableFallback(() =>
+        db
+          .insert(schema.settings)
+          .values({ key, value, updatedAt: now })
+          .onConflictDoUpdate({
+            target: schema.settings.key,
+            set: { value, updatedAt: now },
+          })
+      );
     } catch (err) {
       console.error("setSetting DB error:", err);
     }
@@ -443,8 +465,9 @@ export async function createApiTokenRecord(token: NewApiToken): Promise<ApiToken
   const db = getDatabase();
   if (db) {
     try {
-      await ensurePostgresTables();
-      const rows = await db.insert(schema.apiTokens).values(token).returning();
+      const rows = await withTableFallback(() =>
+        db.insert(schema.apiTokens).values(token).returning()
+      );
       return rows[0];
     } catch (err) {
       console.error("createApiTokenRecord DB error, falling back to local storage:", err);
@@ -477,12 +500,13 @@ export async function getApiTokensByUserId(userId: string): Promise<ApiToken[]> 
   const db = getDatabase();
   if (db) {
     try {
-      await ensurePostgresTables();
-      return await db
-        .select()
-        .from(schema.apiTokens)
-        .where(eq(schema.apiTokens.userId, userId))
-        .orderBy(desc(schema.apiTokens.createdAt));
+      return await withTableFallback(() =>
+        db
+          .select()
+          .from(schema.apiTokens)
+          .where(eq(schema.apiTokens.userId, userId))
+          .orderBy(desc(schema.apiTokens.createdAt))
+      );
     } catch (err) {
       console.error("getApiTokensByUserId DB error, falling back to local data:", err);
       const local = readLocalData();
@@ -502,12 +526,13 @@ export async function findApiTokenByHash(tokenHash: string): Promise<ApiToken | 
   const db = getDatabase();
   if (db) {
     try {
-      await ensurePostgresTables();
-      const rows = await db
-        .select()
-        .from(schema.apiTokens)
-        .where(eq(schema.apiTokens.tokenHash, tokenHash))
-        .limit(1);
+      const rows = await withTableFallback(() =>
+        db
+          .select()
+          .from(schema.apiTokens)
+          .where(eq(schema.apiTokens.tokenHash, tokenHash))
+          .limit(1)
+      );
       return rows[0] || null;
     } catch (err) {
       console.error("findApiTokenByHash DB error, falling back to local data:", err);
@@ -525,11 +550,12 @@ export async function touchApiTokenLastUsed(id: string): Promise<void> {
   const now = new Date();
   if (db) {
     try {
-      await ensurePostgresTables();
-      await db
-        .update(schema.apiTokens)
-        .set({ lastUsedAt: now })
-        .where(eq(schema.apiTokens.id, id));
+      await withTableFallback(() =>
+        db
+          .update(schema.apiTokens)
+          .set({ lastUsedAt: now })
+          .where(eq(schema.apiTokens.id, id))
+      );
     } catch (err) {
       console.error("touchApiTokenLastUsed DB error, fallback to local:", err);
       const local = readLocalData();
@@ -553,10 +579,11 @@ export async function deleteApiTokenById(id: string, userId: string): Promise<bo
   const db = getDatabase();
   if (db) {
     try {
-      await ensurePostgresTables();
-      await db
-        .delete(schema.apiTokens)
-        .where(eq(schema.apiTokens.id, id));
+      await withTableFallback(() =>
+        db
+          .delete(schema.apiTokens)
+          .where(eq(schema.apiTokens.id, id))
+      );
       return true;
     } catch (err) {
       console.error("deleteApiTokenById DB error, falling back to local data:", err);

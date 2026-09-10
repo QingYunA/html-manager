@@ -1,20 +1,10 @@
-import { redirect } from "next/navigation";
 import { getAllProjects } from "@/db";
 import ShowcaseGallery from "@/components/showcase-gallery";
 import { HeroSection } from "@/components/hero-section";
 
 export const revalidate = 60;
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ code?: string; next?: string }>;
-}) {
-  const { code, next } = await searchParams;
-  if (code) {
-    redirect(`/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next || "/admin")}`);
-  }
-
+export default async function HomePage() {
   const projects = await getAllProjects({ includePrivate: false });
 
   return (
