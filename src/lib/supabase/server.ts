@@ -3,7 +3,11 @@ import { cookies } from "next/headers";
 
 function cleanEnv(val?: string): string {
   if (!val) return "";
-  return val.trim().replace(/^["']|["']$/g, "").replace(/\/+$/, "");
+  return val
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\/+$/, "");
 }
 
 export async function createSupabaseServerClient() {
