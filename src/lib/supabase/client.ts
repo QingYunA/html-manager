@@ -10,3 +10,10 @@ export function createSupabaseClient() {
 
   return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
+
+export function isClientCloudMode(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_APP_MODE === "cloud" ||
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+  );
+}
