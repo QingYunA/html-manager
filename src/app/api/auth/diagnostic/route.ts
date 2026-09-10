@@ -20,6 +20,8 @@ export async function GET() {
     urlStartsWithHttps: cleanedUrl.startsWith("https://"),
     cleanedUrlValue: cleanedUrl.replace(/https:\/\/[^.]+\./, "https://***."),
     keyLength: rawKey.length,
+    keyPrefix: cleanedKey.slice(0, 6),
+    keySuffix: cleanedKey.slice(-4),
     keyHasDot: cleanedKey.includes("."),
     keyDotCount: (cleanedKey.match(/\./g) || []).length,
   };
