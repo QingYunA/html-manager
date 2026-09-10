@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useRef, useTransition } from "react";
 import Link from "next/link";
 import {
   UploadCloud,
@@ -16,12 +16,14 @@ import {
   BarChart3,
   Smartphone,
   Sparkles,
+  X,
+  Upload,
 } from "lucide-react";
 import { handleUploadAction } from "@/app/actions/upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const CATEGORIES = [
@@ -39,6 +41,9 @@ export default function AdminUploadPage() {
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<"file" | "paste">("file");
   const [file, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [pasteContent, setPasteContent] = useState("");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -50,7 +55,6 @@ export default function AdminUploadPage() {
   const [isPinned, setIsPinned] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
-  const [autoExtracted, setAutoExtracted] = useState(false);
 
   const tryExtractFromHtml = (html: string) => {
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -60,38 +64,72 @@ export default function AdminUploadPage() {
 
     if (titleMatch && titleMatch[1]) {
       const extractedTitle = titleMatch[1].trim();
-      if (extractedTitle && (!title || autoExtracted)) {
+      if (extractedTitle) {
         setTitle(extractedTitle);
-        if (!slug || autoExtracted) {
-          const autoSlug = extractedTitle
-            .toLowerCase()
-            .replace(/[^\w\s-]/g, "")
-            .replace(/[\s_-]+/g, "-")
-            .slice(0, 30);
-          if (autoSlug) setSlug(autoSlug);
-        }
-        setAutoExtracted(true);
+        const autoSlug = extractedTitle
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_-]+/g, "-")
+          .slice(0, 30);
+        if (autoSlug) setSlug(autoSlug);
       }
     }
 
-    if (descMatch && descMatch[1] && (!description || autoExtracted)) {
+    if (descMatch && descMatch[1]) {
       setDescription(descMatch[1].trim());
+    }
+  };
+
+  const processFile = async (selected: File) => {
+    if (!selected) return;
+    setFile(selected);
+    setErrorMessage("");
+
+    const ext = selected.name.toLowerCase();
+    if (ext.endsWith(".html") || ext.endsWith(".htm")) {
+      try {
+        const text = await selected.text();
+        tryExtractFromHtml(text);
+      } catch {
+        const baseName = selected.name.replace(/\.[^/.]+$/, "");
+        if (!title) setTitle(baseName);
+        if (!slug) setSlug(baseName.toLowerCase().replace(/[^\w-]/g, "-"));
+      }
+    } else {
+      const baseName = selected.name.replace(/\.[^/.]+$/, "");
+      if (!title) setTitle(baseName);
+      if (!slug) setSlug(baseName.toLowerCase().replace(/[^\w-]/g, "-"));
     }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
-    if (!selected) return;
-    setFile(selected);
-    setErrorMessage("");
+    if (selected) {
+      await processFile(selected);
+    }
+  };
 
-    if (selected.name.endsWith(".html") || selected.name.endsWith(".htm")) {
-      const text = await selected.text();
-      tryExtractFromHtml(text);
-    } else {
-      const baseName = selected.name.replace(/\.[^/.]+$/, "");
-      if (!title) setTitle(baseName);
-      if (!slug) setSlug(baseName.toLowerCase().replace(/[^\w-]/g, "-"));
+  // Drag & Drop Handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles && droppedFiles.length > 0) {
+      await processFile(droppedFiles[0]);
     }
   };
 
@@ -118,27 +156,47 @@ export default function AdminUploadPage() {
     e.preventDefault();
     setErrorMessage("");
 
+    let finalTitle = title.trim();
+    let finalSlug = slug.trim();
+
+    if (mode === "file") {
+      if (!file) {
+        setErrorMessage("请先选择或拖拽要上传的文件（.html 或 .zip）");
+        return;
+      }
+      if (!finalTitle) {
+        finalTitle = file.name.replace(/\.[^/.]+$/, "");
+      }
+    } else {
+      if (!pasteContent.trim()) {
+        setErrorMessage("请输入或粘贴 HTML 源代码");
+        return;
+      }
+      if (!finalTitle) {
+        finalTitle = "未命名 HTML 项目";
+      }
+    }
+
+    if (!finalSlug) {
+      finalSlug = finalTitle
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/[\s_-]+/g, "-") || "project";
+    }
+
     const formData = new FormData();
     formData.append("uploadType", mode);
-    formData.append("title", title);
-    formData.append("slug", slug);
+    formData.append("title", finalTitle);
+    formData.append("slug", finalSlug);
     formData.append("description", description);
     formData.append("category", category);
     formData.append("tags", tags.join(","));
     formData.append("visibility", visibility);
     formData.append("isPinned", String(isPinned));
 
-    if (mode === "file") {
-      if (!file) {
-        setErrorMessage("请先选择或拖拽要上传的文件");
-        return;
-      }
+    if (mode === "file" && file) {
       formData.append("file", file);
     } else {
-      if (!pasteContent.trim()) {
-        setErrorMessage("请输入或粘贴 HTML 代码");
-        return;
-      }
       formData.append("htmlContent", pasteContent);
     }
 
@@ -173,7 +231,7 @@ export default function AdminUploadPage() {
             发布与托管 HTML
           </h1>
           <p className="text-xs text-muted-foreground">
-            支持单文件 HTML 拖拽、静态资源 Zip 压缩包自动平铺解压，或直接粘贴 AI 产出的源代码。
+            支持单文件 HTML 拖拽上传、静态资源 Zip 压缩包自动平铺解压，或直接粘贴 AI 产出的源代码。
           </p>
         </div>
 
@@ -227,57 +285,94 @@ export default function AdminUploadPage() {
                 </TabsTrigger>
               </TabsList>
 
+              {/* TAB 1: FILE DROPZONE */}
               <TabsContent value="file" className="mt-3">
                 <Card>
                   <CardContent className="p-4">
-                    <label
-                      htmlFor="file-upload"
-                      className="border border-dashed border-border hover:border-foreground/40 transition-colors rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer text-center bg-muted/10 hover:bg-muted/30"
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer text-center transition-all ${
+                        isDragging
+                          ? "border-primary bg-accent/50 scale-[1.01]"
+                          : "border-border hover:border-foreground/40 bg-muted/10 hover:bg-muted/30"
+                      }`}
                     >
-                      <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
+                      <UploadCloud className={`w-10 h-10 mb-2 transition-colors ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
                       <p className="text-xs font-medium text-foreground">
-                        点击选择或直接将文件拖拽至此处
+                        {isDragging ? "松开鼠标即可上传该文件" : "点击选择 或 直接将文件拖拽至此处"}
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        支持单个 <code className="font-mono text-foreground">.html</code> 或包含子资源的 <code className="font-mono text-foreground">.zip</code> 压缩包
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        支持单个 <code className="font-mono text-foreground font-semibold">.html</code> 或包含子资源的 <code className="font-mono text-foreground font-semibold">.zip</code> 压缩包
                       </p>
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="mt-4 text-xs gap-1.5 pointer-events-none"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>浏览本地文件</span>
+                      </Button>
+
                       <input
-                        id="file-upload"
+                        ref={fileInputRef}
                         type="file"
                         accept=".html,.htm,.zip"
                         onChange={handleFileChange}
-                        className="hidden"
+                        className="sr-only"
                       />
-                    </label>
+                    </div>
 
                     {file && (
-                      <div className="mt-3 flex items-center justify-between p-2.5 bg-muted/30 border border-border rounded-md text-xs">
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium text-foreground">{file.name}</span>
-                          <span className="text-muted-foreground">
+                      <div className="mt-3 flex items-center justify-between p-3 bg-muted/40 border border-border rounded-md text-xs">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <FileText className="w-4 h-4 text-foreground shrink-0" />
+                          <span className="font-medium text-foreground truncate">{file.name}</span>
+                          <span className="text-muted-foreground shrink-0 font-mono text-[11px]">
                             ({(file.size / 1024).toFixed(1)} KB)
                           </span>
                         </div>
-                        <Badge variant="subtle" className="text-[10px]">就绪</Badge>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant="secondary" className="text-[10px] text-emerald-500 font-normal">
+                            已就绪
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFile(null);
+                            }}
+                            title="移除文件"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </TabsContent>
 
+              {/* TAB 2: DIRECT PASTE */}
               <TabsContent value="paste" className="mt-3">
                 <Card>
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                       <span>HTML 源代码</span>
-                      <span>输入代码后将自动提取网页标题</span>
+                      <span>粘贴后将自动抽取 &lt;title&gt; 作为标题</span>
                     </div>
                     <textarea
-                      rows={8}
+                      rows={9}
                       value={pasteContent}
                       onChange={(e) => handlePasteChange(e.target.value)}
-                      placeholder="<!DOCTYPE html><html>... 粘贴 AI 生成的 HTML 代码"
+                      placeholder="<!DOCTYPE html><html>... 在此粘贴 AI 编写的 HTML 代码"
                       className="w-full bg-neutral-950 border border-border rounded-md p-3 font-mono text-xs text-neutral-200 outline-none resize-y focus:border-ring transition-colors"
                     />
                   </CardContent>
@@ -296,28 +391,23 @@ export default function AdminUploadPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-foreground mb-1.5">
-                      项目标题 <span className="text-destructive">*</span>
+                      项目标题
                     </label>
                     <Input
-                      required
                       value={title}
-                      onChange={(e) => {
-                        setTitle(e.target.value);
-                        setAutoExtracted(false);
-                      }}
-                      placeholder="例如：2048 小游戏"
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder={file ? file.name.replace(/\.[^/.]+$/, "") : "例如：2048 小游戏"}
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-foreground mb-1.5">
-                      短链接路由 Slug <span className="text-destructive">*</span>
+                      短链接路由 Slug
                     </label>
                     <div className="flex items-center rounded-md border border-input bg-transparent px-2.5 h-8 text-xs">
                       <span className="text-muted-foreground font-mono text-[11px] mr-1">/p/</span>
                       <input
                         type="text"
-                        required
                         value={slug}
                         onChange={(e) => setSlug(e.target.value)}
                         placeholder="game-2048"
