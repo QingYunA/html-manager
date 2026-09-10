@@ -25,13 +25,24 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [tokenName, setTokenName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [createdRawToken, setCreatedRawToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const handleOpenCreate = () => {
+    setCreateError(null);
+    setTokenName("");
+    setIsCreating(true);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tokenName.trim() || loading) return;
 
+    setCreateError(null);
     setLoading(true);
     const res = await createTokenAction(tokenName);
     setLoading(false);
@@ -42,19 +53,23 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
       setIsCreating(false);
       setTokenName("");
     } else {
-      alert(res.error || "创建失败");
+      setCreateError(res.error || "创建失败，请稍后重试");
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("确定要撤销并吊销此 API Token 吗？撤销后所有依赖该密钥的脚本将立刻失效。")) {
-      return;
-    }
-    const res = await deleteTokenAction(id);
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId || deleting) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await deleteTokenAction(deleteTargetId);
+    setDeleting(false);
+
     if (res.success) {
-      setTokens(tokens.filter((t) => t.id !== id));
+      setTokens(tokens.filter((t) => t.id !== deleteTargetId));
+      setDeleteTargetId(null);
     } else {
-      alert(res.error || "撤销失败");
+      setDeleteError(res.error || "撤销失败，请稍后重试");
     }
   };
 
@@ -74,7 +89,7 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
             {tokens.length}
           </Badge>
         </div>
-        <Button size="sm" onClick={() => setIsCreating(true)} className="h-8 text-xs gap-1.5 font-medium">
+        <Button size="sm" onClick={handleOpenCreate} className="h-8 text-xs gap-1.5 font-medium cursor-pointer">
           <Plus className="w-3.5 h-3.5" />
           <span>生成新令牌 (Generate new token)</span>
         </Button>
@@ -116,8 +131,11 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleDelete(token.id)}
-                className="h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5"
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteTargetId(token.id);
+                }}
+                className="h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5 cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">撤销 (Revoke)</span>
@@ -151,7 +169,10 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
       </div>
 
       {/* Create Token Modal */}
-      <Dialog open={isCreating} onOpenChange={setIsCreating}>
+      <Dialog open={isCreating} onOpenChange={(open) => {
+        setIsCreating(open);
+        if (!open) setCreateError(null);
+      }}>
         <DialogContent className="max-w-md border-border bg-card">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">生成新 Personal Access Token</DialogTitle>
@@ -173,15 +194,69 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
               />
             </div>
 
+            {createError && (
+              <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{createError}</span>
+              </div>
+            )}
+
             <DialogFooter className="pt-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setIsCreating(false)} className="h-8 text-xs">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setIsCreating(false)} className="h-8 text-xs cursor-pointer">
                 取消
               </Button>
-              <Button type="submit" size="sm" disabled={loading} className="h-8 text-xs font-medium">
+              <Button type="submit" size="sm" disabled={loading} className="h-8 text-xs font-medium cursor-pointer">
                 {loading ? "正在生成..." : "立即生成"}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revoke Confirmation Dialog */}
+      <Dialog open={Boolean(deleteTargetId)} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteTargetId(null);
+          setDeleteError(null);
+        }
+      }}>
+        <DialogContent className="max-w-md border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold">撤销 API 密钥</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              确定要撤销并吊销此 API Token 吗？撤销后所有依赖该密钥的脚本与自动化任务将立刻失效，此操作无法撤销。
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteError && (
+            <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{deleteError}</span>
+            </div>
+          )}
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={deleting}
+              onClick={() => setDeleteTargetId(null)}
+              className="h-8 text-xs cursor-pointer"
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={deleting}
+              onClick={handleConfirmDelete}
+              className="h-8 text-xs font-medium cursor-pointer"
+            >
+              {deleting ? "正在撤销..." : "确认撤销"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -221,7 +296,7 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
           </div>
 
           <DialogFooter>
-            <Button size="sm" onClick={() => setCreatedRawToken(null)} className="h-8 text-xs font-medium">
+            <Button size="sm" onClick={() => setCreatedRawToken(null)} className="h-8 text-xs font-medium cursor-pointer">
               我已复制并安全保存
             </Button>
           </DialogFooter>
