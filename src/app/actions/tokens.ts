@@ -23,14 +23,15 @@ export async function createTokenAction(name: string) {
       tokenRecord: result.tokenRecord,
     };
   } catch (err: unknown) {
-    return { error: (err as Error)?.message || "创建 API 密钥失败" };
+    console.error("createTokenAction error:", err);
+    return { error: "生成 API 密钥失败，请稍后重试" };
   }
 }
 
 export async function deleteTokenAction(tokenId: string) {
   const user = await getCurrentUser();
   if (!user) {
-    return { error: "Unauthorized" };
+    return { error: "请先登录后再操作" };
   }
 
   try {
@@ -38,7 +39,8 @@ export async function deleteTokenAction(tokenId: string) {
     revalidatePath("/admin/settings/tokens");
     return { success };
   } catch (err: unknown) {
-    return { error: (err as Error)?.message || "撤销 API 密钥失败" };
+    console.error("deleteTokenAction error:", err);
+    return { error: "撤销 API 密钥失败，请稍后重试" };
   }
 }
 
