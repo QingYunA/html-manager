@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import { eq, desc, and } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { eq, desc } from "drizzle-orm";
 import * as schema from "./schema";
 import type { Project, NewProject } from "./schema";
 
@@ -48,55 +48,68 @@ function writeLocalData(data: LocalData) {
   fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(data, null, 2), "utf-8");
 }
 
-let neonDb: ReturnType<typeof drizzle> | null = null;
+let pgPool: Pool | null = null;
+let pgDb: ReturnType<typeof drizzle> | null = null;
 let tablesInitialized = false;
 
-function getNeonDb() {
-  if (!neonDb && dbUrl) {
-    const sql = neon(dbUrl);
-    neonDb = drizzle(sql, { schema });
+function getDatabase() {
+  if (!dbUrl) return null;
+
+  if (!pgDb) {
+    pgPool = new Pool({
+      connectionString: dbUrl,
+      ssl: dbUrl.includes("localhost") || dbUrl.includes("127.0.0.1") ? false : { rejectUnauthorized: false },
+      max: 10,
+    });
+    pgDb = drizzle(pgPool, { schema });
   }
-  return neonDb;
+  return pgDb;
 }
+
+const CREATE_TABLES_SQL = `
+  CREATE TABLE IF NOT EXISTS projects (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    title TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    description TEXT DEFAULT '',
+    category TEXT NOT NULL DEFAULT 'tools',
+    tags JSONB DEFAULT '[]',
+    asset_type TEXT NOT NULL DEFAULT 'single_html',
+    entry_path TEXT NOT NULL DEFAULT 'index.html',
+    storage_type TEXT NOT NULL DEFAULT 'local',
+    storage_prefix TEXT NOT NULL,
+    visibility TEXT NOT NULL DEFAULT 'public',
+    is_pinned BOOLEAN NOT NULL DEFAULT false,
+    view_count INTEGER NOT NULL DEFAULT 0,
+    is_encrypted BOOLEAN NOT NULL DEFAULT false,
+    encryption_iv TEXT,
+    file_size INTEGER DEFAULT 0,
+    plan_tier TEXT DEFAULT 'free',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+`;
 
 async function ensurePostgresTables() {
   if (tablesInitialized || !dbUrl) return;
   try {
-    const sql = neon(dbUrl);
-    await sql`
-      CREATE TABLE IF NOT EXISTS projects (
-        id TEXT PRIMARY KEY,
-        user_id TEXT,
-        title TEXT NOT NULL,
-        slug TEXT NOT NULL UNIQUE,
-        description TEXT DEFAULT '',
-        category TEXT NOT NULL DEFAULT 'tools',
-        tags JSONB DEFAULT '[]',
-        asset_type TEXT NOT NULL DEFAULT 'single_html',
-        entry_path TEXT NOT NULL DEFAULT 'index.html',
-        storage_type TEXT NOT NULL DEFAULT 'local',
-        storage_prefix TEXT NOT NULL,
-        visibility TEXT NOT NULL DEFAULT 'public',
-        is_pinned BOOLEAN NOT NULL DEFAULT false,
-        view_count INTEGER NOT NULL DEFAULT 0,
-        is_encrypted BOOLEAN NOT NULL DEFAULT false,
-        encryption_iv TEXT,
-        file_size INTEGER DEFAULT 0,
-        plan_tier TEXT DEFAULT 'free',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `;
-    await sql`
-      CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `;
+    if (!pgPool) {
+      pgPool = new Pool({
+        connectionString: dbUrl,
+        ssl: dbUrl.includes("localhost") || dbUrl.includes("127.0.0.1") ? false : { rejectUnauthorized: false },
+      });
+    }
+    await pgPool.query(CREATE_TABLES_SQL);
     tablesInitialized = true;
   } catch (err) {
-    console.warn("Table auto-migration notice (tables may already exist):", err);
+    console.warn("Table initialization note:", err);
     tablesInitialized = true;
   }
 }
@@ -108,15 +121,21 @@ export async function getAllProjects(options?: {
   tag?: string;
   search?: string;
 }): Promise<Project[]> {
-  const db = getNeonDb();
+  const db = getDatabase();
   let list: Project[] = [];
 
   if (db) {
-    await ensurePostgresTables();
-    list = await db
-      .select()
-      .from(schema.projects)
-      .orderBy(desc(schema.projects.isPinned), desc(schema.projects.createdAt));
+    try {
+      await ensurePostgresTables();
+      list = await db
+        .select()
+        .from(schema.projects)
+        .orderBy(desc(schema.projects.isPinned), desc(schema.projects.createdAt));
+    } catch (err) {
+      console.error("Database query failed, falling back to local data:", err);
+      const local = readLocalData();
+      list = [...local.projects];
+    }
   } else {
     const local = readLocalData();
     list = [...local.projects].sort((a, b) => {
@@ -155,11 +174,17 @@ export async function getAllProjects(options?: {
 }
 
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
-  const db = getNeonDb();
+  const db = getDatabase();
   if (db) {
-    await ensurePostgresTables();
-    const rows = await db.select().from(schema.projects).where(eq(schema.projects.slug, slug)).limit(1);
-    return rows[0] || null;
+    try {
+      await ensurePostgresTables();
+      const rows = await db.select().from(schema.projects).where(eq(schema.projects.slug, slug)).limit(1);
+      return rows[0] || null;
+    } catch (err) {
+      console.error("getProjectBySlug DB query error:", err);
+      const local = readLocalData();
+      return local.projects.find((p) => p.slug === slug) || null;
+    }
   } else {
     const local = readLocalData();
     return local.projects.find((p) => p.slug === slug) || null;
@@ -167,11 +192,17 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
-  const db = getNeonDb();
+  const db = getDatabase();
   if (db) {
-    await ensurePostgresTables();
-    const rows = await db.select().from(schema.projects).where(eq(schema.projects.id, id)).limit(1);
-    return rows[0] || null;
+    try {
+      await ensurePostgresTables();
+      const rows = await db.select().from(schema.projects).where(eq(schema.projects.id, id)).limit(1);
+      return rows[0] || null;
+    } catch (err) {
+      console.error("getProjectById DB query error:", err);
+      const local = readLocalData();
+      return local.projects.find((p) => p.id === id) || null;
+    }
   } else {
     const local = readLocalData();
     return local.projects.find((p) => p.id === id) || null;
@@ -179,7 +210,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
 }
 
 export async function createProject(data: NewProject): Promise<Project> {
-  const db = getNeonDb();
+  const db = getDatabase();
   const now = new Date();
   const newRecord: Project = {
     id: data.id,
@@ -205,9 +236,17 @@ export async function createProject(data: NewProject): Promise<Project> {
   };
 
   if (db) {
-    await ensurePostgresTables();
-    const inserted = await db.insert(schema.projects).values(newRecord).returning();
-    return inserted[0];
+    try {
+      await ensurePostgresTables();
+      const inserted = await db.insert(schema.projects).values(newRecord).returning();
+      return inserted[0];
+    } catch (err) {
+      console.error("createProject DB insert error, saving to local fallback:", err);
+      const local = readLocalData();
+      local.projects.push(newRecord);
+      writeLocalData(local);
+      return newRecord;
+    }
   } else {
     const local = readLocalData();
     local.projects.push(newRecord);
@@ -217,17 +256,22 @@ export async function createProject(data: NewProject): Promise<Project> {
 }
 
 export async function updateProject(id: string, updates: Partial<NewProject>): Promise<Project | null> {
-  const db = getNeonDb();
+  const db = getDatabase();
   const now = new Date();
 
   if (db) {
-    await ensurePostgresTables();
-    const updated = await db
-      .update(schema.projects)
-      .set({ ...updates, updatedAt: now })
-      .where(eq(schema.projects.id, id))
-      .returning();
-    return updated[0] || null;
+    try {
+      await ensurePostgresTables();
+      const updated = await db
+        .update(schema.projects)
+        .set({ ...updates, updatedAt: now })
+        .where(eq(schema.projects.id, id))
+        .returning();
+      return updated[0] || null;
+    } catch (err) {
+      console.error("updateProject DB query error:", err);
+      return null;
+    }
   } else {
     const local = readLocalData();
     const index = local.projects.findIndex((p) => p.id === id);
@@ -246,11 +290,16 @@ export async function updateProject(id: string, updates: Partial<NewProject>): P
 }
 
 export async function deleteProject(id: string): Promise<boolean> {
-  const db = getNeonDb();
+  const db = getDatabase();
   if (db) {
-    await ensurePostgresTables();
-    await db.delete(schema.projects).where(eq(schema.projects.id, id));
-    return true;
+    try {
+      await ensurePostgresTables();
+      await db.delete(schema.projects).where(eq(schema.projects.id, id));
+      return true;
+    } catch (err) {
+      console.error("deleteProject DB error:", err);
+      return false;
+    }
   } else {
     const local = readLocalData();
     const originalLength = local.projects.length;
@@ -261,7 +310,7 @@ export async function deleteProject(id: string): Promise<boolean> {
 }
 
 export async function incrementViewCount(slug: string): Promise<void> {
-  const db = getNeonDb();
+  const db = getDatabase();
   if (db) {
     try {
       await ensurePostgresTables();
@@ -286,7 +335,7 @@ export async function incrementViewCount(slug: string): Promise<void> {
 }
 
 export async function getSetting(key: string, defaultValue = ""): Promise<string> {
-  const db = getNeonDb();
+  const db = getDatabase();
   if (db) {
     try {
       await ensurePostgresTables();
@@ -302,17 +351,21 @@ export async function getSetting(key: string, defaultValue = ""): Promise<string
 }
 
 export async function setSetting(key: string, value: string): Promise<void> {
-  const db = getNeonDb();
+  const db = getDatabase();
   const now = new Date();
   if (db) {
-    await ensurePostgresTables();
-    await db
-      .insert(schema.settings)
-      .values({ key, value, updatedAt: now })
-      .onConflictDoUpdate({
-        target: schema.settings.key,
-        set: { value, updatedAt: now },
-      });
+    try {
+      await ensurePostgresTables();
+      await db
+        .insert(schema.settings)
+        .values({ key, value, updatedAt: now })
+        .onConflictDoUpdate({
+          target: schema.settings.key,
+          set: { value, updatedAt: now },
+        });
+    } catch (err) {
+      console.error("setSetting DB error:", err);
+    }
   } else {
     const local = readLocalData();
     local.settings[key] = value;
