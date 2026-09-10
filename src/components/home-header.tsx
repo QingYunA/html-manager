@@ -22,9 +22,9 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-sm text-foreground">
             <div className="w-5 h-5 rounded-md bg-foreground text-background flex items-center justify-center font-mono text-[11px] font-bold">
-              H
+              P
             </div>
-            <span>HTML Manager</span>
+            <span>Pagepod</span>
           </Link>
           <span className="text-border">/</span>
           <span className="text-xs text-muted-foreground font-mono">{t.nav.showcase}</span>

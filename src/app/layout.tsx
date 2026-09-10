@@ -4,7 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider } from "@/lib/i18n/context";
 
 export const metadata: Metadata = {
-  title: "HTML Manager - AI Artifacts 托管与发现画廊",
+  title: "Pagepod - AI Artifacts 托管与发现画廊",
   description: "专为 AI 生成的 HTML / 单页应用打造的开源自建托管与展示平台。",
 };
 

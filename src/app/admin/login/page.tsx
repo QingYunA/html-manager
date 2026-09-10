@@ -256,9 +256,9 @@ export default function AdminLoginPage() {
           {/* Logo mark */}
           <div className="mx-auto flex items-center justify-center gap-2 font-semibold text-sm">
             <div className="w-6 h-6 rounded-md bg-foreground text-background flex items-center justify-center font-mono text-xs font-bold">
-              H
+              P
             </div>
-            <span>HTML Manager</span>
+            <span>Pagepod</span>
           </div>
 
           <Suspense fallback={<div className="text-center text-xs text-muted-foreground py-6">{t.auth.loading}</div>}>

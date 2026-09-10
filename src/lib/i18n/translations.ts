@@ -93,7 +93,7 @@ export const translations = {
     auth: {
       loginTitle: "登录你的账号",
       signupTitle: "创建新账号",
-      loginSubtitle: "选择你的登录方式进入 HTML Manager 控制台",
+      loginSubtitle: "选择你的登录方式进入 Pagepod 控制台",
       signupSubtitle: "输入你的邮箱和密码立即开启专属单页托管",
       selfhostTitle: "自建管理员验证",
       selfhostSubtitle: "输入部署时设置的 ADMIN_PASSWORD 环境变量",
@@ -207,7 +207,7 @@ export const translations = {
     auth: {
       loginTitle: "Log in to your account",
       signupTitle: "Create an account",
-      loginSubtitle: "Choose your preferred sign-in method to access HTML Manager",
+      loginSubtitle: "Choose your preferred sign-in method to access Pagepod",
       signupSubtitle: "Enter your email and password to start hosting AI artifacts",
       selfhostTitle: "Self-hosted Admin Access",
       selfhostSubtitle: "Enter the ADMIN_PASSWORD environment variable configured on your server",

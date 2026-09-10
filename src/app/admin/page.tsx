@@ -58,9 +58,9 @@ export default async function AdminDashboardPage() {
         <div className="flex items-center gap-2.5">
           <Link href="/" className="flex items-center gap-2 font-semibold text-xs tracking-tight">
             <div className="w-5 h-5 rounded-md bg-foreground text-background flex items-center justify-center font-mono text-[11px] font-bold">
-              H
+              P
             </div>
-            <span>HTML Manager</span>
+            <span>Pagepod</span>
           </Link>
           <span className="text-border">/</span>
           <Badge variant="outline" className="text-[10px] font-mono">
