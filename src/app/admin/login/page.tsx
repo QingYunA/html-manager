@@ -17,6 +17,8 @@ function LoginForm() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/admin";
+  const errorParam = searchParams.get("error");
+  const errorMsg = searchParams.get("msg");
   const initialTab = searchParams.get("tab") === "signup";
   const [adminState, adminFormAction, isAdminPending] = useActionState(loginAdmin, null);
   const [emailState, emailFormAction, isEmailPending] = useActionState(loginWithEmailAction, null);
@@ -105,10 +107,10 @@ function LoginForm() {
           </Button>
         </div>
 
-        {oauthError && (
-          <p className="text-[11px] text-destructive font-medium text-center">
-            {oauthError}
-          </p>
+        {(oauthError || errorMsg || (errorParam && errorParam !== "oauth_exchange_failed")) && (
+          <div className="p-2.5 text-xs bg-destructive/10 text-destructive border border-destructive/20 rounded-md text-center">
+            {oauthError || errorMsg || errorParam}
+          </div>
         )}
 
         <div className="relative">
