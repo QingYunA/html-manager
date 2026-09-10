@@ -3,8 +3,11 @@
 import { useActionState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { loginAdmin } from "@/app/actions/auth";
-import { Lock, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { Lock, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -12,82 +15,68 @@ function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAdmin, null);
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} className="space-y-4">
       <input type="hidden" name="from" value={from} />
 
-      <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-foreground">
           管理员密码
         </label>
-        <div className="relative">
-          <input
-            type="password"
-            name="password"
-            required
-            autoFocus
-            placeholder="••••••••••••"
-            className="w-full bg-slate-950/70 border border-slate-750 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white rounded-xl px-4 py-3 text-sm outline-none transition-all placeholder:text-slate-600"
-          />
-        </div>
+        <Input
+          type="password"
+          name="password"
+          required
+          autoFocus
+          placeholder="••••••••••••"
+          className="h-9 text-xs"
+        />
         {state?.error && (
-          <p className="text-xs text-rose-400 mt-2 font-medium flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block" />
+          <p className="text-[11px] text-destructive mt-1 font-medium">
             {state.error}
           </p>
         )}
       </div>
 
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 active:scale-[0.99] disabled:opacity-50 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+        className="w-full h-9 text-xs font-medium"
       >
-        {isPending ? (
-          <span>正在验证...</span>
-        ) : (
-          <>
-            <span>进入控制台</span>
-            <ArrowRight className="w-4 h-4" />
-          </>
-        )}
-      </button>
+        {isPending ? "正在验证..." : "登录控制台"}
+      </Button>
     </form>
   );
 }
 
 export default function AdminLoginPage() {
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-slate-950 text-slate-50 relative overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/3 -translate-x-1/2 w-80 h-80 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 shadow-2xl relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/30 mb-4">
-            <Lock className="w-7 h-7" />
+    <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-background text-foreground antialiased">
+      <Card className="w-full max-w-sm border-border shadow-lg">
+        <CardHeader className="space-y-1 text-center p-6 pb-4">
+          <div className="mx-auto w-8 h-8 rounded-md bg-muted flex items-center justify-center text-foreground mb-1 border border-border">
+            <Lock className="w-4 h-4" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-            管理后台登录 <Sparkles className="w-4 h-4 text-indigo-400" />
-          </h1>
-          <p className="text-sm text-slate-400 mt-2">
-            请输入部署时设置的 <code className="text-indigo-300 font-mono">ADMIN_PASSWORD</code>
-          </p>
-        </div>
+          <CardTitle className="text-base font-semibold tracking-tight">管理中台验证</CardTitle>
+          <CardDescription className="text-xs">
+            输入环境变量 <code className="font-mono text-foreground">ADMIN_PASSWORD</code> 登录
+          </CardDescription>
+        </CardHeader>
 
-        <Suspense fallback={<div className="text-center text-xs text-slate-500 py-4">加载中...</div>}>
-          <LoginForm />
-        </Suspense>
+        <CardContent className="p-6 pt-0">
+          <Suspense fallback={<div className="text-center text-xs text-muted-foreground py-4">加载中...</div>}>
+            <LoginForm />
+          </Suspense>
+        </CardContent>
 
-        <div className="mt-8 pt-6 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-          <Link href="/" className="hover:text-slate-200 transition-colors">
-            ← 返回公开画廊
+        <CardFooter className="p-6 pt-0 border-t border-border/60 flex items-center justify-between text-[11px] text-muted-foreground mt-2">
+          <Link href="/" className="hover:text-foreground transition-colors flex items-center gap-1">
+            <ArrowLeft className="w-3 h-3" /> 返回画廊
           </Link>
-          <span className="flex items-center gap-1 text-slate-500">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> 沙箱与身份双重隔离
+          <span className="flex items-center gap-1">
+            <ShieldCheck className="w-3 h-3 text-emerald-500" /> 沙箱身份隔离
           </span>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

@@ -1,38 +1,41 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   UploadCloud,
   FileCode2,
   FolderArchive,
   ArrowLeft,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
-  Tag,
-  Globe,
-  Lock,
-  EyeOff,
-  Pin,
   FileText,
+  Layers,
+  Wrench,
+  Gamepad2,
+  BarChart3,
+  Smartphone,
+  Sparkles,
 } from "lucide-react";
 import { handleUploadAction } from "@/app/actions/upload";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const CATEGORIES = [
-  { id: "tools", label: "实用工具", icon: "🛠️" },
-  { id: "games", label: "互动游戏", icon: "🎮" },
-  { id: "visualization", label: "数据可视化", icon: "📊" },
-  { id: "prototypes", label: "页面原型", icon: "📱" },
-  { id: "animations", label: "动效演示", icon: "✨" },
-  { id: "others", label: "综合其他", icon: "📦" },
+  { id: "tools", label: "实用工具", icon: Wrench },
+  { id: "games", label: "互动游戏", icon: Gamepad2 },
+  { id: "visualization", label: "数据可视化", icon: BarChart3 },
+  { id: "prototypes", label: "页面原型", icon: Smartphone },
+  { id: "animations", label: "动效演示", icon: Sparkles },
+  { id: "others", label: "其他", icon: Layers },
 ];
 
 const SUGGESTED_TAGS = ["Canvas", "SVG", "Three.js", "Tailwind", "Vue", "React", "WebAudio", "ECharts"];
 
 export default function AdminUploadPage() {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<"file" | "paste">("file");
   const [file, setFile] = useState<File | null>(null);
@@ -49,7 +52,6 @@ export default function AdminUploadPage() {
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
   const [autoExtracted, setAutoExtracted] = useState(false);
 
-  // Client-side HTML title extraction helper
   const tryExtractFromHtml = (html: string) => {
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     const descMatch =
@@ -151,52 +153,51 @@ export default function AdminUploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Top bar */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-850">
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> 返回管理列表
-          </Link>
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-mono">
-            <span>HTML Manager v1.0</span>
-          </div>
+    <div className="min-h-screen bg-background text-foreground py-8 px-4 sm:px-6 lg:px-8 antialiased">
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Top Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-border">
+          <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground hover:text-foreground">
+            <Link href="/admin">
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> 返回项目列表
+            </Link>
+          </Button>
+          <Badge variant="outline" className="text-[10px] font-mono">
+            upload hub
+          </Badge>
         </div>
 
-        {/* Page header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <UploadCloud className="w-8 h-8 text-indigo-400" />
-            发布与录入 HTML
+        {/* Page Title */}
+        <div className="space-y-1">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            发布与托管 HTML
           </h1>
-          <p className="text-sm text-slate-400 mt-2">
-            支持单文件 HTML 拖拽上传、静态资源 Zip 压缩包自动解压，或直接粘贴 AI 生成的代码。
+          <p className="text-xs text-muted-foreground">
+            支持单文件 HTML 拖拽、静态资源 Zip 压缩包自动平铺解压，或直接粘贴 AI 产出的源代码。
           </p>
         </div>
 
         {successSlug ? (
-          <div className="bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-8 text-center space-y-4 shadow-xl">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400">
-              <CheckCircle2 className="w-10 h-10" />
+          <Card className="border-border p-8 text-center space-y-4">
+            <div className="mx-auto w-10 h-10 rounded-full bg-muted flex items-center justify-center text-foreground">
+              <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h2 className="text-2xl font-bold text-white">发布成功！</h2>
-            <p className="text-sm text-slate-300">
-              项目已安全入库并分配路由：
-              <code className="mx-1 px-2 py-0.5 rounded bg-slate-800 text-indigo-300 font-mono">
-                /p/{successSlug}
-              </code>
-            </p>
-            <div className="pt-4 flex flex-wrap gap-3 justify-center">
-              <Link
-                href={`/p/${successSlug}`}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition shadow-lg shadow-indigo-600/30"
-              >
-                立即在运行台体验
-              </Link>
-              <button
+            <div className="space-y-1">
+              <h2 className="text-base font-semibold text-foreground">发布成功！</h2>
+              <p className="text-xs text-muted-foreground">
+                已分配专属独立沙箱路由：
+                <code className="mx-1 px-1.5 py-0.5 rounded bg-muted text-foreground font-mono">
+                  /p/{successSlug}
+                </code>
+              </p>
+            </div>
+            <div className="pt-2 flex items-center justify-center gap-2">
+              <Button size="sm" asChild>
+                <Link href={`/p/${successSlug}`}>立即在运行台体验</Link>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => {
                   setSuccessSlug(null);
                   setFile(null);
@@ -206,320 +207,268 @@ export default function AdminUploadPage() {
                   setDescription("");
                   setTags([]);
                 }}
-                className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition"
               >
                 继续上传下一个
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Input method selector */}
-            <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setMode("file")}
-                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-medium transition cursor-pointer ${
-                  mode === "file"
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <FolderArchive className="w-4 h-4" /> 上传文件 (.html / .zip)
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("paste")}
-                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-medium transition cursor-pointer ${
-                  mode === "paste"
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <FileCode2 className="w-4 h-4" /> 直接粘贴代码
-              </button>
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Input Type Selector using Tabs */}
+            <Tabs value={mode} onValueChange={(v) => setMode(v as "file" | "paste")}>
+              <TabsList className="grid grid-cols-2 w-full h-9">
+                <TabsTrigger value="file" className="gap-1.5 text-xs">
+                  <FolderArchive className="w-3.5 h-3.5" />
+                  <span>上传文件 (.html / .zip)</span>
+                </TabsTrigger>
+                <TabsTrigger value="paste" className="gap-1.5 text-xs">
+                  <FileCode2 className="w-3.5 h-3.5" />
+                  <span>直接粘贴代码</span>
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Dropzone or Paste textarea */}
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6">
-              {mode === "file" ? (
-                <div>
-                  <label
-                    htmlFor="file-upload"
-                    className="border-2 border-dashed border-slate-700 hover:border-indigo-500/80 transition-colors rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer text-center bg-slate-950/40 hover:bg-indigo-950/10 group"
-                  >
-                    <UploadCloud className="w-12 h-12 text-slate-500 group-hover:text-indigo-400 transition-colors mb-3" />
-                    <p className="text-sm font-medium text-slate-200">
-                      点击选择或直接将文件拖到这里
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      支持单个 <code className="text-indigo-400 font-mono">.html</code> 单页，或包含本地资源/图片的{" "}
-                      <code className="text-indigo-400 font-mono">.zip</code> 静态压缩包
-                    </p>
-                    <input
-                      id="file-upload"
-                      type="file"
-                      accept=".html,.htm,.zip"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-
-                  {file && (
-                    <div className="mt-4 flex items-center justify-between p-3.5 bg-slate-800/80 border border-slate-700 rounded-xl text-sm">
-                      <div className="flex items-center gap-2.5">
-                        <FileText className="w-5 h-5 text-indigo-400" />
-                        <span className="font-medium text-white">{file.name}</span>
-                        <span className="text-xs text-slate-400">
-                          ({(file.size / 1024).toFixed(1)} KB)
-                        </span>
-                      </div>
-                      <span className="text-xs text-emerald-400 font-medium">已就绪</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      HTML 源代码
+              <TabsContent value="file" className="mt-3">
+                <Card>
+                  <CardContent className="p-4">
+                    <label
+                      htmlFor="file-upload"
+                      className="border border-dashed border-border hover:border-foreground/40 transition-colors rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer text-center bg-muted/10 hover:bg-muted/30"
+                    >
+                      <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
+                      <p className="text-xs font-medium text-foreground">
+                        点击选择或直接将文件拖拽至此处
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        支持单个 <code className="font-mono text-foreground">.html</code> 或包含子资源的 <code className="font-mono text-foreground">.zip</code> 压缩包
+                      </p>
+                      <input
+                        id="file-upload"
+                        type="file"
+                        accept=".html,.htm,.zip"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
                     </label>
-                    <span className="text-xs text-slate-500">自动解析网页标题与描述</span>
-                  </div>
-                  <textarea
-                    rows={10}
-                    value={pasteContent}
-                    onChange={(e) => handlePasteChange(e.target.value)}
-                    placeholder="<!DOCTYPE html><html>... 在此粘贴 AI 编写的 HTML 代码"
-                    className="w-full bg-slate-950/80 border border-slate-700/80 focus:border-indigo-500 rounded-xl p-4 font-mono text-xs text-slate-200 outline-none resize-y transition"
-                  />
-                </div>
-              )}
-            </div>
 
-            {/* Metadata fields */}
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 space-y-6">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-400" /> 项目元数据与展示配置
-              </h2>
+                    {file && (
+                      <div className="mt-3 flex items-center justify-between p-2.5 bg-muted/30 border border-border rounded-md text-xs">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium text-foreground">{file.name}</span>
+                          <span className="text-muted-foreground">
+                            ({(file.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+                        <Badge variant="subtle" className="text-[10px]">就绪</Badge>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-2">
-                    项目标题 <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value);
-                      setAutoExtracted(false);
-                    }}
-                    placeholder="例如：2048 小游戏"
-                    className="w-full bg-slate-950/80 border border-slate-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition"
-                  />
-                </div>
+              <TabsContent value="paste" className="mt-3">
+                <Card>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>HTML 源代码</span>
+                      <span>输入代码后将自动提取网页标题</span>
+                    </div>
+                    <textarea
+                      rows={8}
+                      value={pasteContent}
+                      onChange={(e) => handlePasteChange(e.target.value)}
+                      placeholder="<!DOCTYPE html><html>... 粘贴 AI 生成的 HTML 代码"
+                      className="w-full bg-neutral-950 border border-border rounded-md p-3 font-mono text-xs text-neutral-200 outline-none resize-y focus:border-ring transition-colors"
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-2">
-                    自定义短链接 Slug <span className="text-rose-400">*</span>
-                  </label>
-                  <div className="flex items-center bg-slate-950/80 border border-slate-700 focus-within:border-indigo-500 rounded-xl px-3 py-2 text-sm">
-                    <span className="text-slate-500 font-mono text-xs mr-1">/p/</span>
-                    <input
-                      type="text"
+            {/* Metadata Card */}
+            <Card>
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-xs font-semibold text-foreground">
+                  项目属性与展示设置
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                      项目标题 <span className="text-destructive">*</span>
+                    </label>
+                    <Input
                       required
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                      placeholder="game-2048"
-                      className="w-full bg-transparent text-white outline-none font-mono text-sm"
+                      value={title}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        setAutoExtracted(false);
+                      }}
+                      placeholder="例如：2048 小游戏"
                     />
                   </div>
-                </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
-                  简介描述（可选）
-                </label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="简述这个单页的核心特性、操作说明或适用场景"
-                  className="w-full bg-slate-950/80 border border-slate-700 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition"
-                />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
-                  所属分类
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
-                  {CATEGORIES.map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setCategory(cat.id)}
-                      className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-medium transition cursor-pointer ${
-                        category === cat.id
-                          ? "bg-indigo-600/20 border-indigo-500 text-indigo-300"
-                          : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
-                      }`}
-                    >
-                      <span className="text-xl mb-1">{cat.icon}</span>
-                      <span>{cat.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-2">
-                  标签 (Tags)
-                </label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {tags.map((t) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs"
-                    >
-                      <Tag className="w-3 h-3" /> {t}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(t)}
-                        className="hover:text-rose-400 text-slate-400 transition-colors"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddTag(tagInput);
-                      }
-                    }}
-                    placeholder="输入标签按回车添加..."
-                    className="flex-1 bg-slate-950/80 border border-slate-700 focus:border-indigo-500 rounded-xl px-4 py-2 text-sm text-white outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleAddTag(tagInput)}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm rounded-xl transition"
-                  >
-                    添加
-                  </button>
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5 mt-2.5 text-xs text-slate-500">
-                  <span>常用标签：</span>
-                  {SUGGESTED_TAGS.map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      onClick={() => handleAddTag(st)}
-                      className="hover:text-indigo-400 transition-colors"
-                    >
-                      #{st}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Visibility and Pin */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-2">
-                    公开访问状态
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setVisibility("public")}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-medium cursor-pointer transition ${
-                        visibility === "public"
-                          ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
-                          : "bg-slate-950/40 border-slate-800 text-slate-400"
-                      }`}
-                    >
-                      <Globe className="w-3.5 h-3.5" /> 公开展示
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setVisibility("unlisted")}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-medium cursor-pointer transition ${
-                        visibility === "unlisted"
-                          ? "bg-amber-500/20 border-amber-500 text-amber-300"
-                          : "bg-slate-950/40 border-slate-800 text-slate-400"
-                      }`}
-                    >
-                      <EyeOff className="w-3.5 h-3.5" /> 仅链接可见
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setVisibility("private")}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-medium cursor-pointer transition ${
-                        visibility === "private"
-                          ? "bg-rose-500/20 border-rose-500 text-rose-300"
-                          : "bg-slate-950/40 border-slate-800 text-slate-400"
-                      }`}
-                    >
-                      <Lock className="w-3.5 h-3.5" /> 仅自己可见
-                    </button>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                      短链接路由 Slug <span className="text-destructive">*</span>
+                    </label>
+                    <div className="flex items-center rounded-md border border-input bg-transparent px-2.5 h-8 text-xs">
+                      <span className="text-muted-foreground font-mono text-[11px] mr-1">/p/</span>
+                      <input
+                        type="text"
+                        required
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                        placeholder="game-2048"
+                        className="w-full bg-transparent text-foreground outline-none font-mono text-xs"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-end">
-                  <label
-                    onClick={() => setIsPinned(!isPinned)}
-                    className="flex items-center gap-3 p-3 bg-slate-950/40 border border-slate-800 rounded-xl cursor-pointer hover:border-slate-700 transition"
-                  >
-                    <div
-                      className={`w-5 h-5 rounded-md flex items-center justify-center border transition ${
-                        isPinned ? "bg-indigo-600 border-indigo-500 text-white" : "border-slate-700"
-                      }`}
-                    >
-                      {isPinned && <Pin className="w-3 h-3" />}
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-white">置顶到画廊前列</div>
-                      <div className="text-xs text-slate-500">优先展示在首页最显眼的位置</div>
-                    </div>
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">
+                    简介描述（可选）
                   </label>
+                  <Input
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="简要概括单页的功能或操作指南"
+                  />
                 </div>
-              </div>
-            </div>
+
+                {/* Category Selection */}
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">
+                    所属分类
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                    {CATEGORIES.map((cat) => {
+                      const Icon = cat.icon;
+                      const isSelected = category === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setCategory(cat.id)}
+                          className={`flex items-center justify-center gap-1.5 p-2 rounded-md border text-xs transition-colors cursor-pointer ${
+                            isSelected
+                              ? "bg-foreground text-background font-semibold border-foreground"
+                              : "bg-muted/20 border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                          <span>{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1.5">
+                    标签 (Tags)
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {tags.map((t) => (
+                      <Badge key={t} variant="secondary" className="text-[11px] gap-1 px-2 py-0.5">
+                        <span>{t}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(t)}
+                          className="hover:text-destructive text-muted-foreground ml-0.5 cursor-pointer"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddTag(tagInput);
+                        }
+                      }}
+                      placeholder="输入标签按回车添加..."
+                      className="text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddTag(tagInput)}
+                      className="text-xs shrink-0"
+                    >
+                      添加
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px] text-muted-foreground">
+                    <span>推荐标签：</span>
+                    {SUGGESTED_TAGS.map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => handleAddTag(st)}
+                        className="hover:text-foreground transition-colors cursor-pointer"
+                      >
+                        #{st}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Visibility and Pin */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                      公开访问状态
+                    </label>
+                    <select
+                      value={visibility}
+                      onChange={(e) => setVisibility(e.target.value as "public" | "unlisted" | "private")}
+                      className="w-full bg-muted/30 border border-input rounded-md px-3 h-8 text-xs text-foreground outline-none focus:border-ring"
+                    >
+                      <option value="public">公开 (Showcase 画廊展示)</option>
+                      <option value="unlisted">仅链接可见 (Unlisted)</option>
+                      <option value="private">私有 (仅管理员可见)</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="flex items-center gap-2.5 h-8 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={isPinned}
+                        onChange={(e) => setIsPinned(e.target.checked)}
+                        className="rounded border-input text-foreground focus:ring-1 focus:ring-ring"
+                      />
+                      <span className="text-xs text-foreground font-medium">置顶到画廊前列</span>
+                    </label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {errorMessage && (
-              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-center gap-2.5">
-                <AlertCircle className="w-5 h-5 shrink-0" />
+              <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
-            <button
+            <Button
               type="submit"
               disabled={isPending}
-              className="w-full py-3.5 px-6 bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:to-violet-700 active:scale-[0.99] disabled:opacity-50 text-white font-medium rounded-xl shadow-xl shadow-indigo-500/25 transition flex items-center justify-center gap-2 cursor-pointer text-base"
+              className="w-full h-9 text-xs font-medium"
             >
-              {isPending ? (
-                <span>正在上传与处理...</span>
-              ) : (
-                <>
-                  <UploadCloud className="w-5 h-5" />
-                  <span>立即保存并发布</span>
-                </>
-              )}
-            </button>
+              {isPending ? "正在处理并保存..." : "立即保存并发布"}
+            </Button>
           </form>
         )}
       </div>

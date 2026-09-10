@@ -14,12 +14,20 @@ import {
   Code2,
   Share2,
   Check,
-  X,
   Copy,
   Info,
-  Sparkles,
+  Layers,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface RunnerClientProps {
   project: Project;
@@ -72,171 +80,164 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
   return (
     <div
       ref={containerRef}
-      className="h-screen w-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden select-none"
+      className="h-screen w-screen flex flex-col bg-background text-foreground overflow-hidden select-none antialiased"
     >
       {/* Top Floating Runner Toolbar */}
-      <header className="h-14 border-b border-slate-850 bg-slate-900/90 backdrop-blur-md px-3 sm:px-5 flex items-center justify-between shrink-0 z-20">
+      <header className="h-12 border-b border-border bg-background/95 backdrop-blur-xs px-3 sm:px-4 flex items-center justify-between shrink-0 z-20">
         {/* Left: Back & Project Title */}
-        <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href="/"
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            title="返回公开画廊"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+            <Link href="/" title="返回画廊">
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </Button>
 
           <div className="min-w-0 flex items-center gap-2">
-            <h1 className="text-sm font-bold text-white truncate max-w-[140px] sm:max-w-xs md:max-w-sm">
+            <h1 className="text-xs font-semibold text-foreground truncate max-w-[140px] sm:max-w-xs md:max-w-sm">
               {project.title}
             </h1>
-            <button
+            <Badge variant="outline" className="hidden sm:inline-flex text-[10px] px-1.5 py-0">
+              {project.category}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-muted-foreground hover:text-foreground"
               onClick={() => setShowInfo(!showInfo)}
-              className="text-slate-400 hover:text-indigo-300 transition cursor-pointer p-1"
-              title="查看项目详情"
+              title="查看详情"
             >
               <Info className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           </div>
         </div>
 
-        {/* Center: Responsive Device Switcher */}
-        <div className="flex items-center gap-1 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
-          <button
+        {/* Center: Device Switcher */}
+        <div className="flex items-center border border-border rounded-md p-0.5 bg-muted/40">
+          <Button
+            variant={device === "desktop" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
             onClick={() => setDevice("desktop")}
-            title="电脑端视图 (100%)"
-            className={`p-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-              device === "desktop"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
+            title="桌面全宽 (100%)"
           >
             <Monitor className="w-3.5 h-3.5" />
-            <span className="hidden md:inline text-[11px]">桌面端</span>
-          </button>
+            <span className="hidden md:inline text-[11px]">桌面</span>
+          </Button>
 
-          <button
+          <Button
+            variant={device === "tablet" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
             onClick={() => setDevice("tablet")}
-            title="平板视图 (768px)"
-            className={`p-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-              device === "tablet"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
+            title="平板模式 (768px)"
           >
             <Tablet className="w-3.5 h-3.5" />
             <span className="hidden md:inline text-[11px]">平板 (768px)</span>
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant={device === "mobile" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
             onClick={() => setDevice("mobile")}
-            title="手机端视图 (375px)"
-            className={`p-1.5 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5 ${
-              device === "mobile"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-400 hover:text-slate-200"
-            }`}
+            title="手机模式 (375px)"
           >
             <Smartphone className="w-3.5 h-3.5" />
             <span className="hidden md:inline text-[11px]">手机 (375px)</span>
-          </button>
+          </Button>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-1.5">
-          <button
+        {/* Right Actions */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={() => setReloadKey((k) => k + 1)}
-            title="重新载入页面"
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            title="刷新页面"
           >
-            <RotateCw className="w-4 h-4" />
-          </button>
+            <RotateCw className="w-3.5 h-3.5" />
+          </Button>
 
           {project.assetType === "single_html" && (
-            <button
-              onClick={() => setShowCode(!showCode)}
-              title="查看 HTML 源代码"
-              className={`p-2 rounded-xl transition cursor-pointer ${
-                showCode
-                  ? "bg-indigo-600 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
-              }`}
+            <Button
+              variant={showCode ? "secondary" : "ghost"}
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowCode(true)}
+              title="查看 HTML 源码"
             >
-              <Code2 className="w-4 h-4" />
-            </button>
+              <Code2 className="w-3.5 h-3.5" />
+            </Button>
           )}
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={handleCopyLink}
             title="复制分享链接"
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
-            {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-          </button>
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
+          </Button>
 
-          <a
-            href={rawUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="在新标签页独立打开 (纯净直链)"
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
-          >
-            <ExternalLink className="w-4 h-4" />
-          </a>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+            <a href={rawUrl} target="_blank" rel="noopener noreferrer" title="在新标签页中纯净打开">
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </Button>
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={toggleFullscreen}
-            title={isFullscreen ? "退出全屏" : "全屏运行"}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            title={isFullscreen ? "退出全屏" : "全屏模式"}
           >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </Button>
         </div>
       </header>
 
-      {/* Info popover banner */}
+      {/* Info Popover Banner */}
       {showInfo && (
-        <div className="bg-slate-900/95 border-b border-slate-800 px-4 py-3 flex items-center justify-between text-xs text-slate-300 z-10 animate-in slide-in-from-top-2">
-          <div className="flex flex-wrap items-center gap-4">
+        <div className="bg-muted/60 border-b border-border px-4 py-2.5 flex items-center justify-between text-xs text-muted-foreground z-10">
+          <div className="flex flex-wrap items-center gap-4 text-[11px]">
             <div>
-              <span className="text-slate-500">分类：</span>
-              <span className="text-white font-medium">{project.category}</span>
+              <span className="text-muted-foreground">分类：</span>
+              <span className="text-foreground font-medium">{project.category}</span>
             </div>
             <div>
-              <span className="text-slate-500">直链：</span>
-              <code className="text-indigo-300 font-mono text-[11px]">{rawUrl}</code>
+              <span className="text-muted-foreground">直链地址：</span>
+              <code className="text-foreground font-mono bg-muted px-1 py-0.5 rounded">{rawUrl}</code>
             </div>
             {project.description && (
-              <div className="max-w-md truncate text-slate-400">
-                <span className="text-slate-500">简介：</span>
-                {project.description}
+              <div className="max-w-md truncate">
+                <span className="text-muted-foreground">简介：</span>
+                <span className="text-foreground">{project.description}</span>
               </div>
             )}
           </div>
-          <button
-            onClick={() => setShowInfo(false)}
-            className="text-slate-400 hover:text-white p-1 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setShowInfo(false)}>
+            收起
+          </Button>
         </div>
       )}
 
-      {/* Main Canvas / Iframe Viewport Container */}
-      <div className="flex-1 bg-slate-950 flex items-center justify-center p-0 sm:p-4 overflow-hidden relative">
+      {/* Viewport Canvas */}
+      <div className="flex-1 bg-neutral-950 flex items-center justify-center p-0 sm:p-4 overflow-hidden relative">
         <div
-          className={`h-full transition-all duration-300 flex flex-col ${
+          className={`h-full transition-all duration-200 flex flex-col ${
             device === "desktop"
               ? "w-full max-w-none"
               : device === "tablet"
-              ? "w-[768px] max-w-full rounded-2xl shadow-2xl border-4 border-slate-800 overflow-hidden my-auto h-[95%]"
-              : "w-[375px] max-w-full rounded-[36px] shadow-2xl border-8 border-slate-800 overflow-hidden my-auto h-[95%]"
+              ? "w-[768px] max-w-full rounded-xl shadow-2xl border border-border overflow-hidden my-auto h-[95%]"
+              : "w-[375px] max-w-full rounded-[32px] shadow-2xl border-4 border-neutral-800 overflow-hidden my-auto h-[95%]"
           }`}
         >
-          {/* Mobile notch / status bar decoration */}
           {device === "mobile" && (
-            <div className="h-5 bg-slate-800 flex items-center justify-center shrink-0">
-              <div className="w-16 h-3 bg-slate-900 rounded-full" />
+            <div className="h-5 bg-neutral-900 flex items-center justify-center shrink-0 border-b border-neutral-800">
+              <div className="w-14 h-2.5 bg-neutral-950 rounded-full" />
             </div>
           )}
 
@@ -252,49 +253,33 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
         </div>
       </div>
 
-      {/* Code Viewer Modal */}
-      {showCode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="h-12 px-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
-              <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
-                <Code2 className="w-4 h-4 text-indigo-400" />
-                <span>{project.entryPath} 源代码查看</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCopyCode}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition cursor-pointer"
-                >
-                  {copiedCode ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>已复制</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>复制代码</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => setShowCode(false)}
-                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+      {/* Source Code Modal (Radix Dialog) */}
+      <Dialog open={showCode} onOpenChange={setShowCode}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 border-border bg-card">
+          <DialogHeader className="p-3.5 border-b border-border flex flex-row items-center justify-between space-y-0">
+            <div>
+              <DialogTitle className="text-xs font-mono font-medium">
+                {project.entryPath}
+              </DialogTitle>
+              <DialogDescription className="text-[11px] text-muted-foreground">
+                HTML 源代码查看器
+              </DialogDescription>
             </div>
+            <div className="flex items-center gap-2 mr-6">
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleCopyCode}>
+                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedCode ? "已复制" : "复制源码"}</span>
+              </Button>
+            </div>
+          </DialogHeader>
 
-            <div className="flex-1 p-4 overflow-auto bg-slate-950 font-mono text-xs text-slate-200">
-              <pre className="leading-relaxed whitespace-pre-wrap selection:bg-indigo-500 selection:text-white">
-                {initialSourceCode}
-              </pre>
-            </div>
+          <div className="flex-1 p-4 overflow-auto bg-neutral-950 font-mono text-xs text-neutral-300">
+            <pre className="leading-relaxed whitespace-pre-wrap selection:bg-neutral-700">
+              {initialSourceCode}
+            </pre>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
