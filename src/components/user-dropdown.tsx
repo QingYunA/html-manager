@@ -39,7 +39,7 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
   const initialLetter = displayName.charAt(0).toUpperCase();
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -67,7 +67,12 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-56" align="end" sideOffset={6}>
+      <DropdownMenuContent
+        className="w-56"
+        align="end"
+        sideOffset={6}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         {/* User Identity Header */}
         <DropdownMenuLabel className="font-normal p-2">
           <div className="flex flex-col space-y-1">
