@@ -2,7 +2,7 @@ import { createBrowserClient } from "@supabase/ssr";
 
 function cleanEnv(val?: string): string {
   if (!val) return "";
-  return val.trim().replace(/^["']|["']$/g, "");
+  return val.trim().replace(/^["']|["']$/g, "").replace(/\/+$/, "");
 }
 
 export function createSupabaseClient() {
