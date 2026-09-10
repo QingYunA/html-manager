@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getAllProjects } from "@/db";
 import { getCurrentUser } from "@/lib/auth";
 import ShowcaseGallery from "@/components/showcase-gallery";
@@ -7,7 +8,16 @@ import { SiteFooter } from "@/components/site-footer";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string; next?: string }>;
+}) {
+  const { code, next } = await searchParams;
+  if (code) {
+    redirect(`/auth/callback?code=${encodeURIComponent(code)}&next=${encodeURIComponent(next || "/admin")}`);
+  }
+
   const projects = await getAllProjects({ includePrivate: false });
   const currentUser = await getCurrentUser();
 
