@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -29,9 +30,24 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/95 backdrop-blur-xs px-4 sm:px-8 h-12 flex items-center">
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-sm text-foreground">
-            <div className="w-5 h-5 rounded-md bg-foreground text-background flex items-center justify-center font-mono text-[11px] font-bold">
-              P
+          <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-sm text-foreground group">
+            <div className="relative w-5 h-5 rounded-md overflow-hidden flex items-center justify-center shrink-0">
+              <Image
+                src="/brand/pagepod-logo-monochrome.png"
+                alt="Pagepod"
+                width={20}
+                height={20}
+                className="w-5 h-5 object-contain dark:hidden"
+                priority
+              />
+              <Image
+                src="/brand/pagepod-logo-dark.png"
+                alt="Pagepod"
+                width={20}
+                height={20}
+                className="w-5 h-5 object-contain hidden dark:block"
+                priority
+              />
             </div>
             <span>Pagepod</span>
           </Link>

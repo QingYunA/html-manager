@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { loginAdmin, loginWithEmailAction } from "@/app/actions/auth";
 import { createSupabaseClient, isClientCloudMode } from "@/lib/supabase/client";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -255,8 +256,23 @@ export default function AdminLoginPage() {
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
           {/* Logo mark */}
           <div className="mx-auto flex items-center justify-center gap-2 font-semibold text-sm">
-            <div className="w-6 h-6 rounded-md bg-foreground text-background flex items-center justify-center font-mono text-xs font-bold">
-              P
+            <div className="relative w-6 h-6 rounded-md overflow-hidden flex items-center justify-center shrink-0">
+              <Image
+                src="/brand/pagepod-logo-monochrome.png"
+                alt="Pagepod"
+                width={24}
+                height={24}
+                className="w-6 h-6 object-contain dark:hidden"
+                priority
+              />
+              <Image
+                src="/brand/pagepod-logo-dark.png"
+                alt="Pagepod"
+                width={24}
+                height={24}
+                className="w-6 h-6 object-contain hidden dark:block"
+                priority
+              />
             </div>
             <span>Pagepod</span>
           </div>
