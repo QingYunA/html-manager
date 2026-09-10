@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { updateSession } from "@/lib/supabase/middleware";
 
 const COOKIE_NAME = "html_manager_session";
 
@@ -24,27 +25,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(callbackUrl);
   }
 
-  // 2. Protect /admin routes, exempting /admin/login
+  // 2. Official Supabase Auth Session Refresh and Cookie Forwarding
+  const { supabaseResponse, user } = await updateSession(request);
+
+  // 3. Protect /admin routes, exempting /admin/login
   if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
-    let isValid = false;
+    let isValid = Boolean(user);
 
-    // Check Cloud Mode: look for Supabase auth cookie tokens
-    const allCookies = request.cookies.getAll();
-    const hasSupabaseAuth = allCookies.some((c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token"));
-    if (hasSupabaseAuth) {
-      isValid = true;
-    }
-
-    // Check Self-hosted Mode: JWT token
-    const token = request.cookies.get(COOKIE_NAME)?.value;
-    if (!isValid && token) {
-      try {
-        const { payload } = await jwtVerify(token, getJwtSecret());
-        if (payload.role === "admin") {
-          isValid = true;
+    // If not authenticated via Supabase, check Self-hosted Mode: JWT token
+    if (!isValid) {
+      const token = request.cookies.get(COOKIE_NAME)?.value;
+      if (token) {
+        try {
+          const { payload } = await jwtVerify(token, getJwtSecret());
+          if (payload.role === "admin") {
+            isValid = true;
+          }
+        } catch {
+          isValid = false;
         }
-      } catch {
-        isValid = false;
       }
     }
 
@@ -55,7 +54,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return supabaseResponse;
 }
 
 export const config = {
