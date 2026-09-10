@@ -35,11 +35,18 @@ import { decryptArtifactToHtml, extractKeyFromUrlHash } from "@/lib/crypto/e2ee"
 interface RunnerClientProps {
   project: Project;
   initialSourceCode: string;
+  seamlessDecryptedHtml?: string;
+  isOwner?: boolean;
 }
 
 type DeviceMode = "desktop" | "tablet" | "mobile";
 
-export default function RunnerClient({ project, initialSourceCode }: RunnerClientProps) {
+export default function RunnerClient({
+  project,
+  initialSourceCode,
+  seamlessDecryptedHtml = "",
+  isOwner = false,
+}: RunnerClientProps) {
   const [device, setDevice] = useState<DeviceMode>("desktop");
   const [reloadKey, setReloadKey] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -49,27 +56,24 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
   const [copiedLink, setCopiedLink] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // E2EE Decryption States
-  const [decryptedHtml, setDecryptedHtml] = useState<string | null>(null);
-  const [isDecrypting, setIsDecrypting] = useState(project.isEncrypted);
+  // E2EE Decryption States: default to seamless decrypted HTML if owner is authenticated!
+  const [decryptedHtml, setDecryptedHtml] = useState<string | null>(seamlessDecryptedHtml || null);
+  const [isDecrypting, setIsDecrypting] = useState(Boolean(project.isEncrypted && !seamlessDecryptedHtml));
   const [decryptError, setDecryptError] = useState<string | null>(null);
   const [manualKeyInput, setManualKeyInput] = useState("");
 
   const rawUrl = `/raw/${project.slug}/`;
 
-  // Perform client-side decryption if encrypted
   const attemptDecryption = async (key: string) => {
     if (!project.isEncrypted || !project.encryptionIv) return;
     setIsDecrypting(true);
     setDecryptError(null);
 
     try {
-      // 1. Fetch encrypted binary from storage endpoint
       const res = await fetch(rawUrl);
-      if (!res.ok) throw new Error(`无法获取密文数据 (状态码: ${res.status})`);
+      if (!res.ok) throw new Error(`无法获取数据 (状态码: ${res.status})`);
       const ciphertextBuffer = await res.arrayBuffer();
 
-      // 2. Decrypt locally in browser memory
       const html = await decryptArtifactToHtml(
         new Uint8Array(ciphertextBuffer),
         key,
@@ -86,6 +90,13 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
   };
 
   useEffect(() => {
+    // If owner already seamlessly decrypted on server, skip manual hash check
+    if (seamlessDecryptedHtml) {
+      setDecryptedHtml(seamlessDecryptedHtml);
+      setIsDecrypting(false);
+      return;
+    }
+
     if (project.isEncrypted) {
       const hash = typeof window !== "undefined" ? window.location.hash : "";
       const extractedKey = extractKeyFromUrlHash(hash);
@@ -95,7 +106,7 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
         setIsDecrypting(false);
       }
     }
-  }, [project.isEncrypted, reloadKey]);
+  }, [project.isEncrypted, seamlessDecryptedHtml, reloadKey]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -268,7 +279,9 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
             </div>
             <div>
               <span className="text-muted-foreground">加密状态：</span>
-              <span className="text-foreground font-medium">{project.isEncrypted ? "🔒 零知识端到端加密" : "明文直出"}</span>
+              <span className="text-foreground font-medium">
+                {project.isEncrypted ? (isOwner ? "🔒 用户级认证无感解密" : "🔒 零知识端到端加密") : "明文直出"}
+              </span>
             </div>
             {project.description && (
               <div className="max-w-md truncate">
@@ -283,27 +296,31 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
         </div>
       )}
 
-      {/* Viewport Canvas */}
-      <div className="flex-1 bg-neutral-950 flex items-center justify-center p-0 sm:p-4 overflow-hidden relative">
+      {/* Viewport Canvas: Clean background matching app background, NO ugly pitch-black border */}
+      <div
+        className={`flex-1 bg-background flex items-center justify-center overflow-hidden relative ${
+          device === "desktop" ? "p-0" : "p-4 sm:p-6"
+        }`}
+      >
         <div
-          className={`h-full transition-all duration-200 flex flex-col ${
+          className={`transition-all duration-200 flex flex-col ${
             device === "desktop"
-              ? "w-full max-w-none"
+              ? "w-full h-full max-w-none rounded-none border-0"
               : device === "tablet"
-              ? "w-[768px] max-w-full rounded-xl shadow-2xl border border-border overflow-hidden my-auto h-[95%]"
-              : "w-[375px] max-w-full rounded-[32px] shadow-2xl border-4 border-neutral-800 overflow-hidden my-auto h-[95%]"
+              ? "w-[768px] max-w-full rounded-xl shadow-lg border border-border overflow-hidden my-auto h-[95%] bg-card"
+              : "w-[375px] max-w-full rounded-[28px] shadow-lg border border-border overflow-hidden my-auto h-[95%] bg-card"
           }`}
         >
           {device === "mobile" && (
-            <div className="h-5 bg-neutral-900 flex items-center justify-center shrink-0 border-b border-neutral-800">
-              <div className="w-14 h-2.5 bg-neutral-950 rounded-full" />
+            <div className="h-4 bg-muted/60 flex items-center justify-center shrink-0 border-b border-border">
+              <div className="w-12 h-2 bg-border rounded-full" />
             </div>
           )}
 
           <div className="flex-1 bg-white relative w-full h-full">
             {project.isEncrypted ? (
               decryptedHtml ? (
-                /* Decrypted In-Memory HTML Sandbox (Zero network plain leak) */
+                /* Decrypted In-Memory HTML Sandbox */
                 <iframe
                   key={reloadKey}
                   srcDoc={decryptedHtml}
@@ -312,34 +329,43 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
                   className="w-full h-full border-0"
                 />
               ) : (
-                /* Locked Prompt if Key missing or Decrypting */
+                /* Locked Prompt if visitor has no key and not logged in as owner */
                 <div className="w-full h-full flex flex-col items-center justify-center bg-background text-foreground p-6 text-center">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-foreground mb-3 border border-border">
-                    <Lock className="w-6 h-6 text-emerald-500" />
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-foreground mb-3 border border-border">
+                    <Lock className="w-5 h-5 text-emerald-500" />
                   </div>
-                  <h2 className="text-sm font-semibold">此单页受端到端零知识加密保护</h2>
+                  <h2 className="text-sm font-semibold">此单页受端到端加密保护</h2>
                   <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4 leading-relaxed">
                     {isDecrypting
-                      ? "正在使用 URL Hash 中的私密密钥在浏览器内存中解密..."
-                      : decryptError || "未在链接中检测到解密密钥。请输入专属密钥解密并运行："}
+                      ? "正在使用授权密钥解密中..."
+                      : decryptError || "未在链接中检测到访问密钥。如果你是拥有者，登录即可无感打开："}
                   </p>
 
                   {!isDecrypting && (
-                    <div className="flex items-center gap-2 max-w-xs w-full">
-                      <input
-                        type="text"
-                        value={manualKeyInput}
-                        onChange={(e) => setManualKeyInput(e.target.value)}
-                        placeholder="输入 32 字节 Base64 密钥..."
-                        className="flex-1 bg-muted/40 border border-input rounded-md px-2.5 h-8 text-xs font-mono outline-none"
-                      />
-                      <Button
-                        size="sm"
-                        onClick={() => attemptDecryption(manualKeyInput.trim())}
-                        className="h-8 text-xs"
-                      >
-                        解密运行
-                      </Button>
+                    <div className="flex flex-col items-center gap-3 max-w-xs w-full">
+                      <div className="flex items-center gap-2 w-full">
+                        <input
+                          type="text"
+                          value={manualKeyInput}
+                          onChange={(e) => setManualKeyInput(e.target.value)}
+                          placeholder="输入 Base64 密钥..."
+                          className="flex-1 bg-muted/40 border border-input rounded-md px-2.5 h-8 text-xs font-mono outline-none"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => attemptDecryption(manualKeyInput.trim())}
+                          className="h-8 text-xs"
+                        >
+                          解密运行
+                        </Button>
+                      </div>
+
+                      <div className="text-[11px] text-muted-foreground">
+                        或者{" "}
+                        <Link href={`/admin/login?from=${encodeURIComponent(`/p/${project.slug}`)}`} className="underline hover:text-foreground">
+                          登录账号验证无感开启
+                        </Link>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -367,7 +393,7 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
                 {project.entryPath}
               </DialogTitle>
               <DialogDescription className="text-[11px] text-muted-foreground">
-                {project.isEncrypted ? "已在客户端本地内存完成解密的源代码" : "HTML 源代码查看器"}
+                {project.isEncrypted ? "已在客户端完成解密的源代码" : "HTML 源代码查看器"}
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2 mr-6">

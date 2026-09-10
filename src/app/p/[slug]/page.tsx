@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getProjectBySlug, incrementViewCount } from "@/db";
 import { getStorage } from "@/lib/storage";
+import { getCurrentUser } from "@/lib/auth";
+import { decryptArtifactForUser } from "@/lib/crypto/e2ee";
 import RunnerClient from "./runner-client";
 
 interface PageProps {
@@ -22,10 +24,39 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
   // Record view count
   await incrementViewCount(slug);
 
+  let initialDecryptedHtml = "";
   let sourceCode = "";
-  if (project.assetType === "single_html") {
+  const storage = getStorage();
+
+  const currentUser = await getCurrentUser();
+  const isOwner = Boolean(
+    currentUser &&
+      (currentUser.role === "admin" ||
+        (project.userId && currentUser.id === project.userId) ||
+        currentUser.id === "selfhost-admin")
+  );
+
+  if (project.isEncrypted) {
+    // If encrypted and current user is owner / admin, decrypt seamlessly on server/client pipeline
+    if (isOwner && project.encryptionIv) {
+      try {
+        const file = await storage.getFile(`${project.storagePrefix}/${project.entryPath}`);
+        if (file) {
+          // Decrypt with user master key (derived from user id)
+          const targetUserId = project.userId || currentUser!.id;
+          initialDecryptedHtml = await decryptArtifactForUser(
+            file.data,
+            targetUserId,
+            project.encryptionIv
+          );
+          sourceCode = initialDecryptedHtml;
+        }
+      } catch (err) {
+        console.error("Seamless user decryption failed, falling back to client hash:", err);
+      }
+    }
+  } else if (project.assetType === "single_html") {
     try {
-      const storage = getStorage();
       const file = await storage.getFile(`${project.storagePrefix}/${project.entryPath}`);
       if (file) {
         sourceCode = file.data.toString("utf-8");
@@ -35,5 +66,12 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
     }
   }
 
-  return <RunnerClient project={project} initialSourceCode={sourceCode} />;
+  return (
+    <RunnerClient
+      project={project}
+      initialSourceCode={sourceCode}
+      seamlessDecryptedHtml={initialDecryptedHtml}
+      isOwner={isOwner}
+    />
+  );
 }
