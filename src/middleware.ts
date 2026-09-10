@@ -25,11 +25,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(callbackUrl);
   }
 
-  // 2. Official Supabase Auth Session Refresh and Cookie Forwarding
-  const { supabaseResponse, user } = await updateSession(request);
-
-  // 3. Protect /admin routes, exempting /admin/login
+  // 2. Only protect /admin routes (exempting /admin/login)
+  // Public pages (/explore, /pricing, /) bypass middleware network checks completely!
   if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+    const { supabaseResponse, user } = await updateSession(request);
     let isValid = Boolean(user);
 
     // If not authenticated via Supabase, check Self-hosted Mode: JWT token
@@ -52,11 +51,13 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
     }
+
+    return supabaseResponse;
   }
 
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/admin/:path*", "/auth/:path*"],
+  matcher: ["/", "/admin/:path*"],
 };
