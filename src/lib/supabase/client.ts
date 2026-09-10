@@ -1,8 +1,13 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+function cleanEnv(val?: string): string {
+  if (!val) return "";
+  return val.trim().replace(/^["']|["']$/g, "");
+}
+
 export function createSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+  const supabaseUrl = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const supabaseAnonKey = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return null;
@@ -14,6 +19,6 @@ export function createSupabaseClient() {
 export function isClientCloudMode(): boolean {
   return (
     process.env.NEXT_PUBLIC_APP_MODE === "cloud" ||
-    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    Boolean(cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL) && cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY))
   );
 }

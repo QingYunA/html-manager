@@ -13,9 +13,18 @@ function getJwtSecret(): Uint8Array {
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
 
-  // Protect /admin routes, exempting /admin/login
+  // 1. Auto-catch Supabase OAuth redirects:
+  // If Supabase falls back to Site URL (e.g. /?code=xxx) due to redirect whitelist mismatch,
+  // immediately forward to /auth/callback with all query params preserved
+  if (searchParams.has("code") && !pathname.startsWith("/auth/callback")) {
+    const callbackUrl = new URL("/auth/callback", request.url);
+    callbackUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(callbackUrl);
+  }
+
+  // 2. Protect /admin routes, exempting /admin/login
   if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
     let isValid = false;
 
@@ -50,5 +59,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/", "/admin/:path*", "/auth/:path*"],
 };
