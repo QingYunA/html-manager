@@ -25,6 +25,7 @@
     "@supabase/supabase-js": "^2.116.0",
     "@types/pg": "^8.23.1",
     "@uiw/react-codemirror": "^4.25.11",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.8.0",
     "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.1",
