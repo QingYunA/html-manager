@@ -7,9 +7,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { useLanguage } from "@/lib/i18n/context";
-import { Plus, User, LogOut, Compass, Sparkles, CreditCard, LayoutDashboard } from "lucide-react";
+import { Plus, Compass, Sparkles, CreditCard, LayoutDashboard } from "lucide-react";
 import type { CurrentUser } from "@/lib/auth";
-import { logoutAdmin } from "@/app/actions/auth";
+import { UserDropdown } from "@/components/user-dropdown";
 
 interface HomeHeaderProps {
   currentUser: CurrentUser | null;
@@ -91,25 +91,7 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
 
           {/* Dynamic Login / User Status */}
           {currentUser ? (
-            <div className="flex items-center gap-1.5">
-              <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5">
-                <Link href="/admin">
-                  <User className="w-3.5 h-3.5" />
-                  <span className="max-w-[90px] sm:max-w-none truncate">{currentUser.email || t.nav.console}</span>
-                </Link>
-              </Button>
-              <form action={logoutAdmin}>
-                <Button
-                  type="submit"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  title={t.nav.logout}
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </Button>
-              </form>
-            </div>
+            <UserDropdown currentUser={currentUser} />
           ) : (
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-medium">
