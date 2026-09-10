@@ -15,6 +15,7 @@ import ApiTokenGuideModal from "./api-token-guide";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,8 @@ export default async function AdminDashboardPage() {
               <span>发布新单页</span>
             </Link>
           </Button>
+
+          <ThemeToggle />
 
           <form action={logoutAdmin}>
             <Button

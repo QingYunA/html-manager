@@ -21,6 +21,7 @@ import {
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Dialog,
   DialogContent,
@@ -186,6 +187,8 @@ export default function RunnerClient({ project, initialSourceCode }: RunnerClien
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </Button>
+
+          <ThemeToggle />
 
           <Button
             variant="ghost"

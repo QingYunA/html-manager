@@ -3,6 +3,7 @@ import { getAllProjects } from "@/db";
 import ShowcaseGallery from "@/components/showcase-gallery";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Plus, Terminal, ShieldCheck } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,8 @@ export default async function HomePage() {
             <Button variant="outline" size="sm" asChild className="h-8 text-xs">
               <Link href="/admin">控制台</Link>
             </Button>
+
+            <ThemeToggle />
 
             <Button size="sm" asChild className="h-8 text-xs">
               <Link href="/admin/upload">
