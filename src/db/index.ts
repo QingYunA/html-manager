@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
@@ -8,9 +9,32 @@ import type { Project, NewProject, ApiToken, NewApiToken } from "./schema";
 
 const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
-// Local JSON store fallback for zero-config local dev
-const LOCAL_DATA_DIR = path.join(process.cwd(), ".data");
-const LOCAL_DB_FILE = path.join(LOCAL_DATA_DIR, "db.json");
+// Local JSON store fallback for zero-config local dev and serverless environments
+function resolveLocalDbFile(): string {
+  const localDir = path.join(process.cwd(), ".data");
+  const localFile = path.join(localDir, "db.json");
+
+  // If local .data is writable or already has db.json, use it
+  try {
+    if (!fs.existsSync(localDir)) {
+      fs.mkdirSync(localDir, { recursive: true });
+    }
+    fs.accessSync(localDir, fs.constants.W_OK);
+    return localFile;
+  } catch {
+    // In serverless environments (Vercel Lambda) process.cwd() is read-only.
+    // Fall back to os.tmpdir() where writable storage is guaranteed.
+    const tmpDir = path.join(os.tmpdir(), "html-manager-data");
+    try {
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+    } catch {
+      // ignore
+    }
+    return path.join(tmpDir, "db.json");
+  }
+}
 
 interface LocalData {
   projects: Project[];
@@ -20,15 +44,21 @@ interface LocalData {
 
 function readLocalData(): LocalData {
   try {
-    if (!fs.existsSync(LOCAL_DATA_DIR)) {
-      fs.mkdirSync(LOCAL_DATA_DIR, { recursive: true });
+    const dbFile = resolveLocalDbFile();
+    const dbDir = path.dirname(dbFile);
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
     }
-    if (!fs.existsSync(LOCAL_DB_FILE)) {
+    if (!fs.existsSync(dbFile)) {
       const initial: LocalData = { projects: [], settings: {}, apiTokens: [] };
-      fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(initial, null, 2), "utf-8");
+      try {
+        fs.writeFileSync(dbFile, JSON.stringify(initial, null, 2), "utf-8");
+      } catch {
+        // read-only ignore
+      }
       return initial;
     }
-    const raw = fs.readFileSync(LOCAL_DB_FILE, "utf-8");
+    const raw = fs.readFileSync(dbFile, "utf-8");
     const data = JSON.parse(raw) as LocalData;
     data.projects = (data.projects || []).map((p) => ({
       ...p,
@@ -48,10 +78,16 @@ function readLocalData(): LocalData {
 }
 
 function writeLocalData(data: LocalData) {
-  if (!fs.existsSync(LOCAL_DATA_DIR)) {
-    fs.mkdirSync(LOCAL_DATA_DIR, { recursive: true });
+  try {
+    const dbFile = resolveLocalDbFile();
+    const dbDir = path.dirname(dbFile);
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+    fs.writeFileSync(dbFile, JSON.stringify(data, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to write local data:", err);
   }
-  fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(data, null, 2), "utf-8");
 }
 
 let pgPool: Pool | null = null;
