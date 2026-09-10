@@ -5,20 +5,19 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   Layers,
   Eye,
-  LogOut,
   ExternalLink,
   Plus,
   Globe,
   ShieldAlert,
   Key,
 } from "lucide-react";
-import { logoutAdmin } from "@/app/actions/auth";
 import AdminTable from "./admin-table";
 import ApiTokenGuideModal from "./api-token-guide";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserDropdown } from "@/components/user-dropdown";
 
 export const dynamic = "force-dynamic";
 
@@ -92,17 +91,7 @@ export default async function AdminDashboardPage() {
 
           <ThemeToggle />
 
-          <form action={logoutAdmin}>
-            <Button
-              type="submit"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-              title="退出登录"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </Button>
-          </form>
+          {currentUser && <UserDropdown currentUser={currentUser} />}
         </div>
       </header>
 

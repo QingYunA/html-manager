@@ -13,6 +13,9 @@ export const translations = {
       logout: "退出登录",
       publish: "发布单页",
       myProjects: "我的项目",
+      apiTokens: "API 密钥",
+      accountSettings: "账号与设置",
+      signedInAs: "当前登录为",
     },
     hero: {
       badge: "自建专属 AI 单页托管",
@@ -209,6 +212,9 @@ export const translations = {
       logout: "Log out",
       publish: "Publish",
       myProjects: "My Projects",
+      apiTokens: "API Tokens",
+      accountSettings: "Settings",
+      signedInAs: "Signed in as",
     },
     hero: {
       badge: "Self-hosted AI Artifacts",

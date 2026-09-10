@@ -46,6 +46,8 @@ export interface CurrentUser {
   id: string;
   email?: string;
   role: "admin" | "user";
+  fullName?: string;
+  avatarUrl?: string;
   tokenId?: string;
   tokenName?: string;
 }
@@ -93,10 +95,16 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       if (supabase) {
         const { data: { user }, error } = await supabase.auth.getUser();
         if (!error && user) {
+          const metadata = user.user_metadata || {};
+          const fullName = metadata.full_name || metadata.name || metadata.user_name;
+          const avatarUrl = metadata.avatar_url || metadata.picture;
+
           return {
             id: user.id,
             email: user.email,
             role: "user",
+            fullName: typeof fullName === "string" ? fullName : undefined,
+            avatarUrl: typeof avatarUrl === "string" ? avatarUrl : undefined,
           };
         }
       }
