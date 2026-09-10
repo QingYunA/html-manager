@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
 import { getAllProjects } from "@/db";
-import { HomeHeader } from "@/components/home-header";
-import { SiteFooter } from "@/components/site-footer";
 import ExploreClient from "./explore-client";
 
 const siteUrl =
@@ -33,19 +30,14 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function ExplorePage() {
-  const currentUser = await getCurrentUser();
   const allProjects = await getAllProjects({ includePrivate: false });
   const publicProjects = allProjects.filter(
     (p) => p.visibility === "public" && !p.isEncrypted
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-neutral-800 selection:text-white">
-      <HomeHeader currentUser={currentUser} />
-      <main className="flex-1">
-        <ExploreClient projects={publicProjects} />
-      </main>
-      <SiteFooter />
-    </div>
+    <main className="flex-1">
+      <ExploreClient projects={publicProjects} />
+    </main>
   );
 }

@@ -1,7 +1,4 @@
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
-import { HomeHeader } from "@/components/home-header";
-import { SiteFooter } from "@/components/site-footer";
 import PricingClient from "./pricing-client";
 
 const siteUrl =
@@ -31,9 +28,7 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600;
 
-export default async function PricingPage() {
-  const currentUser = await getCurrentUser();
-
+export default function PricingPage() {
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -74,16 +69,12 @@ export default async function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-neutral-800 selection:text-white">
+    <main className="flex-1">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <HomeHeader currentUser={currentUser} />
-      <main className="flex-1">
-        <PricingClient />
-      </main>
-      <SiteFooter />
-    </div>
+      <PricingClient />
+    </main>
   );
 }

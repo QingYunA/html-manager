@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getAllProjects } from "@/db";
-import { getCurrentUser } from "@/lib/auth";
-import { HomeHeader } from "@/components/home-header";
-import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Play, Wrench, Gamepad2, BarChart2, Layers, ArrowLeft } from "lucide-react";
@@ -106,7 +103,6 @@ export default async function CategoryDetailPage({ params }: CategoryPageProps) 
     notFound();
   }
 
-  const currentUser = await getCurrentUser();
   const allProjects = await getAllProjects({ includePrivate: false, category });
   const publicProjects = allProjects.filter((p) => p.visibility === "public" && !p.isEncrypted);
   const Icon = catInfo.icon;
@@ -114,9 +110,7 @@ export default async function CategoryDetailPage({ params }: CategoryPageProps) 
   const otherCategories = Object.entries(CATEGORY_MAP).filter(([k]) => k !== category);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-neutral-800 selection:text-white">
-      <HomeHeader currentUser={currentUser} />
-      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-8 py-10 sm:py-14 w-full">
+    <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-8 py-10 sm:py-14 w-full">
         {/* Breadcrumb Navigation for SEO */}
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-muted-foreground mb-8">
           <Link href="/" className="hover:text-foreground transition-colors">
@@ -246,7 +240,5 @@ export default async function CategoryDetailPage({ params }: CategoryPageProps) 
           </div>
         </div>
       </main>
-      <SiteFooter />
-    </div>
   );
 }
