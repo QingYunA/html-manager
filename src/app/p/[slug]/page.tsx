@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProjectBySlug, incrementViewCount } from "@/db";
 import { getStorage } from "@/lib/storage";
@@ -12,6 +13,66 @@ interface PageProps {
 }
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const project = await getProjectBySlug(slug);
+
+  if (!project) {
+    return {
+      title: "Project Not Found",
+      description: "The requested project could not be found on Pagepod.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  // If private or encrypted without public access, disallow search engine indexing
+  if (project.visibility === "private" || project.isEncrypted) {
+    return {
+      title: "Private Vault Artifact",
+      description: "Encrypted private project on Pagepod.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const projectTitle = project.title || slug;
+  const projectDesc =
+    project.description ||
+    `Interactive AI artifact: ${projectTitle}. Hosted and safely sandboxed on Pagepod. Run, preview and explore source code online.`;
+  const canonicalUrl = `/p/${slug}`;
+
+  return {
+    title: `${projectTitle} - Run & Preview Online`,
+    description: projectDesc.slice(0, 160),
+    keywords: [
+      projectTitle,
+      project.category || "tool",
+      "AI HTML Artifact",
+      "Claude Artifacts runner",
+      "ChatGPT Canvas preview",
+      "online runner",
+      "Pagepod",
+    ],
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${projectTitle} - Run & Preview Online | Pagepod`,
+      description: projectDesc.slice(0, 160),
+      url: canonicalUrl,
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${projectTitle} - Run & Preview Online | Pagepod`,
+      description: projectDesc.slice(0, 160),
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
 
 export default async function ProjectRunnerPage({ params }: PageProps) {
   const { slug } = await params;
@@ -89,12 +150,46 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
     }
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+  const jsonLd =
+    project.visibility === "public" && !project.isEncrypted
+      ? {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: project.title || slug,
+          headline: project.title || slug,
+          description:
+            project.description ||
+            `Interactive AI artifact ${project.title || slug} online on Pagepod`,
+          applicationCategory: project.category || "UtilitiesApplication",
+          operatingSystem: "All",
+          url: `${siteUrl}/p/${slug}`,
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+          },
+          author: {
+            "@type": "Organization",
+            name: "Pagepod Community",
+          },
+        }
+      : null;
+
   return (
-    <RunnerClient
-      project={project}
-      initialSourceCode={sourceCode}
-      seamlessDecryptedHtml={initialDecryptedHtml}
-      isOwner={isExactCreator}
-    />
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <RunnerClient
+        project={project}
+        initialSourceCode={sourceCode}
+        seamlessDecryptedHtml={initialDecryptedHtml}
+        isOwner={isExactCreator}
+      />
+    </>
   );
 }
