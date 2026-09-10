@@ -1,7 +1,4 @@
 import type { Metadata } from "next";
-import { getCurrentUser } from "@/lib/auth";
-import { HomeHeader } from "@/components/home-header";
-import { SiteFooter } from "@/components/site-footer";
 import Link from "next/link";
 import { Shield, Sparkles, Terminal, Code2, Globe, Cpu } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -28,13 +25,9 @@ export const metadata: Metadata = {
 
 export const revalidate = 86400;
 
-export default async function AboutPage() {
-  const currentUser = await getCurrentUser();
-
+export default function AboutPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground selection:bg-neutral-800 selection:text-white">
-      <HomeHeader currentUser={currentUser} />
-      <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-8 py-12 sm:py-16">
+    <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-8 py-12 sm:py-16">
         {/* Intro */}
         <div className="space-y-4 mb-12">
           <Badge variant="outline" className="px-3 py-0.5 text-xs font-mono">
@@ -109,7 +102,5 @@ export default async function AboutPage() {
           </div>
         </div>
       </main>
-      <SiteFooter />
-    </div>
   );
 }

@@ -30,7 +30,7 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/95 backdrop-blur-xs px-4 sm:px-8 h-12 flex items-center">
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight text-sm text-foreground group">
+          <Link href="/" prefetch={true} className="flex items-center gap-2 font-semibold tracking-tight text-sm text-foreground group">
             <BrandLogo size={24} className="w-6 h-6" />
             <span>Pagepod</span>
           </Link>
@@ -44,6 +44,7 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
                   className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                     isActive
                       ? "text-foreground bg-muted font-semibold"
@@ -63,12 +64,14 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
           <div className="flex md:hidden items-center gap-1 mr-1">
             <Link
               href="/explore"
+              prefetch={true}
               className={`px-2 py-1 text-xs rounded-md ${pathname.startsWith("/explore") ? "bg-muted font-semibold" : "text-muted-foreground"}`}
             >
               {t.nav.explore}
             </Link>
             <Link
               href="/pricing"
+              prefetch={true}
               className={`px-2 py-1 text-xs rounded-md ${pathname.startsWith("/pricing") ? "bg-muted font-semibold" : "text-muted-foreground"}`}
             >
               {t.nav.pricing}
@@ -95,16 +98,16 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
           ) : (
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" asChild className="h-8 text-xs font-medium">
-                <Link href="/admin/login">{t.nav.login}</Link>
+                <Link href="/admin/login" prefetch={true}>{t.nav.login}</Link>
               </Button>
               <Button variant="outline" size="sm" asChild className="h-8 text-xs font-medium">
-                <Link href="/admin/login?tab=signup">{t.nav.signup}</Link>
+                <Link href="/admin/login?tab=signup" prefetch={true}>{t.nav.signup}</Link>
               </Button>
             </div>
           )}
 
           <Button size="sm" asChild className="h-8 text-xs font-medium">
-            <Link href="/admin/upload">
+            <Link href="/admin/upload" prefetch={true}>
               <Plus className="w-3.5 h-3.5 mr-1" />
               <span>{t.nav.publish}</span>
             </Link>
