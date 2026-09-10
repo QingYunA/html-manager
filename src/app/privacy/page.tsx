@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const revalidate = 86400;
+
 export default async function PrivacyPage() {
   const currentUser = await getCurrentUser();
 
