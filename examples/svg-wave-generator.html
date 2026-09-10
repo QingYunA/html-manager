@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG Wave Generator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #09090b;
+      color: #fafafa;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #27272a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; }
+    .controls {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #a1a1aa;
+    }
+    input[type="range"] { accent-color: #3b82f6; cursor: pointer; }
+    button {
+      background: #fafafa;
+      color: #09090b;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.9; }
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: radial-gradient(circle at 50% 50%, #18181b 0%, #09090b 100%);
+      overflow: hidden;
+    }
+    svg { width: 100%; height: 350px; display: block; }
+    .code-box {
+      position: absolute;
+      bottom: 20px;
+      background: rgba(15, 15, 18, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      color: #a1a1aa;
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SVG Wave Curve Generator</h1>
+    <div class="controls">
+      <div class="control-group">
+        <label>Complexity:</label>
+        <input type="range" id="points" min="3" max="8" value="4">
+      </div>
+      <div class="control-group">
+        <label>Height:</label>
+        <input type="range" id="height" min="100" max="300" value="180">
+      </div>
+      <button id="randomize">Randomize Wave</button>
+      <button id="copyBtn">Copy SVG</button>
+    </div>
+  </header>
+
+  <main>
+    <svg id="waveSvg" viewBox="0 0 1440 400" preserveAspectRatio="none">
+      <path id="wavePath" fill="#3b82f6" fill-opacity="0.85" d=""></path>
+    </svg>
+    <div class="code-box" id="svgCode">Click 'Randomize Wave' to reshape</div>
+  </main>
+
+  <script>
+    const wavePath = document.getElementById('wavePath');
+    const svgCode = document.getElementById('svgCode');
+    const pointsInput = document.getElementById('points');
+    const heightInput = document.getElementById('height');
+    const randomizeBtn = document.getElementById('randomize');
+    const copyBtn = document.getElementById('copyBtn');
+
+    function generatePath() {
+      const numPoints = parseInt(pointsInput.value);
+      const maxHeight = parseInt(heightInput.value);
+      const width = 1440;
+      const step = width / (numPoints - 1);
+      
+      let d = `M 0,${maxHeight}`;
+      let pts = [];
+      for (let i = 0; i < numPoints; i++) {
+        const x = i * step;
+        const y = Math.floor(Math.random() * maxHeight) + (400 - maxHeight);
+        pts.push({ x, y });
+      }
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i];
+        const p1 = pts[i + 1];
+        const midX = (p0.x + p1.x) / 2;
+        d += ` Q ${p0.x},${p0.y} ${midX},${(p0.y + p1.y) / 2}`;
+      }
+      d += ` L 1440,400 L 0,400 Z`;
+
+      wavePath.setAttribute('d', d);
+      svgCode.textContent = d;
+    }
+
+    randomizeBtn.addEventListener('click', generatePath);
+    pointsInput.addEventListener('input', generatePath);
+    heightInput.addEventListener('input', generatePath);
+
+    copyBtn.addEventListener('click', () => {
+      const fullSvg = document.getElementById('waveSvg').outerHTML;
+      navigator.clipboard.writeText(fullSvg);
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = 'Copy SVG', 1500);
+    });
+
+    generatePath();
+  </script>
+</body>
+</html>

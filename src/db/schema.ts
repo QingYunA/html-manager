@@ -32,5 +32,17 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const apiTokens = pgTable("api_tokens", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(), // Exact owner (Supabase user id or 'selfhost-admin')
+  name: text("name").notNull(), // Descriptive label (e.g. 'Cursor Uploader', 'Python Sync')
+  tokenHash: text("token_hash").notNull().unique(), // SHA-256 hashed secret
+  tokenHint: text("token_hint").notNull(), // Last 4 chars (e.g. '8f2a')
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+export type ApiToken = typeof apiTokens.$inferSelect;
+export type NewApiToken = typeof apiTokens.$inferInsert;

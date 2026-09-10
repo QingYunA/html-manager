@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyberpunk Matrix Rain</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: ui-monospace, monospace;
+    }
+    canvas { display: block; }
+    .hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #00ff66;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 12px;
+      border: 1px solid rgba(0, 255, 102, 0.3);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">SYS://PAGEPOD_NEURAL_MATRIX [ONLINE]</div>
+  <canvas id="c"></canvas>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const chars = '0123456789ABCDEFPagepodArtifactsClaudeCanvasアイウエオカキクケコサシスセソタチツテト';
+    const fontSize = 16;
+    let columns = Math.floor(canvas.width / fontSize);
+    let drops = Array(columns).fill(1);
+
+    window.addEventListener('resize', () => {
+      columns = Math.floor(canvas.width / fontSize);
+      drops = Array(columns).fill(1);
+    });
+
+    function draw() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#00ff66';
+      ctx.font = fontSize + 'px monospace';
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+
+    setInterval(draw, 33);
+  </script>
+</body>
+</html>

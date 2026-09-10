@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import { verifyAdminTokenFromRequest } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { processAndCreateProject } from "@/lib/services/project-service";
 
 export async function POST(request: Request) {
-  const isAuthorized = await verifyAdminTokenFromRequest(request);
-  if (!isAuthorized) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
     return NextResponse.json(
       {
         success: false,
-        error: "Unauthorized: Missing or invalid Bearer token. Use ADMIN_PASSWORD or API_TOKEN.",
+        error: "Unauthorized: Missing or invalid Bearer token / session. Please provide 'Authorization: Bearer pp_live_...' or login.",
       },
       { status: 401 }
     );
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       }
 
       project = await processAndCreateProject({
+        userId: currentUser.id === "selfhost-admin" ? undefined : currentUser.id,
         title: body.title,
         slug: body.slug,
         description: body.description,
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
         const arrayBuffer = await file.arrayBuffer();
         const fileBuffer = Buffer.from(arrayBuffer);
         project = await processAndCreateProject({
+          userId: currentUser.id === "selfhost-admin" ? undefined : currentUser.id,
           title,
           slug,
           description,
@@ -73,6 +75,7 @@ export async function POST(request: Request) {
         });
       } else if (htmlContent) {
         project = await processAndCreateProject({
+          userId: currentUser.id === "selfhost-admin" ? undefined : currentUser.id,
           title,
           slug,
           description,

@@ -9,6 +9,7 @@ import {
   Plus,
   Globe,
   ShieldAlert,
+  Key,
 } from "lucide-react";
 import { logoutAdmin } from "@/app/actions/auth";
 import AdminTable from "./admin-table";
@@ -73,6 +74,13 @@ export default async function AdminDashboardPage() {
             <Link href="/" target="_blank">
               <span>公开画廊</span>
               <ExternalLink className="w-3 h-3 ml-1" />
+            </Link>
+          </Button>
+
+          <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 border-border">
+            <Link href="/admin/settings/tokens">
+              <Key className="w-3.5 h-3.5" />
+              <span>API 密钥</span>
             </Link>
           </Button>
 

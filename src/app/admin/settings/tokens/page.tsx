@@ -1,0 +1,65 @@
+import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, Key, BookOpen, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { listUserApiTokens } from "@/lib/tokens";
+import TokensClient from "./tokens-client";
+
+export const dynamic = "force-dynamic";
+
+export default async function ApiTokensPage() {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/admin/login?from=/admin/settings/tokens");
+  }
+
+  const tokens = await listUserApiTokens(user.id);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col antialiased">
+      {/* Top Bar */}
+      <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-4 sm:px-8 h-12 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" asChild className="h-7 w-7 text-muted-foreground hover:text-foreground">
+            <Link href="/admin">
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </Button>
+          <div className="flex items-center gap-2">
+            <Key className="w-4 h-4 text-foreground" />
+            <span className="font-semibold text-xs tracking-tight">Personal Access Tokens</span>
+          </div>
+          <span className="text-border">/</span>
+          <Badge variant="outline" className="text-[10px] font-mono">
+            {user.role === "admin" ? "admin-pat" : "user-pat"}
+          </Badge>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild className="h-7 text-xs gap-1.5 border-border">
+            <Link href="/api/docs" target="_blank">
+              <BookOpen className="w-3 h-3" />
+              <span>交互式 API 文档</span>
+              <ExternalLink className="w-3 h-3 text-muted-foreground" />
+            </Link>
+          </Button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-8 py-8 space-y-6">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">API 访问密钥与令牌 (Tokens)</h1>
+          <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+            Personal Access Tokens 具备与你的账号同等的权限，可用于在自动化脚本、CI/CD、命令行 CLI 或 Cursor 中代替你上传和管理单页 HTML。
+            密钥采用 SHA-256 加密存储，仅在创建时显示一次。
+          </p>
+        </div>
+
+        <TokensClient initialTokens={tokens} />
+      </main>
+    </div>
+  );
+}

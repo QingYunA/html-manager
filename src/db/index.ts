@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { eq, desc } from "drizzle-orm";
 import * as schema from "./schema";
-import type { Project, NewProject } from "./schema";
+import type { Project, NewProject, ApiToken, NewApiToken } from "./schema";
 
 const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
@@ -15,6 +15,7 @@ const LOCAL_DB_FILE = path.join(LOCAL_DATA_DIR, "db.json");
 interface LocalData {
   projects: Project[];
   settings: Record<string, string>;
+  apiTokens?: ApiToken[];
 }
 
 function readLocalData(): LocalData {
@@ -23,21 +24,26 @@ function readLocalData(): LocalData {
       fs.mkdirSync(LOCAL_DATA_DIR, { recursive: true });
     }
     if (!fs.existsSync(LOCAL_DB_FILE)) {
-      const initial: LocalData = { projects: [], settings: {} };
+      const initial: LocalData = { projects: [], settings: {}, apiTokens: [] };
       fs.writeFileSync(LOCAL_DB_FILE, JSON.stringify(initial, null, 2), "utf-8");
       return initial;
     }
     const raw = fs.readFileSync(LOCAL_DB_FILE, "utf-8");
     const data = JSON.parse(raw) as LocalData;
-    data.projects = data.projects.map((p) => ({
+    data.projects = (data.projects || []).map((p) => ({
       ...p,
       createdAt: new Date(p.createdAt),
       updatedAt: new Date(p.updatedAt),
     }));
+    data.apiTokens = (data.apiTokens || []).map((t) => ({
+      ...t,
+      createdAt: new Date(t.createdAt),
+      lastUsedAt: t.lastUsedAt ? new Date(t.lastUsedAt) : null,
+    }));
     return data;
   } catch (err) {
     console.error("Failed to read local data:", err);
-    return { projects: [], settings: {} };
+    return { projects: [], settings: {}, apiTokens: [] };
   }
 }
 
@@ -94,6 +100,16 @@ const CREATE_TABLES_SQL = `
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+
+  CREATE TABLE IF NOT EXISTS api_tokens (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    token_hint TEXT NOT NULL,
+    last_used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
 `;
 
@@ -370,5 +386,119 @@ export async function setSetting(key: string, value: string): Promise<void> {
     const local = readLocalData();
     local.settings[key] = value;
     writeLocalData(local);
+  }
+}
+
+// ----------------------------------------------------
+// Personal Access Token (API Keys) Operations
+// ----------------------------------------------------
+
+export async function createApiTokenRecord(token: NewApiToken): Promise<ApiToken> {
+  const db = getDatabase();
+  if (db) {
+    await ensurePostgresTables();
+    const rows = await db.insert(schema.apiTokens).values(token).returning();
+    return rows[0];
+  } else {
+    const local = readLocalData();
+    if (!local.apiTokens) local.apiTokens = [];
+    const record: ApiToken = {
+      ...token,
+      createdAt: new Date(),
+      lastUsedAt: null,
+    };
+    local.apiTokens.push(record);
+    writeLocalData(local);
+    return record;
+  }
+}
+
+export async function getApiTokensByUserId(userId: string): Promise<ApiToken[]> {
+  const db = getDatabase();
+  if (db) {
+    try {
+      await ensurePostgresTables();
+      return await db
+        .select()
+        .from(schema.apiTokens)
+        .where(eq(schema.apiTokens.userId, userId))
+        .orderBy(desc(schema.apiTokens.createdAt));
+    } catch (err) {
+      console.error("getApiTokensByUserId DB error:", err);
+      return [];
+    }
+  } else {
+    const local = readLocalData();
+    return (local.apiTokens || [])
+      .filter((t) => t.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+}
+
+export async function findApiTokenByHash(tokenHash: string): Promise<ApiToken | null> {
+  const db = getDatabase();
+  if (db) {
+    try {
+      await ensurePostgresTables();
+      const rows = await db
+        .select()
+        .from(schema.apiTokens)
+        .where(eq(schema.apiTokens.tokenHash, tokenHash))
+        .limit(1);
+      return rows[0] || null;
+    } catch (err) {
+      console.error("findApiTokenByHash DB error:", err);
+      return null;
+    }
+  } else {
+    const local = readLocalData();
+    return (local.apiTokens || []).find((t) => t.tokenHash === tokenHash) || null;
+  }
+}
+
+export async function touchApiTokenLastUsed(id: string): Promise<void> {
+  const db = getDatabase();
+  const now = new Date();
+  if (db) {
+    try {
+      await ensurePostgresTables();
+      await db
+        .update(schema.apiTokens)
+        .set({ lastUsedAt: now })
+        .where(eq(schema.apiTokens.id, id));
+    } catch (err) {
+      console.error("touchApiTokenLastUsed DB error:", err);
+    }
+  } else {
+    const local = readLocalData();
+    const token = (local.apiTokens || []).find((t) => t.id === id);
+    if (token) {
+      token.lastUsedAt = now;
+      writeLocalData(local);
+    }
+  }
+}
+
+export async function deleteApiTokenById(id: string, userId: string): Promise<boolean> {
+  const db = getDatabase();
+  if (db) {
+    try {
+      await ensurePostgresTables();
+      await db
+        .delete(schema.apiTokens)
+        .where(eq(schema.apiTokens.id, id));
+      return true;
+    } catch (err) {
+      console.error("deleteApiTokenById DB error:", err);
+      return false;
+    }
+  } else {
+    const local = readLocalData();
+    const beforeLen = (local.apiTokens || []).length;
+    local.apiTokens = (local.apiTokens || []).filter(
+      (t) => !(t.id === id && (t.userId === userId || userId === "selfhost-admin"))
+    );
+    writeLocalData(local);
+    return (local.apiTokens || []).length < beforeLen;
   }
 }

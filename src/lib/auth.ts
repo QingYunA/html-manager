@@ -1,7 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getSetting } from "@/db";
 import { createSupabaseServerClient, isCloudMode } from "@/lib/supabase/server";
+import { verifyAndConsumeToken } from "@/lib/tokens";
 
 const COOKIE_NAME = "html_manager_session";
 
@@ -45,15 +46,47 @@ export interface CurrentUser {
   id: string;
   email?: string;
   role: "admin" | "user";
+  tokenId?: string;
+  tokenName?: string;
 }
 
 /**
- * Dual-mode session verification:
- * 1. Cloud mode: Checks Supabase Auth session via cookies
- * 2. Self-hosted mode: Checks local admin JWT cookie
+ * Universal session & API Token verification:
+ * 1. Bearer / x-api-key Personal Access Token (PAT): Resolves exact user from api_tokens table
+ * 2. Cloud mode: Checks Supabase Auth session via cookies
+ * 3. Self-hosted mode: Checks local admin JWT cookie
  */
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  // Check Cloud Mode first
+  // 1. Check Personal Access Token / API Key from request headers
+  try {
+    const headerList = await headers();
+    const authHeader = headerList.get("authorization");
+    let rawToken: string | null = null;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      rawToken = authHeader.slice(7).trim();
+    } else {
+      const apiKeyHeader = headerList.get("x-api-key");
+      if (apiKeyHeader) rawToken = apiKeyHeader.trim();
+    }
+
+    if (rawToken && rawToken.startsWith("pp_live_")) {
+      const tokenMatch = await verifyAndConsumeToken(rawToken);
+      if (tokenMatch) {
+        return {
+          id: tokenMatch.userId,
+          email: tokenMatch.userId === "selfhost-admin" ? "admin@selfhost.local" : undefined,
+          role: tokenMatch.userId === "selfhost-admin" ? "admin" : "user",
+          tokenId: tokenMatch.tokenId,
+          tokenName: tokenMatch.name,
+        };
+      }
+    }
+  } catch {
+    // Non-fatal, fallback to cookie checks
+  }
+
+  // 2. Check Cloud Mode via Supabase cookies
   if (isCloudMode()) {
     try {
       const supabase = await createSupabaseServerClient();
@@ -72,7 +105,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     }
   }
 
-  // Fallback / Self-hosted check
+  // 3. Fallback / Self-hosted check
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (token) {
