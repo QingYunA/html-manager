@@ -58,18 +58,27 @@ export interface CurrentUser {
  * 2. Cloud mode: Checks Supabase Auth session via cookies
  * 3. Self-hosted mode: Checks local admin JWT cookie
  */
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export async function getCurrentUser(request?: Request): Promise<CurrentUser | null> {
   // 1. Check Personal Access Token / API Key from request headers
   try {
-    const headerList = await headers();
-    const authHeader = headerList.get("authorization");
+    let authHeader: string | null = null;
+    let apiKeyHeader: string | null = null;
+
+    if (request) {
+      authHeader = request.headers.get("authorization");
+      apiKeyHeader = request.headers.get("x-api-key");
+    } else {
+      const headerList = await headers();
+      authHeader = headerList.get("authorization");
+      apiKeyHeader = headerList.get("x-api-key");
+    }
+
     let rawToken: string | null = null;
 
     if (authHeader && authHeader.startsWith("Bearer ")) {
       rawToken = authHeader.slice(7).trim();
-    } else {
-      const apiKeyHeader = headerList.get("x-api-key");
-      if (apiKeyHeader) rawToken = apiKeyHeader.trim();
+    } else if (apiKeyHeader) {
+      rawToken = apiKeyHeader.trim();
     }
 
     if (rawToken && rawToken.startsWith("pp_live_")) {

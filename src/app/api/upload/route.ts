@@ -3,12 +3,21 @@ import { getCurrentUser } from "@/lib/auth";
 import { processAndCreateProject } from "@/lib/services/project-service";
 
 export async function POST(request: Request) {
-  const currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser(request);
   if (!currentUser) {
+    const authHeader = request.headers.get("authorization");
+    const apiKeyHeader = request.headers.get("x-api-key");
+    const tokenProvided = Boolean(
+      (authHeader && authHeader.startsWith("Bearer ")) ||
+      (apiKeyHeader && apiKeyHeader.startsWith("pp_live_"))
+    );
+
     return NextResponse.json(
       {
         success: false,
-        error: "Unauthorized: Missing or invalid Bearer token / session. Please provide 'Authorization: Bearer pp_live_...' or login.",
+        error: tokenProvided
+          ? "Unauthorized: Invalid or unverified API token. Please ensure your token exists in database and has not been revoked."
+          : "Unauthorized: Missing or invalid Bearer token / session. Please provide 'Authorization: Bearer pp_live_...' or login.",
       },
       { status: 401 }
     );
