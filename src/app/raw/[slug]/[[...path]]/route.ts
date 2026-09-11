@@ -20,9 +20,9 @@ export async function GET(request: Request, context: RouteParams) {
   }
 
   // Strict Privacy Enforcement:
-  // If a project is private or encrypted, ONLY the exact project creator can access raw endpoints.
-  // Platform admins CANNOT inspect or access other users' private/encrypted projects!
-  const isProtected = project.visibility === "private" || project.isEncrypted;
+  // If a project is private, ONLY the exact project creator can access raw endpoints.
+  // Platform admins CANNOT inspect or access other users' private projects!
+  const isProtected = project.visibility === "private";
   if (isProtected) {
     const currentUser = await getCurrentUser();
     const isExactCreator = Boolean(

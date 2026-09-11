@@ -33,11 +33,6 @@ export async function handleUploadAction(
     tags: str("tags") ?? "",
     visibility: str("visibility") ?? "public",
     isPinned: formData.get("isPinned") === "true",
-    isEncrypted: formData.get("isEncrypted") === "true",
-    encryptionIv: str("encryptionIv"),
-    keyMode: str("keyMode"),
-    kdfSalt: str("kdfSalt"),
-    preUploadedStoragePath: str("preUploadedStoragePath"),
   });
 
   if (!parseResult.success) {
@@ -53,36 +48,10 @@ export async function handleUploadAction(
     tags,
     visibility,
     isPinned,
-    isEncrypted,
-    encryptionIv,
-    keyMode,
-    kdfSalt,
-    preUploadedStoragePath,
   } = parseResult.data;
 
   try {
-    if (preUploadedStoragePath) {
-      // Direct presigned upload was completed on client
-      const project = await processAndCreateProject({
-        userId: user.id,
-        title,
-        slug,
-        description,
-        category,
-        tags,
-        visibility,
-        isPinned,
-        isEncrypted,
-        encryptionIv,
-        keyMode,
-        kdfSalt,
-        preUploadedStoragePath,
-      });
-
-      revalidatePath("/");
-      revalidatePath("/admin");
-      return { success: true, slug: project.slug };
-    } else if (uploadType === "paste") {
+    if (uploadType === "paste") {
       const htmlContent = str("htmlContent");
       if (!htmlContent || !htmlContent.trim()) {
         return { error: "请输入或粘贴 HTML 代码" };

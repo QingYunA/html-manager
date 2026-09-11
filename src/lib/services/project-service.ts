@@ -17,15 +17,7 @@ export interface CreateProjectInput {
   htmlContent?: string;
   fileBuffer?: Buffer;
   fileName?: string;
-  // End-to-end encryption fields (zero-knowledge: server stores ciphertext + public KDF params only)
-  isEncrypted?: boolean;
-  encryptionIv?: string;
-  keyMode?: "legacy-server" | "zk-passphrase" | "zk-recovery";
-  kdfSalt?: string;
-  kdfIterations?: number;
   fileSize?: number;
-  // Pre-uploaded storage path (via S3 Presigned direct PUT)
-  preUploadedStoragePath?: string;
 }
 
 export function sanitizeSlug(input: string): string {
@@ -65,16 +57,7 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
 
   const storagePrefix = `sites/${slug}`;
 
-  // Check if file was already directly uploaded via Presigned URL
-  if (input.preUploadedStoragePath) {
-    assetType = "single_html";
-    entryPath = input.isEncrypted ? "bundle.enc" : "index.html";
-  } else if (input.isEncrypted && input.fileBuffer) {
-    // Encrypted file stream
-    assetType = "single_html";
-    entryPath = "bundle.enc";
-    await storage.uploadFile(`${storagePrefix}/${entryPath}`, input.fileBuffer, "application/octet-stream");
-  } else if (input.htmlContent) {
+  if (input.htmlContent) {
     // 1. Direct HTML content
     assetType = "single_html";
     entryPath = "index.html";
@@ -115,11 +98,11 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
       await storage.uploadFile(`${storagePrefix}/index.html`, input.fileBuffer, "text/html; charset=utf-8");
     }
   } else {
-    throw new Error("Must provide either htmlContent, valid fileBuffer, or preUploadedStoragePath");
+    throw new Error("Must provide either htmlContent or valid fileBuffer");
   }
 
   if (!title) {
-    title = input.isEncrypted ? "加密私密单页" : "未命名项目";
+    title = "未命名项目";
   }
 
   const project = await createProject({
@@ -137,11 +120,8 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
     visibility: input.visibility || "public",
     isPinned: Boolean(input.isPinned),
     viewCount: 0,
-    isEncrypted: Boolean(input.isEncrypted),
-    encryptionIv: input.encryptionIv || null,
-    keyMode: input.keyMode || "legacy-server",
-    kdfSalt: input.kdfSalt || null,
-    kdfIterations: input.kdfIterations ?? null,
+    isEncrypted: false,
+    encryptionIv: null,
     fileSize: input.fileSize || 0,
     planTier: "free",
   });

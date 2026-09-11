@@ -28,12 +28,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { generateRecoveryKey, encryptWithKey, saveLocalProjectKey } from "@/lib/crypto/e2ee";
 import { scanHtmlForSensitiveData, type SensitiveRiskMatch } from "@/lib/scanner/sensitive-scanner";
 import { PublicRiskDialog } from "@/components/public-risk-dialog";
 
@@ -64,11 +62,7 @@ export default function AdminUploadPage() {
   const [tagInput, setTagInput] = useState("");
   const [visibility, setVisibility] = useState<"public" | "unlisted" | "private">("public");
   const [isPinned, setIsPinned] = useState(false);
-
-  // E2EE States
-  const [enableE2EE, setEnableE2EE] = useState(false);
-  const [e2eeKeyResult, setE2eeKeyResult] = useState<string | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   // Public Risk Dialog & Sensitive Matches
   const [showRiskDialog, setShowRiskDialog] = useState(false);
@@ -175,7 +169,6 @@ export default function AdminUploadPage() {
 
   const performActualSubmit = async (overrideVisibility?: "public" | "private") => {
     const targetVisibility = overrideVisibility || visibility;
-    const shouldEncrypt = targetVisibility === "private" ? true : enableE2EE;
     setErrorMessage("");
 
     let finalTitle = title.trim();
@@ -209,65 +202,6 @@ export default function AdminUploadPage() {
 
     startTransition(async () => {
       try {
-        let preUploadedStoragePath = "";
-        let encryptionIv = "";
-        let keyMode = "zk-recovery" as const;
-        let recoveryKeyForUser = "";
-
-        if (shouldEncrypt) {
-          let rawBytes: Uint8Array;
-          if (mode === "file" && file) {
-            const buf = await file.arrayBuffer();
-            rawBytes = new Uint8Array(buf);
-          } else {
-            rawBytes = new TextEncoder().encode(pasteContent);
-          }
-
-          const presignRes = await fetch("/api/upload/presign", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              slug: finalSlug,
-              filename: "bundle.enc",
-              contentType: "application/octet-stream",
-              isEncrypted: true,
-            }),
-          });
-
-          if (!presignRes.ok) {
-            throw new Error("Failed to get presigned upload URL from storage");
-          }
-
-          const presignData = await presignRes.json();
-          if (!presignData.uploadUrl) {
-            throw new Error(presignData.error || "Presigned URL error");
-          }
-
-          // Zero-knowledge: generate the key in the browser and encrypt locally.
-          // The key is never sent to the server; only the ciphertext and public IV are.
-          const { keyBase64, key } = await generateRecoveryKey();
-          recoveryKeyForUser = keyBase64;
-          keyMode = "zk-recovery";
-
-          const { ciphertext, ivBase64 } = await encryptWithKey(key, rawBytes);
-          encryptionIv = ivBase64;
-
-          const uploadRes = await fetch(presignData.uploadUrl, {
-            method: presignData.uploadMethod || "PUT",
-            headers: { "Content-Type": "application/octet-stream" },
-            body: new Blob([ciphertext as unknown as BlobPart]),
-          });
-
-          if (!uploadRes.ok) {
-            throw new Error("Direct storage PUT upload failed");
-          }
-
-          preUploadedStoragePath = presignData.storagePath;
-          // Cache the key in this browser so the owner can reopen without copy-pasting
-          saveLocalProjectKey(finalSlug, { keyMode, key: recoveryKeyForUser });
-          setE2eeKeyResult(recoveryKeyForUser);
-        }
-
         const formData = new FormData();
         formData.append("uploadType", mode);
         formData.append("title", finalTitle);
@@ -278,17 +212,10 @@ export default function AdminUploadPage() {
         formData.append("visibility", targetVisibility);
         formData.append("isPinned", String(isPinned));
 
-        if (shouldEncrypt) {
-          formData.append("isEncrypted", "true");
-          formData.append("encryptionIv", encryptionIv);
-          formData.append("keyMode", keyMode);
-          formData.append("preUploadedStoragePath", preUploadedStoragePath);
+        if (mode === "file" && file) {
+          formData.append("file", file);
         } else {
-          if (mode === "file" && file) {
-            formData.append("file", file);
-          } else {
-            formData.append("htmlContent", pasteContent);
-          }
+          formData.append("htmlContent", pasteContent);
         }
 
         try {
@@ -300,18 +227,6 @@ export default function AdminUploadPage() {
           }
         } catch (serverActionErr: unknown) {
           console.error("handleUploadAction call error:", serverActionErr);
-
-          // NEVER fall back to the plaintext REST endpoint for an encrypted upload:
-          // it does not carry the ciphertext/E2EE metadata, so it would silently store
-          // and serve the artifact in plaintext. Surface the error and let the user retry.
-          if (shouldEncrypt) {
-            setErrorMessage(
-              (serverActionErr as Error)?.message ||
-                "加密项目提交失败，请重试（未降级为明文上传以保证隐私）"
-            );
-            return;
-          }
-
           // Fallback to direct REST API upload if Server Action fails with network/load error
           try {
             const apiFormData = new FormData();
@@ -373,14 +288,12 @@ export default function AdminUploadPage() {
     await performActualSubmit();
   };
 
-  const handleCopySecretUrl = () => {
+  const handleCopyUrl = () => {
     if (!successSlug) return;
-    const fullUrl = e2eeKeyResult
-      ? `${window.location.origin}/p/${successSlug}#key=${e2eeKeyResult}`
-      : `${window.location.origin}/p/${successSlug}`;
+    const fullUrl = `${window.location.origin}/p/${successSlug}`;
     navigator.clipboard.writeText(fullUrl);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
   };
 
   return (
@@ -423,34 +336,32 @@ export default function AdminUploadPage() {
               </p>
             </div>
 
-            {/* E2EE Secret Link Banner if manual key */}
-            {enableE2EE && (
-              <div className="p-4 rounded-lg bg-muted/60 border border-border text-left space-y-2 max-w-md mx-auto">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-500" /> 用户级安全加密保险箱
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-[11px] gap-1 px-2"
-                    onClick={handleCopySecretUrl}
-                  >
-                    {copiedKey ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedKey ? "已复制" : "复制直链"}</span>
-                  </Button>
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={handleCopyUrl}
+              >
+                {copiedUrl ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedUrl ? "已复制直链" : "复制运行链接"}</span>
+              </Button>
+            </div>
+
+            {visibility === "private" && (
+              <div className="p-3.5 rounded-lg bg-muted/60 border border-border text-left space-y-1 max-w-md mx-auto">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" /> 账号级私有保护已生效
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  {e2eeKeyResult
-                    ? "解密密钥保存在 URL Hash 中，绝不发送给服务器。"
-                    : "已绑定当前用户级认证凭证，登录账号即可无感打开并运行，无需任何手动输入！"}
+                  该项目仅限您当前登录的账号访问。在任何电脑或手机上登录 GitHub / Google 账号即可直接打开，无需输入任何密码；未登录访客将被严格拒绝。
                 </p>
               </div>
             )}
 
             <div className="pt-2 flex items-center justify-center gap-2">
               <Button size="sm" asChild>
-                <Link href={e2eeKeyResult ? `/p/${successSlug}#key=${e2eeKeyResult}` : `/p/${successSlug}`}>
+                <Link href={`/p/${successSlug}`}>
                   立即在运行台体验
                 </Link>
               </Button>
@@ -459,7 +370,6 @@ export default function AdminUploadPage() {
                 variant="outline"
                 onClick={() => {
                   setSuccessSlug(null);
-                  setE2eeKeyResult(null);
                   setFile(null);
                   setPasteContent("");
                   setTitle("");
@@ -588,37 +498,6 @@ export default function AdminUploadPage() {
                 </Card>
               </TabsContent>
             </Tabs>
-
-            {/* User-level Seamless Encryption Banner */}
-            <Card className="border-border bg-card">
-              <CardContent className="p-4 flex items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-md bg-muted text-foreground shrink-0 mt-0.5 border border-border">
-                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-foreground">
-                        端到端加密保护 (Zero-Knowledge E2EE)
-                      </span>
-                      <Badge variant="secondary" className="text-[10px]">
-                        无感安全体验
-                      </Badge>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                      启用后，HTML 在离开浏览器前通过 AES-GCM 256 密文直传 R2 存储。拥有者登录后可无感直接查看与运行，外部访问需持授权链接。
-                    </p>
-                  </div>
-                </div>
-
-                <Switch
-                  checked={enableE2EE}
-                  onCheckedChange={setEnableE2EE}
-                  aria-label="启用端到端加密保护"
-                  className="shrink-0"
-                />
-              </CardContent>
-            </Card>
 
             {/* Metadata Card */}
             <Card>
@@ -820,7 +699,6 @@ export default function AdminUploadPage() {
         onSwitchToPrivate={() => {
           setShowRiskDialog(false);
           setVisibility("private");
-          setEnableE2EE(true); // Automatically turn on E2EE vault for sensitive credentials!
           performActualSubmit("private");
         }}
       />

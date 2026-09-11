@@ -32,7 +32,7 @@ export const revalidate = 60;
 export default async function ExplorePage() {
   const allProjects = await getAllProjects({ includePrivate: false });
   const publicProjects = allProjects.filter(
-    (p) => p.visibility === "public" && !p.isEncrypted
+    (p) => p.visibility === "public"
   );
 
   return (

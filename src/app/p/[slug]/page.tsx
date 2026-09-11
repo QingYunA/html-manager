@@ -27,11 +27,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  // If private or encrypted without public access, disallow search engine indexing
-  if (project.visibility === "private" || project.isEncrypted) {
+  // If private without public access, disallow search engine indexing
+  if (project.visibility === "private") {
     return {
-      title: "Private Vault Artifact",
-      description: "Encrypted private project on Pagepod.",
+      title: "Private Artifact",
+      description: "Private project on Pagepod.",
       robots: { index: false, follow: false },
     };
   }
@@ -126,11 +126,7 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
     );
   }
 
-  // Zero-knowledge: the server NEVER decrypts encrypted artifacts and never holds the key.
-  // For encrypted projects, decryption happens entirely client-side using a key supplied via
-  // the URL fragment (#key=...) or the owner's browser-local key cache. Only public KDF
-  // parameters (salt, iterations, IV) are passed to the client.
-  if (!project.isEncrypted && project.assetType === "single_html") {
+  if (project.assetType === "single_html") {
     try {
       const file = await storage.getFile(`${project.storagePrefix}/${project.entryPath}`);
       if (file) {
@@ -143,7 +139,7 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
   const jsonLd =
-    project.visibility === "public" && !project.isEncrypted
+    project.visibility === "public"
       ? {
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
@@ -172,14 +168,14 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
   try {
     const allPublic = await getAllProjects({ category: project.category });
     relatedProjects = allPublic
-      .filter((p) => p.slug !== slug && p.visibility === "public" && !p.isEncrypted)
+      .filter((p) => p.slug !== slug && p.visibility === "public")
       .slice(0, 4);
     
     // If not enough in category, fetch from all categories
     if (relatedProjects.length < 3) {
       const moreProjects = await getAllProjects();
       const extra = moreProjects
-        .filter((p) => p.slug !== slug && p.visibility === "public" && !p.isEncrypted && !relatedProjects.some(r => r.slug === p.slug))
+        .filter((p) => p.slug !== slug && p.visibility === "public" && !relatedProjects.some(r => r.slug === p.slug))
         .slice(0, 4 - relatedProjects.length);
       relatedProjects = [...relatedProjects, ...extra];
     }

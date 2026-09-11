@@ -34,32 +34,8 @@ export async function POST(request: Request) {
     // Parse the multipart body once and reuse it (avoid double-buffering large files).
     const parsedFormData = isMultipart ? await request.formData() : null;
 
-    // This endpoint stores plaintext only: it has no ciphertext/E2EE metadata. Reject
-    // any request that claims to be encrypted so a client can never silently persist
-    // a "private, encrypted" artifact as readable plaintext.
-    if (parsedFormData && parsedFormData.get("isEncrypted") === "true") {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Encrypted uploads are not supported by this endpoint. Use the app upload flow so the artifact stays encrypted.",
-        },
-        { status: 400 }
-      );
-    }
-
     if (contentType.includes("application/json")) {
       const rawJson = await request.json();
-      if (rawJson && rawJson.isEncrypted === true) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              "Encrypted uploads are not supported by this endpoint. Use the app upload flow so the artifact stays encrypted.",
-          },
-          { status: 400 }
-        );
-      }
       const parseResult = uploadPayloadSchema.safeParse(rawJson);
       if (!parseResult.success) {
         return NextResponse.json(

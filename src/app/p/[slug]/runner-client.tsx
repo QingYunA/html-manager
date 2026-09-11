@@ -16,7 +16,6 @@ import {
   Check,
   Copy,
   Info,
-  ShieldCheck,
   Lock,
   Code,
   Sparkles,
@@ -34,14 +33,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  decryptWithKey,
-  deriveKeyFromPassphrase,
-  extractKeyFromUrlHash,
-  importRecoveryKey,
-  loadLocalProjectKey,
-  KDF_ITERATIONS_DEFAULT,
-} from "@/lib/crypto/e2ee";
 
 interface RunnerClientProps {
   project: Project;
@@ -70,79 +61,7 @@ export default function RunnerClient({
   const [copiedEmbed, setCopiedEmbed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Zero-knowledge decryption state. The key lives only in the browser.
-  const [decryptedHtml, setDecryptedHtml] = useState<string | null>(null);
-  const [isDecrypting, setIsDecrypting] = useState(Boolean(project.isEncrypted));
-  const [decryptError, setDecryptError] = useState<string | null>(null);
-  const [manualKeyInput, setManualKeyInput] = useState("");
-
   const rawUrl = `/raw/${project.slug}/`;
-
-  // Resolves a secret (recovery key or passphrase) into a decryption result.
-  const attemptDecryption = async (secret: string, modeOverride?: string) => {
-    if (!project.isEncrypted || !project.encryptionIv || !secret) return;
-    setIsDecrypting(true);
-    setDecryptError(null);
-
-    try {
-      const res = await fetch(rawUrl);
-      if (!res.ok) throw new Error(`Status: ${res.status}`);
-      const ciphertextBuffer = await res.arrayBuffer();
-
-      const mode = modeOverride || project.keyMode;
-      let html: string;
-
-      if (mode === "zk-passphrase") {
-        const iterations = project.kdfIterations || KDF_ITERATIONS_DEFAULT;
-        const salt = project.kdfSalt || "";
-        if (!salt) throw new Error("Missing KDF salt for passphrase key mode");
-        const cryptoKey = await deriveKeyFromPassphrase(secret, salt, iterations);
-        html = await decryptWithKey(cryptoKey, new Uint8Array(ciphertextBuffer), project.encryptionIv);
-      } else if (mode === "zk-recovery") {
-        const cryptoKey = await importRecoveryKey(secret);
-        html = await decryptWithKey(cryptoKey, new Uint8Array(ciphertextBuffer), project.encryptionIv);
-      } else {
-        // Pre-zero-knowledge artifacts ("legacy-server") cannot be decrypted client-side,
-        // because their key was derived server-side and is not derivable from the share link.
-        throw new Error("This artifact was encrypted with an obsolete scheme and cannot be opened.");
-      }
-
-      setDecryptedHtml(html);
-      setIsDecrypting(false);
-    } catch (err: unknown) {
-      console.error("Decryption failed:", err);
-      setDecryptError(t.runner.lockedTitle);
-      setIsDecrypting(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!project.isEncrypted) {
-      setIsDecrypting(false);
-      return;
-    }
-
-    // 1. Prefer an explicit key passed via the URL fragment (never sent to the server)
-    const hash = typeof window !== "undefined" ? window.location.hash : "";
-    const extractedKey = extractKeyFromUrlHash(hash);
-    if (extractedKey) {
-      attemptDecryption(extractedKey);
-      return;
-    }
-
-    // 2. Fall back to the owner's browser-local key cache (zero-knowledge, device-scoped)
-    const cached = loadLocalProjectKey(project.slug);
-    if (cached) {
-      const secret = cached.keyMode === "zk-passphrase" ? cached.passphrase : cached.key;
-      if (secret) {
-        attemptDecryption(secret, cached.keyMode);
-        return;
-      }
-    }
-
-    setIsDecrypting(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.isEncrypted, project.slug, reloadKey]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -161,29 +80,35 @@ export default function RunnerClient({
   };
 
   const handleCopyCode = () => {
-    const codeToCopy = decryptedHtml || initialSourceCode;
-    if (!codeToCopy) return;
-    navigator.clipboard.writeText(codeToCopy);
+    if (!initialSourceCode) return;
+    navigator.clipboard.writeText(initialSourceCode);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const fullUrl = `${window.location.origin}/p/${project.slug}`;
+    navigator.clipboard.writeText(fullUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  const embedSnippet = `<iframe src="${
+    typeof window !== "undefined" ? window.location.origin : ""
+  }/raw/${project.slug}/" width="100%" height="600" frameborder="0" sandbox="allow-scripts allow-forms allow-downloads allow-popups" allowfullscreen></iframe>`;
+
+  const isPrivate = project.visibility === "private";
+
   return (
     <div
       ref={containerRef}
-      className="h-screen w-screen flex flex-col bg-background text-foreground overflow-hidden select-none antialiased"
+      className="flex flex-col h-screen w-screen overflow-hidden bg-background text-foreground select-none"
     >
-      {/* Top Floating Runner Toolbar */}
-      <header className="h-12 border-b border-border bg-background/95 backdrop-blur-xs px-3 sm:px-4 flex items-center justify-between shrink-0 z-20">
+      {/* Top Controls Bar */}
+      <header className="h-12 border-b border-border px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 bg-background/95 backdrop-blur-xs z-10">
         {/* Left: Back & Project Title */}
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+        <div className="flex items-center gap-2 min-w-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0" asChild>
             <Link href="/" title={t.runner.back}>
               <ArrowLeft className="w-4 h-4" />
             </Link>
@@ -193,10 +118,10 @@ export default function RunnerClient({
             <h1 className="text-xs font-semibold text-foreground truncate max-w-[140px] sm:max-w-xs md:max-w-sm">
               {project.title}
             </h1>
-            {project.isEncrypted ? (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1 text-emerald-500 border-emerald-500/30">
-                <ShieldCheck className="w-3 h-3" />
-                <span>{t.runner.encryptedBadge}</span>
+            {isPrivate ? (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                <Lock className="w-3 h-3" />
+                <span>私有项目</span>
               </Badge>
             ) : (
               <Badge variant="outline" className="hidden sm:inline-flex text-[10px] px-1.5 py-0">
@@ -273,7 +198,7 @@ export default function RunnerClient({
             <Code2 className="w-3.5 h-3.5" />
           </Button>
 
-          {!project.isEncrypted && (
+          {!isPrivate && (
             <Button
               variant={showEmbed ? "secondary" : "ghost"}
               size="icon"
@@ -295,13 +220,11 @@ export default function RunnerClient({
             {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
           </Button>
 
-          {!project.isEncrypted && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
-              <a href={rawUrl} target="_blank" rel="noopener noreferrer" title={t.runner.openNewTab}>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            </Button>
-          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+            <a href={rawUrl} target="_blank" rel="noopener noreferrer" title={t.runner.openNewTab}>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </Button>
 
           <LanguageToggle />
           <ThemeToggle />
@@ -330,7 +253,7 @@ export default function RunnerClient({
               <div>
                 <span className="text-muted-foreground">{t.runner.status}</span>
                 <span className="text-foreground font-medium">
-                  {project.isEncrypted ? (isOwner ? t.runner.seamlessDecrypted : t.runner.e2eeProtected) : t.runner.plainOutput}
+                  {isPrivate ? (isOwner ? "私有 (所有者可访问)" : "私有保护") : t.runner.plainOutput}
                 </span>
               </div>
               {project.description && (
@@ -357,14 +280,10 @@ export default function RunnerClient({
                   <Link
                     key={rel.slug}
                     href={`/p/${rel.slug}`}
-                    className="group block p-2 rounded-md bg-muted/40 hover:bg-muted/80 border border-border/50 transition-colors"
+                    className="p-2 rounded border border-border/60 bg-muted/20 hover:bg-muted/60 transition-colors flex flex-col gap-1"
                   >
-                    <div className="font-medium text-foreground text-xs truncate group-hover:text-primary transition-colors">
-                      {rel.title || rel.slug}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                      {rel.description || rel.category}
-                    </div>
+                    <span className="text-[11px] font-medium text-foreground truncate">{rel.title}</span>
+                    <span className="text-[10px] text-muted-foreground">{rel.category}</span>
                   </Link>
                 ))}
               </div>
@@ -373,7 +292,7 @@ export default function RunnerClient({
         </div>
       )}
 
-      {/* Viewport Canvas: Clean background matching app background, NO ugly pitch-black border */}
+      {/* Viewport Canvas */}
       <div
         className={`flex-1 bg-background flex items-center justify-center overflow-hidden relative ${
           device === "desktop" ? "p-0" : "p-4 sm:p-6"
@@ -395,72 +314,17 @@ export default function RunnerClient({
           )}
 
           <div className="flex-1 bg-white relative w-full h-full">
-            {project.isEncrypted ? (
-              decryptedHtml ? (
-                /* Decrypted In-Memory HTML Sandbox */
-                <iframe
-                  key={reloadKey}
-                  srcDoc={decryptedHtml}
-                  title={project.title}
-                  sandbox="allow-scripts allow-forms allow-downloads allow-popups"
-                  className="w-full h-full border-0"
-                />
-              ) : (
-                /* Locked Prompt if visitor has no key and not logged in as owner */
-                <div className="w-full h-full flex flex-col items-center justify-center bg-background text-foreground p-6 text-center">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-foreground mb-3 border border-border">
-                    <Lock className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <h2 className="text-sm font-semibold">{t.runner.lockedTitle}</h2>
-                  <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-4 leading-relaxed">
-                    {isDecrypting
-                      ? t.runner.lockedDescOwner
-                      : decryptError || t.runner.lockedDescVisitor}
-                  </p>
-
-                  {!isDecrypting && (
-                    <div className="flex flex-col items-center gap-3 max-w-xs w-full">
-                      <div className="flex items-center gap-2 w-full">
-                        <input
-                          type="text"
-                          aria-label={t.runner.inputKeyPlaceholder}
-                          value={manualKeyInput}
-                          onChange={(e) => setManualKeyInput(e.target.value)}
-                          placeholder={t.runner.inputKeyPlaceholder}
-                          className="flex-1 bg-muted/40 border border-input rounded-md px-2.5 h-8 text-xs font-mono outline-none"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => attemptDecryption(manualKeyInput.trim())}
-                          className="h-8 text-xs"
-                        >
-                          {t.runner.decryptRun}
-                        </Button>
-                      </div>
-
-                      <div className="text-[11px] text-muted-foreground">
-                        <Link href={`/admin/login?from=${encodeURIComponent(`/p/${project.slug}`)}`} className="underline hover:text-foreground">
-                          {t.runner.orLoginToOpen}
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            ) : (
-              /* Regular Unencrypted Sandbox */
-              <iframe
-                key={reloadKey}
-                src={rawUrl}
-                title={project.title}
-                sandbox="allow-scripts allow-forms allow-downloads allow-popups"
-                className="w-full h-full border-0"
-              />
-            )}
+            <iframe
+              key={reloadKey}
+              src={rawUrl}
+              title={project.title}
+              sandbox="allow-scripts allow-forms allow-downloads allow-popups"
+              className="w-full h-full border-0"
+            />
           </div>
         </div>
 
-        {/* Viral Badge: Built-in dofollow viral backlink to generate continuous SEO authority */}
+        {/* Viral Badge */}
         <div className="absolute bottom-2.5 right-3 z-10 pointer-events-auto">
           <Link
             href="/"
@@ -474,7 +338,7 @@ export default function RunnerClient({
         </div>
       </div>
 
-      {/* Source Code Modal (Radix Dialog) */}
+      {/* Source Code Modal */}
       <Dialog open={showCode} onOpenChange={setShowCode}>
         <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0 gap-0 border-border bg-card">
           <DialogHeader className="p-3.5 border-b border-border flex flex-row items-center justify-between space-y-0">
@@ -483,7 +347,7 @@ export default function RunnerClient({
                 {project.entryPath}
               </DialogTitle>
               <DialogDescription className="text-[11px] text-muted-foreground">
-                {project.isEncrypted ? "Decrypted Source Code" : t.runner.sourceCode}
+                {t.runner.sourceCode}
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2 mr-6">
@@ -496,7 +360,7 @@ export default function RunnerClient({
 
           <div className="flex-1 p-4 overflow-auto bg-neutral-950 font-mono text-xs text-neutral-300">
             <pre className="leading-relaxed whitespace-pre-wrap selection:bg-neutral-700">
-              {decryptedHtml || initialSourceCode || (project.isEncrypted ? "Encrypted payload" : "No source")}
+              {initialSourceCode || "暂无源代码"}
             </pre>
           </div>
         </DialogContent>
@@ -517,16 +381,15 @@ export default function RunnerClient({
 
           <div className="space-y-3 pt-2">
             <div className="relative rounded-lg bg-neutral-950 p-3 font-mono text-xs text-neutral-300 border border-border/40 overflow-x-auto selection:bg-neutral-700">
-              <code>{`<iframe\n  src="${typeof window !== "undefined" ? window.location.origin : ""}/raw/${project.slug}/"\n  width="100%"\n  height="600"\n  frameborder="0"\n  sandbox="allow-scripts allow-forms allow-popups allow-downloads"\n  loading="lazy"\n></iframe>\n<p style="font-size:12px;color:#666;">Hosted on <a href="https://pagepod.dev" target="_blank" rel="noopener">Pagepod</a></p>`}</code>
+              <code>{embedSnippet}</code>
             </div>
-
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">包含安全沙箱隔离参数，可安全嵌入任意站点</span>
               <Button
                 size="sm"
-                className="gap-1.5 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                className="gap-1.5"
                 onClick={() => {
-                  const embedCode = `<iframe\n  src="${window.location.origin}/raw/${project.slug}/"\n  width="100%"\n  height="600"\n  frameborder="0"\n  sandbox="allow-scripts allow-forms allow-popups allow-downloads"\n  loading="lazy"\n></iframe>\n<p style="font-size:12px;color:#666;">Hosted on <a href="https://pagepod.dev" target="_blank" rel="noopener">Pagepod</a></p>`;
-                  navigator.clipboard.writeText(embedCode);
+                  navigator.clipboard.writeText(embedSnippet);
                   setCopiedEmbed(true);
                   setTimeout(() => setCopiedEmbed(false), 2000);
                 }}
