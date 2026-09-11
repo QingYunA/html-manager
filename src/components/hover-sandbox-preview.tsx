@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Play, Sparkles, Loader2, ExternalLink } from "lucide-react";
+import { Play, Sparkles, Loader2, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsSandboxActive, sandboxPool } from "@/lib/sandbox-pool";
 
 interface HoverSandboxPreviewProps {
   slug: string;
@@ -29,10 +30,14 @@ export default function HoverSandboxPreview({
   variant = "card",
   icon: CustomIcon,
 }: HoverSandboxPreviewProps) {
-  const [status, setStatus] = useState<"idle" | "charging" | "active">("idle");
+  const isPoolActive = useIsSandboxActive(slug);
+  const [isCharging, setIsCharging] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [popoverPos, setPopoverPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  // For table-cell floating popover: tracks active popover locally so it doesn't overlap forever
+  const [isCellActive, setIsCellActive] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -55,43 +60,67 @@ export default function HoverSandboxPreview({
     const popoverHeight = 170;
     const popoverWidth = 288;
 
-    // Position above if space allows, otherwise below
     const top = rect.top > popoverHeight + 16 ? rect.top - popoverHeight - 8 : rect.bottom + 8;
     const left = Math.max(16, Math.min(window.innerWidth - popoverWidth - 16, rect.left));
     setPopoverPos({ top, left });
   };
 
   const handleMouseEnter = () => {
-    if (status === "active") return;
+    if (variant === "card") {
+      if (isPoolActive) return;
+    } else {
+      if (isCellActive) return;
+    }
+
     updatePopoverPosition();
-    setStatus("charging");
+    setIsCharging(true);
     clearChargeTimer();
 
     timerRef.current = setTimeout(() => {
-      setStatus("active");
+      setIsCharging(false);
+      if (variant === "card") {
+        // Enqueue into persistent global pool (max 6)
+        sandboxPool.activate(slug);
+      } else {
+        setIsCellActive(true);
+      }
     }, CHARGE_DURATION_MS);
   };
 
   const handleMouseLeave = () => {
     clearChargeTimer();
-    // Allow small window for pointer to enter the popover if in table-cell mode
-    setTimeout(() => {
-      if (!isOverPopoverRef.current) {
-        setStatus("idle");
-        setIframeLoaded(false);
-      }
-    }, 50);
+    setIsCharging(false);
+
+    if (variant === "table-cell") {
+      setTimeout(() => {
+        if (!isOverPopoverRef.current) {
+          setIsCellActive(false);
+          setIframeLoaded(false);
+        }
+      }, 50);
+    }
+    // In "card" mode: do NOT deactivate! The card remains active in the pool.
   };
 
-  // Cleanup on unmount
+  const handleManualClose = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (variant === "card") {
+      sandboxPool.deactivate(slug);
+    } else {
+      setIsCellActive(false);
+    }
+    setIframeLoaded(false);
+  };
+
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       clearChargeTimer();
     };
   }, [clearChargeTimer]);
 
-  const isCharging = status === "charging";
-  const isActive = status === "active";
+  const isCardActive = variant === "card" && isPoolActive;
 
   /* ----------------------------------------------------
    * VARIANT 1: TABLE CELL (For Admin Table Row Previews)
@@ -132,7 +161,7 @@ export default function HoverSandboxPreview({
             stroke="currentColor"
             strokeWidth="2"
             strokeDasharray={CELL_CIRCUMFERENCE}
-            strokeDashoffset={isCharging || isActive ? 0 : CELL_CIRCUMFERENCE}
+            strokeDashoffset={isCharging || isCellActive ? 0 : CELL_CIRCUMFERENCE}
             strokeLinecap="round"
             className="text-neutral-200 transition-all"
             style={{
@@ -155,15 +184,15 @@ export default function HoverSandboxPreview({
           title={`点击直接打开 ${title}`}
         />
 
-        {/* Floating Sandboxed Preview Popover (Only mounted when active) */}
-        {isActive && mounted && typeof document !== "undefined" && createPortal(
+        {/* Floating Sandboxed Preview Popover */}
+        {isCellActive && mounted && typeof document !== "undefined" && createPortal(
           <div
             onMouseEnter={() => {
               isOverPopoverRef.current = true;
             }}
             onMouseLeave={() => {
               isOverPopoverRef.current = false;
-              setStatus("idle");
+              setIsCellActive(false);
               setIframeLoaded(false);
             }}
             style={{ top: popoverPos.top, left: popoverPos.left }}
@@ -195,6 +224,15 @@ export default function HoverSandboxPreview({
               </span>
             </div>
 
+            {/* Close Button */}
+            <button
+              onClick={handleManualClose}
+              title="关闭预览"
+              className="absolute top-2 right-2 p-1 rounded-full bg-black/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700 transition-colors z-30"
+            >
+              <X className="w-3 h-3" />
+            </button>
+
             {/* Quick Open Button */}
             <Link
               href={`/p/${slug}`}
@@ -213,6 +251,7 @@ export default function HoverSandboxPreview({
 
   /* ----------------------------------------------------
    * VARIANT 2: FULL CARD (For Showcase & Workspace Grid)
+   * Stays active in global LRU pool (up to 6 concurrent).
    * ---------------------------------------------------- */
   return (
     <div
@@ -220,8 +259,8 @@ export default function HoverSandboxPreview({
       onMouseLeave={handleMouseLeave}
       className="relative aspect-video w-full bg-neutral-950 dark:bg-[#09090b] border-b border-border/60 overflow-hidden select-none group/sandbox"
     >
-      {/* 1. Active Sandboxed iframe (only mounted when active, completely destroyed on mouse leave) */}
-      {isActive && (
+      {/* 1. Active Sandboxed iframe (Persisted in pool across mouse movements) */}
+      {isCardActive && (
         <>
           <iframe
             src={`/raw/${slug}`}
@@ -242,18 +281,27 @@ export default function HoverSandboxPreview({
             </div>
           )}
 
-          {/* Live Indicator Pill */}
-          <div className="absolute bottom-2 left-2 pointer-events-none z-20">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-black/70 text-emerald-400 border border-emerald-500/30 backdrop-blur-md shadow-xs">
+          {/* Live Indicator Pill & Close Button */}
+          <div className="absolute bottom-2 left-2 flex items-center gap-1.5 z-20">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-black/75 text-emerald-400 border border-emerald-500/30 backdrop-blur-md shadow-xs">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>沙箱运行中</span>
             </span>
+
+            {/* Optional Manual Close / Release Button */}
+            <button
+              onClick={handleManualClose}
+              title="暂停沙箱以释放资源"
+              className="p-1 rounded-full bg-black/75 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-700/80 backdrop-blur-md transition-colors cursor-pointer"
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
           </div>
         </>
       )}
 
       {/* 2. Idle & Charging Technical Poster */}
-      {!isActive && (
+      {!isCardActive && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 bg-neutral-950 dark:bg-[#070709] transition-colors">
           {/* Subtle Hairline Blueprint Grid Background */}
           <div
