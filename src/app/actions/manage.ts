@@ -1,13 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { verifyAdminTokenFromCookies } from "@/lib/auth";
+import { getCurrentUser, assertCanManageProject } from "@/lib/auth";
 import { deleteProject, getProjectById, updateProject } from "@/db";
 import { getStorage } from "@/lib/storage";
 
 export async function togglePinAction(id: string, currentPinned: boolean) {
-  const isAdmin = await verifyAdminTokenFromCookies();
-  if (!isAdmin) throw new Error("Unauthorized");
+  const user = await getCurrentUser();
+  const project = await getProjectById(id);
+  if (!project) throw new Error("Project not found");
+
+  assertCanManageProject(user, project);
 
   await updateProject(id, { isPinned: !currentPinned });
   revalidatePath("/");
@@ -15,8 +18,11 @@ export async function togglePinAction(id: string, currentPinned: boolean) {
 }
 
 export async function updateVisibilityAction(id: string, visibility: "public" | "unlisted" | "private") {
-  const isAdmin = await verifyAdminTokenFromCookies();
-  if (!isAdmin) throw new Error("Unauthorized");
+  const user = await getCurrentUser();
+  const project = await getProjectById(id);
+  if (!project) throw new Error("Project not found");
+
+  assertCanManageProject(user, project);
 
   await updateProject(id, { visibility });
   revalidatePath("/");
@@ -24,17 +30,17 @@ export async function updateVisibilityAction(id: string, visibility: "public" | 
 }
 
 export async function deleteProjectAction(id: string) {
-  const isAdmin = await verifyAdminTokenFromCookies();
-  if (!isAdmin) throw new Error("Unauthorized");
-
+  const user = await getCurrentUser();
   const project = await getProjectById(id);
-  if (project) {
-    try {
-      const storage = getStorage();
-      await storage.deleteDirectory(project.storagePrefix);
-    } catch (e) {
-      console.error("Failed to cleanup storage directory:", e);
-    }
+  if (!project) throw new Error("Project not found");
+
+  assertCanManageProject(user, project);
+
+  try {
+    const storage = getStorage();
+    await storage.deleteDirectory(project.storagePrefix);
+  } catch (e) {
+    console.error("Failed to cleanup storage directory:", e);
   }
 
   await deleteProject(id);
@@ -43,11 +49,14 @@ export async function deleteProjectAction(id: string) {
 }
 
 export async function saveProjectHtmlAction(id: string, newHtml: string) {
-  const isAdmin = await verifyAdminTokenFromCookies();
-  if (!isAdmin) throw new Error("Unauthorized");
+  const user = await getCurrentUser();
+  const project = await getProjectById(id);
+  if (!project) throw new Error("Project not found");
+
+  assertCanManageProject(user, project);
 
   const { updateProjectHtml } = await import("@/lib/services/project-service");
-  await updateProjectHtml(id, newHtml);
-  revalidatePath(`/p/${id}`);
+  await updateProjectHtml(id, newHtml, user);
+  revalidatePath(`/p/${project.slug}`);
   revalidatePath("/admin");
 }

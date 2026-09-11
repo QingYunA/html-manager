@@ -2,7 +2,17 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, verifyAdminTokenFromRequest } from "@/lib/auth";
 import { deriveUserMasterKey, bufferToBase64Url } from "@/lib/crypto/e2ee";
 import { getStorage } from "@/lib/storage";
+import { sanitizeSlug } from "@/lib/services/project-service";
+import { assertSafeStorageKey } from "@/lib/storage/path-safety";
 import { nanoid } from "nanoid";
+
+const ALLOWED_CONTENT_TYPES = new Set([
+  "text/html; charset=utf-8",
+  "text/html",
+  "application/octet-stream",
+  "application/zip",
+  "application/x-zip-compressed",
+]);
 
 export async function POST(request: Request) {
   const isAuthorized = await verifyAdminTokenFromRequest(request);
@@ -14,10 +24,19 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { filename, contentType, isEncrypted } = body;
+    const { contentType, isEncrypted } = body;
 
-    const slug = body.slug || nanoid(8).toLowerCase();
-    const storagePath = `sites/${slug}/${isEncrypted ? "bundle.enc" : "index.html"}`;
+    const rawSlug = body.slug ? String(body.slug) : "";
+    const slug = rawSlug ? sanitizeSlug(rawSlug) : nanoid(8).toLowerCase();
+    const entryFile = isEncrypted ? "bundle.enc" : "index.html";
+    const storagePath = assertSafeStorageKey(`sites/${slug}/${entryFile}`, "sites");
+
+    const safeContentType =
+      contentType && ALLOWED_CONTENT_TYPES.has(contentType)
+        ? contentType
+        : isEncrypted
+        ? "application/octet-stream"
+        : "text/html; charset=utf-8";
 
     // If encrypted and user is authenticated, also export their user-derived master key
     // so the client can encrypt deterministically without asking the user to copy-paste passwords
@@ -32,7 +51,7 @@ export async function POST(request: Request) {
     if (storage.createPresignedUploadUrl) {
       const presigned = await storage.createPresignedUploadUrl(
         storagePath,
-        contentType || (isEncrypted ? "application/octet-stream" : "text/html; charset=utf-8")
+        safeContentType
       );
       return NextResponse.json({
         success: true,

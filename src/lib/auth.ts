@@ -146,6 +146,34 @@ export async function verifyAdminTokenFromCookies(): Promise<boolean> {
   return Boolean(user);
 }
 
+/**
+ * Checks whether a user has administrative or ownership rights over a project.
+ * - Global admins (role === "admin") or self-hosted admins can manage any project.
+ * - Regular users can only manage projects they created (project.userId === user.id).
+ * - Legacy projects without userId are only editable by admins.
+ */
+export function canManageProject(
+  user: CurrentUser | null,
+  project: { userId?: string | null }
+): boolean {
+  if (!user) return false;
+  if (user.role === "admin" || user.id === "selfhost-admin") return true;
+  if (!project.userId) return false;
+  return project.userId === user.id;
+}
+
+export function assertCanManageProject(
+  user: CurrentUser | null,
+  project: { userId?: string | null }
+): asserts user is CurrentUser {
+  if (!user) {
+    throw new Error("Unauthorized: Authentication required");
+  }
+  if (!canManageProject(user, project)) {
+    throw new Error("Forbidden: You do not have permission to modify this project");
+  }
+}
+
 export async function verifyAdminTokenFromRequest(request: Request): Promise<boolean> {
   try {
     // 1. Bearer Token check

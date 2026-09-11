@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { verifyAdminTokenFromCookies } from "@/lib/auth";
+import { getCurrentUser, assertCanManageProject } from "@/lib/auth";
 import { updateProject, getProjectById } from "@/db";
 import { getStorage } from "@/lib/storage";
 
@@ -17,11 +17,11 @@ export async function updateProjectFullAction(
     htmlCode?: string;
   }
 ) {
-  const isAdmin = await verifyAdminTokenFromCookies();
-  if (!isAdmin) throw new Error("Unauthorized");
-
+  const user = await getCurrentUser();
   const project = await getProjectById(id);
   if (!project) throw new Error("Project not found");
+
+  assertCanManageProject(user, project);
 
   // If HTML code is provided and it's single_html, update storage
   if (data.htmlCode && project.assetType === "single_html") {
