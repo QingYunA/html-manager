@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProjectBySlug, incrementViewCount, getAllProjects } from "@/db";
+import { after } from "next/server";
+import { getProjectBySlugCached } from "@/lib/db-cache";
+import { incrementViewCount, getAllProjects } from "@/db";
 import { getStorage } from "@/lib/storage";
 import { getCurrentUser } from "@/lib/auth";
 import RunnerClient from "./runner-client";
@@ -15,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug);
+  const project = await getProjectBySlugCached(slug);
 
   if (!project) {
     return {
@@ -75,17 +77,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProjectRunnerPage({ params }: PageProps) {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug);
+  const project = await getProjectBySlugCached(slug);
 
   if (!project) {
     notFound();
   }
-
-  // Record view count
-  await incrementViewCount(slug);
-
-  let sourceCode = "";
-  const storage = getStorage();
 
   const currentUser = await getCurrentUser();
 
@@ -97,6 +93,17 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
         ? currentUser.id === project.userId
         : currentUser.id === "selfhost-admin")
   );
+
+  // Record the view only after the response is sent, and never for unauthorized
+  // requests to a private artifact. This keeps a non-critical write off the render path.
+  after(() => {
+    if (project.visibility !== "private" || isExactCreator) {
+      incrementViewCount(slug).catch(() => {});
+    }
+  });
+
+  let sourceCode = "";
+  const storage = getStorage();
 
   // If project is explicitly private, reject unauthenticated / unauthorized access directly
   if (project.visibility === "private" && !isExactCreator) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -18,9 +19,18 @@ import {
   Sparkles,
   Layers,
 } from "lucide-react";
-import CodeMirror from "@uiw/react-codemirror";
-import { html } from "@codemirror/lang-html";
 import type { Project } from "@/db/schema";
+
+// CodeMirror (+ @codemirror/lang-html) is large. Load the whole editor only when the
+// code tab actually renders, keeping it out of the route's initial client bundle.
+const CodeMirror = dynamic(() => import("./code-editor"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+      正在加载编辑器…
+    </div>
+  ),
+});
 import { updateProjectFullAction } from "@/app/actions/edit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -207,7 +217,6 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
                     value={code}
                     height="100%"
                     theme="dark"
-                    extensions={[html()]}
                     onChange={(val) => {
                       setCode(val);
                       setBypassedRiskCheck(false);

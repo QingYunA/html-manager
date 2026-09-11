@@ -1,71 +1,75 @@
 import type { MetadataRoute } from "next";
 import { getAllProjects } from "@/db";
 
-export const dynamic = "force-dynamic";
+// Cache the sitemap instead of regenerating it on every crawl.
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
 
+  // Stable timestamp for static pillar routes: avoid advertising "changed now" on every crawl.
+  const siteUpdatedAt = new Date();
+
   // Base pillar routes for Hub & Spoke architecture
   const routes: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "daily",
       priority: 1.0,
     },
     {
       url: `${baseUrl}/explore`,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
       url: `${baseUrl}/explore/tools`,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "daily",
       priority: 0.85,
     },
     {
       url: `${baseUrl}/explore/games`,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "daily",
       priority: 0.85,
     },
     {
       url: `${baseUrl}/explore/visualization`,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "daily",
       priority: 0.85,
     },
     {
       url: `${baseUrl}/explore/prototypes`,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "daily",
       priority: 0.85,
     },
     {
       url: `${baseUrl}/pricing`,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
       url: `${baseUrl}/about`,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: new Date(),
+      lastModified: siteUpdatedAt,
       changeFrequency: "monthly",
       priority: 0.5,
     },
@@ -81,7 +85,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const p of publicProjects) {
       routes.push({
         url: `${baseUrl}/p/${p.slug}`,
-        lastModified: p.updatedAt ? new Date(p.updatedAt) : new Date(),
+        lastModified: p.updatedAt ? new Date(p.updatedAt) : siteUpdatedAt,
         changeFrequency: "weekly",
         priority: 0.8,
       });

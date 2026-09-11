@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import * as schema from "./schema";
 import type { Project, NewProject, ApiToken, NewApiToken } from "./schema";
 
@@ -411,15 +411,13 @@ export async function incrementViewCount(slug: string): Promise<void> {
   const db = getDatabase();
   if (db) {
     try {
-      const proj = await getProjectBySlug(slug);
-      if (proj) {
-        await withTableFallback(() =>
-          db
-            .update(schema.projects)
-            .set({ viewCount: proj.viewCount + 1 })
-            .where(eq(schema.projects.slug, slug))
-        );
-      }
+      // Atomic single-statement increment: avoids the read-modify-write race
+      await withTableFallback(() =>
+        db
+          .update(schema.projects)
+          .set({ viewCount: sql`${schema.projects.viewCount} + 1` })
+          .where(eq(schema.projects.slug, slug))
+      );
     } catch {
       // non-critical
     }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { getAllProjects, getSetting } from "@/db";
+import type { Project } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import {
   Layers,
@@ -29,26 +30,40 @@ export default async function AdminDashboardPage() {
   // 2. In Cloud mode:
   //    - If standard user: ONLY views projects belonging to their own userId.
   //    - If platform admin: ONLY permitted to manage and inspect PUBLIC projects. User-private projects are strictly hidden!
-  let projects = [];
+  let projects: Project[] = [];
+  let apiTokens = "";
+
   if (currentUser?.id === "selfhost-admin") {
-    projects = await getAllProjects({ includePrivate: true });
+    [projects, apiTokens] = await Promise.all([
+      getAllProjects({ includePrivate: true }),
+      getSetting("api_tokens", ""),
+    ]);
   } else if (currentUser?.id) {
-    // User sees their own projects (including their own private ones)
-    const myProjects = await getAllProjects({ userId: currentUser.id });
     if (currentUser.role === "admin") {
       // Platform admin also sees public items from everyone for moderation, but NEVER others' private items!
-      const publicProjects = await getAllProjects({ includePrivate: false });
-      const map = new Map();
+      const [myProjects, publicProjects, tokens] = await Promise.all([
+        getAllProjects({ userId: currentUser.id }),
+        getAllProjects({ includePrivate: false }),
+        getSetting("api_tokens", ""),
+      ]);
+      const map = new Map<string, Project>();
       [...myProjects, ...publicProjects].forEach((p) => map.set(p.id, p));
       projects = Array.from(map.values());
+      apiTokens = tokens;
     } else {
-      projects = myProjects;
+      // User sees their own projects (including their own private ones)
+      [projects, apiTokens] = await Promise.all([
+        getAllProjects({ userId: currentUser.id }),
+        getSetting("api_tokens", ""),
+      ]);
     }
   } else {
-    projects = await getAllProjects({ includePrivate: false });
+    [projects, apiTokens] = await Promise.all([
+      getAllProjects({ includePrivate: false }),
+      getSetting("api_tokens", ""),
+    ]);
   }
 
-  const apiTokens = await getSetting("api_tokens", "");
   const totalViews = projects.reduce((sum, p) => sum + (p.viewCount || 0), 0);
   const publicCount = projects.filter((p) => p.visibility === "public").length;
 
