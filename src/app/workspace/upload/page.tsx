@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
+import { useState, useRef, useTransition, useEffect } from "react";
 import Link from "next/link";
 import {
   UploadCloud,
@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Copy,
   Check,
+  Loader2,
 } from "lucide-react";
 import { handleUploadAction } from "@/app/actions/upload";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { scanHtmlForSensitiveData, type SensitiveRiskMatch } from "@/lib/scanner/sensitive-scanner";
 import { PublicRiskDialog } from "@/components/public-risk-dialog";
 import HoverSandboxPreview from "@/components/hover-sandbox-preview";
+import { sandboxPool } from "@/lib/sandbox-pool";
 
 const CATEGORIES = [
   { id: "tools", label: "实用工具", icon: Wrench },
@@ -72,6 +74,12 @@ export default function WorkspaceUploadPage() {
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (successSlug) {
+      sandboxPool.activate(successSlug);
+    }
+  }, [successSlug]);
 
   const tryExtractFromHtml = (html: string) => {
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -689,9 +697,16 @@ export default function WorkspaceUploadPage() {
             <Button
               type="submit"
               disabled={isPending}
-              className="w-full h-9 text-xs font-medium"
+              className="w-full h-9 text-xs font-medium gap-1.5"
             >
-              {isPending ? "正在处理并保存..." : "立即保存并发布"}
+              {isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>正在解析文件与部署沙箱资源...</span>
+                </>
+              ) : (
+                "立即保存并发布"
+              )}
             </Button>
           </form>
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -14,7 +14,6 @@ import {
   FileCode2,
   FolderArchive,
   Play,
-  Code2,
   SlidersHorizontal,
   Wrench,
   Gamepad2,
@@ -23,7 +22,6 @@ import {
   Sparkles,
   Layers,
   X,
-  Lock,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -32,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useLanguage } from "@/lib/i18n/context";
 import HoverSandboxPreview from "@/components/hover-sandbox-preview";
+import { sandboxPool } from "@/lib/sandbox-pool";
 
 interface ShowcaseGalleryProps {
   initialProjects: Project[];
@@ -94,6 +93,16 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
       return true;
     });
   }, [initialProjects, selectedCategory, selectedTag, search]);
+
+  // Auto-warmup the first batch of visible projects into the sandbox pool
+  useEffect(() => {
+    if (viewMode === "grid") {
+      const visibleSlugs = filteredProjects.slice(0, 6).map((p) => p.slug);
+      if (visibleSlugs.length > 0) {
+        sandboxPool.warmup(visibleSlugs);
+      }
+    }
+  }, [filteredProjects, viewMode]);
 
   const handleShare = (slug: string, e: React.MouseEvent) => {
     e.preventDefault();

@@ -19,6 +19,7 @@ import {
   Lock,
   Code,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -59,9 +60,15 @@ export default function RunnerClient({
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
+  const [isIframeLoading, setIsIframeLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const rawUrl = `/raw/${project.slug}/`;
+
+  const handleReload = () => {
+    setIsIframeLoading(true);
+    setReloadKey((k) => k + 1);
+  };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -182,10 +189,10 @@ export default function RunnerClient({
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            onClick={() => setReloadKey((k) => k + 1)}
+            onClick={handleReload}
             title={t.runner.refresh}
           >
-            <RotateCw className="w-3.5 h-3.5" />
+            <RotateCw className={`w-3.5 h-3.5 transition-transform ${isIframeLoading ? "animate-spin text-foreground" : ""}`} />
           </Button>
 
           <Button
@@ -313,7 +320,30 @@ export default function RunnerClient({
             </div>
           )}
 
-          <div className="flex-1 bg-white relative w-full h-full">
+          <div className="flex-1 bg-card dark:bg-neutral-950 relative w-full h-full overflow-hidden">
+            {/* Indeterminate Hairline Progress Bar */}
+            {isIframeLoading && (
+              <div className="absolute top-0 left-0 right-0 h-[2px] w-full z-20 overflow-hidden bg-muted/40">
+                <div className="h-full bg-foreground dark:bg-zinc-200 animate-pulse w-full" />
+              </div>
+            )}
+
+            {/* Sandbox Bootloader Minimal Center Overlay */}
+            <div
+              className={`absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/90 dark:bg-neutral-950/90 backdrop-blur-[2px] transition-opacity duration-300 ${
+                isIframeLoading
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card/90 shadow-xs">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                <span className="text-xs font-mono text-muted-foreground">
+                  {t.runner.initializingSandbox || "正在初始化安全沙箱..."}
+                </span>
+              </div>
+            </div>
+
             <iframe
               key={reloadKey}
               src={rawUrl}
@@ -321,7 +351,10 @@ export default function RunnerClient({
               sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals"
               allow="fullscreen; clipboard-write"
               allowFullScreen
-              className="w-full h-full border-0"
+              onLoad={() => setIsIframeLoading(false)}
+              className={`w-full h-full border-0 bg-white transition-opacity duration-300 ${
+                isIframeLoading ? "opacity-0" : "opacity-100"
+              }`}
             />
           </div>
         </div>

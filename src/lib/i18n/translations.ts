@@ -47,6 +47,7 @@ export const translations = {
       previewDialogTitle: "沙箱即时预览",
       openFullscreenRunner: "打开全屏运行台",
       views: "次访问",
+      loadingPreview: "沙箱准备中...",
     },
     footer: {
       sandboxGuaranteed: "沙箱安全隔离",
@@ -91,6 +92,8 @@ export const translations = {
       embedDesc: "复制下方标准 iframe 代码，粘贴到你的 Notion、博客或网页中：",
       copyEmbed: "复制嵌入代码",
       relatedTitle: "相关单页应用推荐",
+      initializingSandbox: "正在初始化安全沙箱...",
+      reloading: "正在重新加载...",
     },
     riskDialog: {
       title: "公开安全风险检测与免责声明",
@@ -105,6 +108,16 @@ export const translations = {
       switchToPrivate: "转为私密发布 (推荐)",
       proceedPublic: "仍然公开并发布",
       cancel: "返回修改",
+    },
+    workspace: {
+      deleteTitle: "删除项目",
+      deleteConfirmText: "确定要永久删除此项目吗？此操作不可逆，将永久抹除数据库元数据及关联的所有存储资源与静态文件。",
+      deleteWarningNote: "请谨慎操作：删除后该路由对应的单页应用将立刻失效下线，外部访问链接将失效不可用。",
+      cancel: "取消",
+      confirmDelete: "确认永久删除",
+      deleting: "正在删除...",
+      deleteSuccessToast: "项目已成功删除",
+      deleteFailToast: "删除项目失败",
     },
     auth: {
       loginTitle: "登录你的账号",
@@ -328,6 +341,7 @@ export const translations = {
       previewDialogTitle: "Live Sandbox Preview",
       openFullscreenRunner: "Open Fullscreen Runner",
       views: "views",
+      loadingPreview: "Preparing sandbox...",
     },
     footer: {
       sandboxGuaranteed: "Sandbox Hardened",
@@ -372,6 +386,8 @@ export const translations = {
       embedDesc: "Copy the standard iframe code below to embed into Notion, blogs, or websites:",
       copyEmbed: "Copy Embed Code",
       relatedTitle: "Related Artifacts",
+      initializingSandbox: "Initializing secure sandbox...",
+      reloading: "Reloading...",
     },
     riskDialog: {
       title: "Public Security Risk Check & Disclaimer",
@@ -386,6 +402,16 @@ export const translations = {
       switchToPrivate: "Switch to Private (Recommended)",
       proceedPublic: "Proceed to Publish Publicly",
       cancel: "Cancel & Edit",
+    },
+    workspace: {
+      deleteTitle: "Delete Project",
+      deleteConfirmText: "Are you sure you want to permanently delete this project? This action cannot be undone and will purge database metadata and all associated storage files.",
+      deleteWarningNote: "Please proceed with caution: The project route will immediately become unavailable to visitors.",
+      cancel: "Cancel",
+      confirmDelete: "Confirm Delete",
+      deleting: "Deleting...",
+      deleteSuccessToast: "Project was successfully deleted",
+      deleteFailToast: "Failed to delete project",
     },
     auth: {
       loginTitle: "Log in to your account",

@@ -18,6 +18,8 @@ import {
   Smartphone,
   Sparkles,
   Layers,
+  Loader2,
+  RotateCw,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 
@@ -37,7 +39,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { scanHtmlForSensitiveData, type SensitiveRiskMatch } from "@/lib/scanner/sensitive-scanner";
@@ -69,6 +70,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
   const [isPinned, setIsPinned] = useState(project.isPinned);
 
   const [previewKey, setPreviewKey] = useState(0);
+  const [previewLoading, setPreviewLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -106,6 +108,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
           htmlCode: project.assetType === "single_html" ? code : undefined,
         });
         setSavedSuccess(true);
+        setPreviewLoading(true);
         setPreviewKey((k) => k + 1);
         setTimeout(() => setSavedSuccess(false), 3000);
       } catch (err: unknown) {
@@ -186,7 +189,10 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
                 <span>已保存</span>
               </>
             ) : isPending ? (
-              <span>保存中...</span>
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>保存中...</span>
+              </>
             ) : (
               <>
                 <Save className="w-3.5 h-3.5" />
@@ -237,13 +243,36 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 px-2 text-[11px]"
-                    onClick={() => setPreviewKey((k) => k + 1)}
+                    className="h-6 px-2 text-[11px] gap-1"
+                    onClick={() => {
+                      setPreviewLoading(true);
+                      setPreviewKey((k) => k + 1);
+                    }}
                   >
-                    刷新预览
+                    <RotateCw className={`w-3 h-3 ${previewLoading ? "animate-spin" : ""}`} />
+                    <span>刷新预览</span>
                   </Button>
                 </div>
-                <div className="flex-1 p-2 bg-neutral-950">
+                <div className="flex-1 p-2 bg-neutral-950 relative overflow-hidden">
+                  {/* Indeterminate Hairline Progress Bar */}
+                  {previewLoading && (
+                    <div className="absolute top-0 left-0 right-0 h-[2px] w-full z-20 overflow-hidden bg-muted/40">
+                      <div className="h-full bg-foreground dark:bg-zinc-200 animate-pulse w-full" />
+                    </div>
+                  )}
+
+                  {/* Live preview loading shimmer */}
+                  <div
+                    className={`absolute inset-2 z-10 flex flex-col items-center justify-center gap-2 rounded-md bg-neutral-950/90 backdrop-blur-xs transition-opacity duration-200 ${
+                      previewLoading ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card/90 shadow-xs">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                      <span className="text-[11px] font-mono text-muted-foreground">正在初始化安全沙箱预览...</span>
+                    </div>
+                  </div>
+
                   <iframe
                     key={previewKey}
                     src={`/raw/${project.slug}/`}
@@ -251,7 +280,10 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
                     sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals"
                     allow="fullscreen; clipboard-write"
                     allowFullScreen
-                    className="w-full h-full rounded-md bg-white border border-border"
+                    onLoad={() => setPreviewLoading(false)}
+                    className={`w-full h-full rounded-md bg-white border border-border transition-opacity duration-300 ${
+                      previewLoading ? "opacity-0" : "opacity-100"
+                    }`}
                   />
                 </div>
               </div>
