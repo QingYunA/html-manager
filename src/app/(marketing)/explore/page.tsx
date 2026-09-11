@@ -3,10 +3,10 @@ import { getAllProjects } from "@/db";
 import ExploreClient from "./explore-client";
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
 
 export const metadata: Metadata = {
-  title: "Curated Collections & Topics | Pagepod",
+  title: "Curated Collections & Topics - AI Tools, Games & Web Apps",
   description:
     "Explore curated AI-generated mini tools, games, visualizations, and prototypes. Test-run them directly in the sandbox.",
   alternates: {

@@ -10,7 +10,7 @@
  *     --slug "reaction-time-test" \
  *     --category "tools" \
  *     --description "Test your reflexes in milliseconds" \
- *     --endpoint "https://html-manager-five.vercel.app"
+ *     --endpoint "https://www.pagepod.dev"
  */
 
 import fs from "node:fs";
@@ -21,7 +21,7 @@ function parseArgs() {
   const options = {
     filePath: "",
     token: process.env.PAGEPOD_TOKEN || "",
-    endpoint: process.env.PAGEPOD_ENDPOINT || "https://html-manager-five.vercel.app",
+    endpoint: process.env.PAGEPOD_ENDPOINT || "https://www.pagepod.dev",
     title: "",
     slug: "",
     category: "tools",

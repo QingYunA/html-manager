@@ -5,7 +5,7 @@ import { LanguageProvider } from "@/lib/i18n/context";
 import { TopLoader } from "@/components/top-loader";
 import { Analytics } from "@vercel/analytics/next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
 
 export const viewport: Viewport = {
   width: "device-width",
