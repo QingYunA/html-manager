@@ -59,6 +59,12 @@ export class CloudflareR2StorageProvider implements StorageProvider {
         accessKeyId: this.accessKeyId,
         secretAccessKey: this.secretAccessKey,
       },
+      // AWS SDK v3.729+ defaults to WHEN_SUPPORTED, which bakes an
+      // `x-amz-checksum-crc32=AAAAAA==` (CRC32 of an empty body) into presigned PUT URLs.
+      // R2 then rejects the real upload because the checksum does not match the payload.
+      // WHEN_REQUIRED keeps presigned URLs checksum-free.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     });
 
     return { client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, getSignedUrl };
