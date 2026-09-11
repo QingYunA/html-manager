@@ -27,7 +27,7 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
-      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+      className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       title={isDark ? "切换为浅色模式" : "切换为深色模式"}
     >

@@ -12,7 +12,7 @@ export function LanguageToggle() {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 font-mono cursor-pointer"
+      className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 font-mono cursor-pointer shrink-0"
       onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
       title={locale === "zh" ? "Switch to English" : "切换为中文"}
     >

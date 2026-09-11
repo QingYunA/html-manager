@@ -55,37 +55,37 @@ export default async function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col antialiased">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-4 sm:px-8 h-12 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Link href="/" className="flex items-center gap-2 font-semibold text-xs tracking-tight">
-            <BrandLogo size={22} className="w-5.5 h-5.5" />
+      <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-3 sm:px-8 h-12 flex items-center justify-between">
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/" className="flex items-center gap-2 font-semibold text-xs tracking-tight shrink-0">
+            <BrandLogo size={22} className="w-5.5 h-5.5 shrink-0" />
             <span>Pagepod</span>
           </Link>
           <span className="text-border">/</span>
           <Badge variant="outline" className="text-[10px] font-mono">
-            {currentUser?.role === "admin" ? "console (admin)" : "workspace"}
+            {currentUser?.role === "admin" ? "console" : "workspace"}
           </Badge>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild className="h-8 text-xs text-muted-foreground hover:text-foreground">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Button variant="ghost" size="sm" asChild className="h-8 text-xs text-muted-foreground hover:text-foreground hidden sm:inline-flex">
             <Link href="/" target="_blank">
               <span>公开画廊</span>
               <ExternalLink className="w-3 h-3 ml-1" />
             </Link>
           </Button>
 
-          <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 border-border">
+          <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 border-border hidden sm:inline-flex">
             <Link href="/admin/settings/tokens">
               <Key className="w-3.5 h-3.5" />
               <span>API 密钥</span>
             </Link>
           </Button>
 
-          <Button size="sm" asChild className="h-8 text-xs">
+          <Button size="sm" asChild className="h-8 text-xs font-medium">
             <Link href="/admin/upload">
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              <span>发布新单页</span>
+              <Plus className="w-3.5 h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">发布新单页</span>
             </Link>
           </Button>
 

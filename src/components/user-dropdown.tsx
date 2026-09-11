@@ -44,7 +44,7 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-1.5 px-1.5 sm:px-2 rounded-full border border-border/60 hover:bg-muted/70 transition-colors data-[state=open]:bg-muted"
+          className="h-8 gap-1.5 px-1.5 sm:px-2 rounded-full border border-border/60 hover:bg-muted/70 transition-colors data-[state=open]:bg-muted shrink-0"
         >
           {/* Avatar / Initial badge */}
           <div className="w-5.5 h-5.5 rounded-full overflow-hidden flex items-center justify-center bg-zinc-900 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 text-[11px] font-semibold tracking-tighter shrink-0 border border-border">
