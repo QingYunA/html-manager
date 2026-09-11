@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/lib/i18n/context";
+import HoverSandboxPreview from "@/components/hover-sandbox-preview";
 
 interface AdminTableProps {
   initialProjects: Project[];
@@ -248,42 +249,14 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                     key={item.id}
                     className="group relative flex flex-col overflow-hidden border-border bg-card/80 hover:border-neutral-500 transition-all duration-150 shadow-xs"
                   >
-                    {/* Miniature 16:9 Sandbox Viewport with live HTML rendering */}
+                    {/* Miniature 16:9 Sandbox Viewport with Hover-Activated Sandbox */}
                     <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
-                      <iframe
-                        src={`/raw/${item.slug}`}
+                      <HoverSandboxPreview
+                        slug={item.slug}
                         title={item.title}
-                        tabIndex={-1}
-                        sandbox="allow-scripts"
-                        loading="lazy"
-                        className="w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white opacity-95 group-hover:opacity-100 transition-opacity"
+                        category={item.category}
+                        openRunnerText="运行单页"
                       />
-
-                      {/* Hover Quick Actions Overlay */}
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px] z-10">
-                        <Button
-                          size="sm"
-                          variant="default"
-                          className="h-8 text-xs gap-1.5 shadow-lg font-medium"
-                          asChild
-                        >
-                          <Link href={`/p/${item.slug}`} target="_blank">
-                            <Play className="w-3.5 h-3.5 fill-current" />
-                            <span>运行单页</span>
-                          </Link>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 text-xs gap-1.5 shadow-lg font-medium bg-black/40 border-neutral-700 text-neutral-200 hover:text-white"
-                          asChild
-                        >
-                          <Link href={`/admin/projects/${item.id}/edit`}>
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>编辑</span>
-                          </Link>
-                        </Button>
-                      </div>
 
                       {/* Badges on top of miniature viewport */}
                       <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 pointer-events-none z-20">
@@ -466,17 +439,16 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                         </Button>
                       </td>
 
-                      {/* 16:9 Miniature Preview Snapshot */}
+                      {/* Hover-to-Activate Sandbox Preview Thumbnail */}
                       <td className="py-3 px-3">
-                        <div className="w-16 aspect-video rounded overflow-hidden bg-neutral-950 border border-border/80 shrink-0 relative group/thumb shadow-xs">
-                          <iframe
-                            src={`/raw/${item.slug}`}
-                            tabIndex={-1}
-                            sandbox="allow-scripts"
-                            loading="lazy"
-                            className="w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white opacity-90 group-hover/thumb:opacity-100 transition-opacity"
-                          />
-                        </div>
+                        <HoverSandboxPreview
+                          slug={item.slug}
+                          title={item.title}
+                          category={item.category}
+                          variant="table-cell"
+                          icon={CategoryIcon}
+                          openRunnerText="运行单页"
+                        />
                       </td>
 
                       {/* Title, slug & description */}

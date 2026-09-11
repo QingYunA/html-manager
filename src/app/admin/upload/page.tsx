@@ -34,6 +34,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { scanHtmlForSensitiveData, type SensitiveRiskMatch } from "@/lib/scanner/sensitive-scanner";
 import { PublicRiskDialog } from "@/components/public-risk-dialog";
+import HoverSandboxPreview from "@/components/hover-sandbox-preview";
 
 const CATEGORIES = [
   { id: "tools", label: "实用工具", icon: Wrench },
@@ -336,14 +337,13 @@ export default function AdminUploadPage() {
               </p>
             </div>
 
-            {/* Live 16:9 Sandboxed Miniature Preview */}
-            <div className="relative aspect-video w-full max-w-md mx-auto bg-neutral-950 rounded-lg border border-border/80 overflow-hidden shadow-sm">
-              <iframe
-                src={`/raw/${successSlug}`}
-                title="预览"
-                tabIndex={-1}
-                sandbox="allow-scripts"
-                className="w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white"
+            {/* Live 16:9 Sandboxed Miniature Preview with Hover-to-Activate */}
+            <div className="relative aspect-video w-full max-w-md mx-auto rounded-lg border border-border/80 overflow-hidden shadow-sm">
+              <HoverSandboxPreview
+                slug={successSlug}
+                title={title || successSlug}
+                category={category}
+                openRunnerText="立即体验"
               />
             </div>
 

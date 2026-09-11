@@ -21,8 +21,9 @@
 - **全套 shadcn/ui & Radix UI 组件驱动**：
   - 页面全部交互元素必须调用 `src/components/ui/*` 规范原语：`Button`、`Badge`、`Card`、`Input`、`Tabs`、`Dialog`。
   - 组件尺寸偏向紧凑精致（32px / 36px 高度，11px~13px 字号）。
-- **实景沉浸交互 (Live Context Preview)**：
-  - 拒绝空洞无意义的占位卡片；展示型卡片采用 16:9 微缩实景沙箱视口（`aspect-video iframe`），让用户一眼看到实际渲染效果。
+- **按需激活实景交互 (Hover-to-Activate Live Sandbox)**：
+  - 严禁在列表/网格中直出全量 `iframe`（避免海量单页下的内存爆炸、多重沙箱并发与后台 CPU 循环空转）；
+  - 展示型卡片统一采用 `HoverSandboxPreview`：默认呈现 Zinc 技术质感占位视口与 SVG 圆形加满进度环（650ms），仅在用户鼠标确定性悬停时按需挂载沙箱 `iframe`，鼠标移出即刻卸载销毁释放资源；
   - 必须完整支持深色（Dark）与浅色（Light）双主题无缝切换与系统偏好联动。
 
 ---
