@@ -20,19 +20,19 @@ export default async function ApiTokensPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col antialiased">
       {/* Top Bar */}
-      <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-4 sm:px-8 h-12 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-3 sm:px-8 h-12 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Button variant="ghost" size="icon" asChild className="h-7 w-7 text-muted-foreground hover:text-foreground">
             <Link href="/admin">
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>
-          <div className="flex items-center gap-2">
-            <Key className="w-4 h-4 text-foreground" />
-            <span className="font-semibold text-xs tracking-tight">Personal Access Tokens</span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Key className="w-4 h-4 text-foreground shrink-0" />
+            <span className="font-semibold text-xs tracking-tight truncate max-w-[130px] sm:max-w-none">Personal Access Tokens</span>
           </div>
           <span className="text-border">/</span>
-          <Badge variant="outline" className="text-[10px] font-mono">
+          <Badge variant="outline" className="text-[10px] font-mono shrink-0">
             {user.role === "admin" ? "admin-pat" : "user-pat"}
           </Badge>
         </div>
@@ -41,7 +41,7 @@ export default async function ApiTokensPage() {
           <Button variant="outline" size="sm" asChild className="h-7 text-xs gap-1.5 border-border">
             <Link href="/api/docs" target="_blank">
               <BookOpen className="w-3 h-3" />
-              <span>交互式 API 文档</span>
+              <span className="hidden sm:inline">交互式 </span><span>API 文档</span>
               <ExternalLink className="w-3 h-3 text-muted-foreground" />
             </Link>
           </Button>
