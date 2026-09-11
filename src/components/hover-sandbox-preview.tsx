@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Play, Sparkles, Loader2, ExternalLink, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useIsSandboxActive, sandboxPool } from "@/lib/sandbox-pool";
 
 interface HoverSandboxPreviewProps {
@@ -47,6 +46,13 @@ export default function HoverSandboxPreview({
     setMounted(true);
   }, []);
 
+  // Reset iframeLoaded state whenever sandbox is evicted from active pool
+  useEffect(() => {
+    if (!isPoolActive) {
+      setIframeLoaded(false);
+    }
+  }, [isPoolActive]);
+
   const clearChargeTimer = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -70,9 +76,10 @@ export default function HoverSandboxPreview({
       if (isPoolActive) return;
     } else {
       if (isCellActive) return;
+      // Only query layout geometry when table-cell floating popover is needed
+      updatePopoverPosition();
     }
 
-    updatePopoverPosition();
     setIsCharging(true);
     clearChargeTimer();
 
@@ -163,7 +170,7 @@ export default function HoverSandboxPreview({
             strokeDasharray={CELL_CIRCUMFERENCE}
             strokeDashoffset={isCharging || isCellActive ? 0 : CELL_CIRCUMFERENCE}
             strokeLinecap="round"
-            className="text-neutral-200 transition-all"
+            className="text-neutral-200 transition-[stroke-dashoffset]"
             style={{
               transitionDuration: isCharging ? `${CHARGE_DURATION_MS}ms` : "150ms",
               transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
@@ -305,6 +312,17 @@ export default function HoverSandboxPreview({
               <X className="w-2.5 h-2.5" />
             </button>
           </div>
+
+          {/* Quick Open Runner button when active without obscuring the live iframe */}
+          <Link
+            href={`/p/${slug}`}
+            target="_blank"
+            className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/75 hover:bg-neutral-900 text-neutral-200 hover:text-white text-[10px] font-medium border border-neutral-700/80 backdrop-blur-md transition-colors z-20 shadow-xs cursor-pointer"
+            title={openRunnerText}
+          >
+            <span>{openRunnerText}</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
         </>
       )}
 
@@ -349,7 +367,7 @@ export default function HoverSandboxPreview({
                 strokeDasharray={CARD_CIRCUMFERENCE}
                 strokeDashoffset={isCharging ? 0 : CARD_CIRCUMFERENCE}
                 strokeLinecap="round"
-                className="text-neutral-200 transition-all"
+                className="text-neutral-200 transition-[stroke-dashoffset]"
                 style={{
                   transitionDuration: isCharging ? `${CHARGE_DURATION_MS}ms` : "150ms",
                   transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
@@ -379,21 +397,14 @@ export default function HoverSandboxPreview({
         </div>
       )}
 
-      {/* 3. Direct Click Overlay -> Jump straight into full Runner */}
-      <Link
-        href={`/p/${slug}`}
-        className="absolute inset-0 bg-black/40 opacity-0 group-hover/sandbox:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[1px] z-10"
-        title={openRunnerText}
-      >
-        <Button
-          size="sm"
-          variant="secondary"
-          className="h-7.5 px-3 text-xs gap-1.5 shadow-md pointer-events-none font-medium bg-neutral-900/90 text-neutral-100 border border-neutral-700 hover:bg-neutral-800"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-          <span>{openRunnerText}</span>
-        </Button>
-      </Link>
+      {/* 3. Direct Click Overlay -> Jump straight into full Runner when idle */}
+      {!isCardActive && (
+        <Link
+          href={`/p/${slug}`}
+          className="absolute inset-0 z-10 cursor-pointer"
+          title={`点击直接打开 ${title}`}
+        />
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@ export const translations = {
       apiTokens: "API 密钥",
       accountSettings: "账号与设置",
       signedInAs: "当前登录为",
+      workspaceOwner: "工作区所有者",
     },
     hero: {
       badge: "轻量 HTML 沙箱与即时托管",
@@ -309,6 +310,7 @@ export const translations = {
       apiTokens: "API Tokens",
       accountSettings: "Settings",
       signedInAs: "Signed in as",
+      workspaceOwner: "Workspace Owner",
     },
     hero: {
       badge: "Zero-Config HTML Sandbox & Hosting",

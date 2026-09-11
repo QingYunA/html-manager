@@ -51,6 +51,7 @@ export async function updateProjectFullAction(
   });
 
   revalidatePath("/");
+  revalidatePath("/workspace");
   revalidatePath("/admin");
   revalidatePath(`/p/${project.slug}`);
 

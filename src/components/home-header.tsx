@@ -85,7 +85,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
     { href: "/explore", label: t.nav.explore, icon: Compass, exact: false },
     { href: "/pricing", label: t.nav.pricing, icon: CreditCard, exact: false },
     {
-      href: "/admin",
+      href: "/workspace",
       label: user?.role === "admin" ? t.nav.console : t.nav.workspace,
       icon: LayoutDashboard,
       exact: false,
@@ -170,7 +170,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
             asChild
             className="h-8.5 text-sm font-medium hidden sm:inline-flex px-3"
           >
-            <Link href="/admin/upload" prefetch={true}>
+            <Link href="/workspace/upload" prefetch={true}>
               <Plus className="w-4 h-4 mr-1" />
               <span>{t.nav.publish}</span>
             </Link>
@@ -187,7 +187,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
                 asChild
                 className="h-8.5 text-sm font-medium px-2.5 sm:px-3"
               >
-                <Link href="/admin/login" prefetch={true}>
+                <Link href="/login" prefetch={true}>
                   {t.nav.login}
                 </Link>
               </Button>
@@ -197,7 +197,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
                 asChild
                 className="h-8.5 text-sm font-medium hidden sm:inline-flex px-3"
               >
-                <Link href="/admin/login?tab=signup" prefetch={true}>
+                <Link href="/login?tab=signup" prefetch={true}>
                   {t.nav.signup}
                 </Link>
               </Button>
@@ -257,7 +257,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Link
-                      href="/admin/upload"
+                      href="/workspace/upload"
                       prefetch={true}
                       className="flex items-center gap-2.5 w-full cursor-pointer py-1.5 font-medium"
                     >
@@ -296,7 +296,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <Link
-                          href="/admin/login"
+                          href="/login"
                           prefetch={true}
                           className="flex items-center gap-2.5 w-full cursor-pointer py-1.5"
                         >
@@ -308,7 +308,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <Link
-                          href="/admin/login?tab=signup"
+                          href="/login?tab=signup"
                           prefetch={true}
                           className="flex items-center gap-2.5 w-full cursor-pointer py-1.5"
                         >

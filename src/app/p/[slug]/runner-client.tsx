@@ -191,6 +191,7 @@ export default function RunnerClient({
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={handleReload}
             title={t.runner.refresh}
+            aria-label={t.runner.refresh}
           >
             <RotateCw className={`w-3.5 h-3.5 transition-transform ${isIframeLoading ? "animate-spin text-foreground" : ""}`} />
           </Button>
@@ -201,6 +202,7 @@ export default function RunnerClient({
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={() => setShowCode(true)}
             title={t.runner.sourceCode}
+            aria-label={t.runner.sourceCode}
           >
             <Code2 className="w-3.5 h-3.5" />
           </Button>
@@ -212,6 +214,7 @@ export default function RunnerClient({
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
               onClick={() => setShowEmbed(true)}
               title={t.runner.embed}
+              aria-label={t.runner.embed}
             >
               <Code className="w-3.5 h-3.5" />
             </Button>
@@ -223,12 +226,13 @@ export default function RunnerClient({
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={handleCopyLink}
             title={t.runner.copyLink}
+            aria-label={t.runner.copyLink}
           >
             {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5" />}
           </Button>
 
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
-            <a href={rawUrl} target="_blank" rel="noopener noreferrer" title={t.runner.openNewTab}>
+            <a href={rawUrl} target="_blank" rel="noopener noreferrer" title={t.runner.openNewTab} aria-label={t.runner.openNewTab}>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </Button>
@@ -242,6 +246,7 @@ export default function RunnerClient({
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
             onClick={toggleFullscreen}
             title={isFullscreen ? t.runner.exitFullscreen : t.runner.fullscreen}
+            aria-label={isFullscreen ? t.runner.exitFullscreen : t.runner.fullscreen}
           >
             {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </Button>
@@ -306,17 +311,22 @@ export default function RunnerClient({
         }`}
       >
         <div
-          className={`transition-all duration-200 flex flex-col ${
+          className={`transition-[width,max-width,height,border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] flex flex-col ${
             device === "desktop"
               ? "w-full h-full max-w-none rounded-none border-0"
               : device === "tablet"
-              ? "w-[768px] max-w-full rounded-xl shadow-lg border border-border overflow-hidden my-auto h-[95%] bg-card"
-              : "w-[375px] max-w-full rounded-[28px] shadow-lg border border-border overflow-hidden my-auto h-[95%] bg-card"
+              ? "w-[768px] max-w-full rounded-lg shadow-lg border border-border overflow-hidden my-auto h-[95%] bg-card"
+              : "w-[375px] max-w-full rounded-lg shadow-lg border border-border overflow-hidden my-auto h-[95%] bg-card"
           }`}
         >
-          {device === "mobile" && (
-            <div className="h-4 bg-muted/60 flex items-center justify-center shrink-0 border-b border-border">
-              <div className="w-12 h-2 bg-border rounded-full" />
+          {device !== "desktop" && (
+            <div className="h-6 bg-muted/50 flex items-center justify-between px-3 shrink-0 border-b border-border select-none">
+              <span className="text-[10px] font-mono text-muted-foreground tracking-tight">
+                {device === "tablet" ? "768 × 1024" : "375 × 667"}
+              </span>
+              <span className="text-[9px] font-mono text-muted-foreground/60 uppercase">
+                {device}
+              </span>
             </div>
           )}
 

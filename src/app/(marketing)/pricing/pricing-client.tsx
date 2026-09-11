@@ -13,9 +13,6 @@ export default function PricingClient() {
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-12 md:py-16">
       {/* Header Hero Section */}
       <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
-        <Badge variant="outline" className="px-3 py-0.5 text-xs font-mono tracking-wide">
-          {t.pricing.badge}
-        </Badge>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
           {t.pricing.title}
         </h1>
@@ -57,14 +54,14 @@ export default function PricingClient() {
           </div>
 
           <Button variant="outline" asChild className="w-full h-10 text-xs font-medium border-border hover:bg-muted">
-            <Link href="/admin/upload">
+            <Link href="/workspace/upload">
               {t.pricing.freePlan.cta}
             </Link>
           </Button>
         </div>
 
         {/* Pro Cloud Plan */}
-        <div className="relative flex flex-col p-6 sm:p-8 rounded-xl border-2 border-foreground bg-card text-card-foreground shadow-md">
+        <div className="relative flex flex-col p-6 sm:p-8 rounded-xl border border-foreground bg-card text-card-foreground shadow-md">
           <div className="absolute -top-3 right-6">
             <Badge className="bg-foreground text-background hover:bg-foreground px-2.5 py-0.5 text-[11px] font-medium tracking-wide">
               {t.pricing.proPlan.badge}
@@ -103,7 +100,7 @@ export default function PricingClient() {
           </div>
 
           <Button asChild className="w-full h-10 text-xs font-medium gap-1.5 shadow-sm">
-            <Link href="/admin/upload">
+            <Link href="/workspace/upload">
               <span>{t.pricing.proPlan.cta}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
