@@ -336,6 +336,17 @@ export default function AdminUploadPage() {
               </p>
             </div>
 
+            {/* Live 16:9 Sandboxed Miniature Preview */}
+            <div className="relative aspect-video w-full max-w-md mx-auto bg-neutral-950 rounded-lg border border-border/80 overflow-hidden shadow-sm">
+              <iframe
+                src={`/raw/${successSlug}`}
+                title="预览"
+                tabIndex={-1}
+                sandbox="allow-scripts"
+                className="w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white"
+              />
+            </div>
+
             <div className="flex items-center justify-center gap-2">
               <Button
                 variant="outline"
