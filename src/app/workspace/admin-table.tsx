@@ -45,7 +45,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/context";
 import HoverSandboxPreview from "@/components/hover-sandbox-preview";
-import { sandboxPool } from "@/lib/sandbox-pool";
 
 interface AdminTableProps {
   initialProjects: Project[];
@@ -137,15 +136,6 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
     });
   }, [projects, categoryFilter, search]);
 
-  // Auto-warmup the first batch of visible projects into the sandbox pool when in grid view
-  useEffect(() => {
-    if (viewMode === "grid") {
-      const visibleSlugs = filtered.slice(0, 6).map((p) => p.slug);
-      if (visibleSlugs.length > 0) {
-        sandboxPool.warmup(visibleSlugs);
-      }
-    }
-  }, [filtered, viewMode]);
 
   const handleTogglePin = (id: string, current: boolean) => {
     startTransition(async () => {
@@ -410,7 +400,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                             onClick={() => handleTogglePin(item.id, item.isPinned)}
                             className={`h-7 w-7 rounded-sm ${
                               item.isPinned
-                                ? "text-amber-400 hover:text-amber-300"
+                                ? "text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300"
                                 : "text-muted-foreground hover:text-foreground"
                             }`}
                             title={item.isPinned ? "取消置顶" : "置顶推荐"}
@@ -494,7 +484,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           onClick={() => handleTogglePin(item.id, item.isPinned)}
                           className={`h-7 w-7 rounded-sm ${
                             item.isPinned
-                              ? "text-amber-400 hover:text-amber-300"
+                              ? "text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300"
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                           title={item.isPinned ? "取消置顶" : "置顶推荐"}
@@ -540,9 +530,9 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           </Badge>
                           <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                             {item.assetType === "single_html" ? (
-                              <FileCode2 className="w-3 h-3 text-sky-400" />
+                              <FileCode2 className="w-3 h-3 text-sky-600 dark:text-sky-400" />
                             ) : (
-                              <FolderArchive className="w-3 h-3 text-amber-400" />
+                              <FolderArchive className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                             )}
                           </span>
                         </div>

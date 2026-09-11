@@ -65,9 +65,6 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-12 md:py-16">
       {/* Hero Intro */}
       <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
-        <Badge variant="outline" className="px-3 py-0.5 text-xs font-mono tracking-wide">
-          {t.explore.badge}
-        </Badge>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
           {t.explore.title}
         </h1>
