@@ -113,9 +113,9 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
   return (
     <div className="space-y-6">
       {/* Category Tabs & Filter Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-border w-full min-w-0 max-w-full overflow-hidden">
         {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none w-full min-w-0 max-w-full">
           {categories.map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
@@ -188,7 +188,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
         </div>
 
         {/* Selected tag chip & Tag cloud */}
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto text-xs">
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto text-xs min-w-0 max-w-full pb-1 scrollbar-none">
           {selectedTag ? (
             <Badge variant="secondary" className="gap-1 px-2 py-0.5">
               <span>#{selectedTag}</span>
