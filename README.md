@@ -83,8 +83,33 @@ bun run dev
 | `R2_SECRET_ACCESS_KEY` | 可选 | 空 | Cloudflare R2 Secret Access Key |
 | `R2_BUCKET_NAME` | 可选 | `html-manager` | Cloudflare R2 存储桶名称 |
 | `API_TOKEN` | 可选 | 与 `ADMIN_PASSWORD` 相同 | 自定义开放 API 专用 Token |
+| `SESSION_SECRET` | 可选 | 空 | 管理员会话 JWT 签名密钥（≥16 位）。未配置时回退使用 `ADMIN_PASSWORD` |
 
 > **提示**：若同时配置了 `BLOB_READ_WRITE_TOKEN` 和 R2 参数，系统将优先检测 Blob；若均未配置，本地开发时自动使用本地文件系统 `.storage/` 目录。
+>
+> ⚠️ **存储必须显式配置**：若在 Vercel 等平台部署却未配置任何云存储，系统会回退到本地文件系统。该文件系统在 Serverless 环境中是**临时的**，重新部署或实例回收后上传内容会丢失（日志会打印 `[STORAGE]` 警告）。已配置的云存储若初始化失败，会**直接报错而非静默降级**。
+
+### ☁️ Cloudflare R2 必读：CORS 配置
+
+**加密上传（E2EE）由浏览器直传 R2**，属跨域请求且使用 `Content-Type: application/octet-stream`，会先发送 `OPTIONS` 预检。**若 R2 存储桶未配置 CORS，预检会返回 403，加密上传必然失败**（报错形如 `Preflight response is not successful. Status code: 403`）。
+
+在 Cloudflare 控制台 → R2 → 你的存储桶 → **Settings → CORS Policy** 中添加：
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://你的正式域名", "https://www.你的正式域名"],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+> 只需 `PUT`：读取走应用自身的 `/raw/` 端点由服务器代取，浏览器不会直连 R2 读取。
+>
+> 若使用 Vercel Blob 而非 R2，则无需此配置（Blob 直传不经过 R2 的预检校验）。
 
 ---
 

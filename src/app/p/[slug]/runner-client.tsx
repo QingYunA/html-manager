@@ -89,7 +89,7 @@ export default function RunnerClient({
       if (!res.ok) throw new Error(`Status: ${res.status}`);
       const ciphertextBuffer = await res.arrayBuffer();
 
-      const mode = modeOverride || project.keyMode || "legacy-server";
+      const mode = modeOverride || project.keyMode;
       let html: string;
 
       if (mode === "zk-passphrase") {
@@ -102,8 +102,9 @@ export default function RunnerClient({
         const cryptoKey = await importRecoveryKey(secret);
         html = await decryptWithKey(cryptoKey, new Uint8Array(ciphertextBuffer), project.encryptionIv);
       } else {
-        // legacy-server mode is no longer decryptable client-side (deprecated scheme)
-        throw new Error("This artifact uses the deprecated legacy encryption scheme. Please migrate it.");
+        // Pre-zero-knowledge artifacts ("legacy-server") cannot be decrypted client-side,
+        // because their key was derived server-side and is not derivable from the share link.
+        throw new Error("This artifact was encrypted with an obsolete scheme and cannot be opened.");
       }
 
       setDecryptedHtml(html);

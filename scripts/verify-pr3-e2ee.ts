@@ -9,7 +9,6 @@ import {
   bufferToBase64Url,
   base64UrlToBuffer,
 } from "../src/lib/crypto/e2ee";
-import { deriveUserMasterKeyLegacy, decryptArtifactForUserLegacy, encryptArtifactForUserLegacy } from "../src/lib/crypto/legacy-e2ee";
 
 let passed = 0;
 let failed = 0;
@@ -65,16 +64,7 @@ async function run() {
   }
   assert(passWrongThrew, "Wrong passphrase fails decryption");
 
-  console.log("\n=== 4. Legacy Server-Derived Scheme (migration path) ===");
-  const legacyEnc = await encryptArtifactForUserLegacy("legacy data", "user_alice");
-  const legacyDec = await decryptArtifactForUserLegacy(legacyEnc.ciphertext, "user_alice", legacyEnc.ivBase64);
-  assert(legacyDec === "legacy data", "Legacy scheme round-trip works (for migration only)");
-
-  // The legacy key must not be the same as a ZK recovery key (i.e. no server secret reuse)
-  const legacyKeyCheck = await deriveUserMasterKeyLegacy("user_alice");
-  assert(legacyKeyCheck.extractable === false, "Legacy derived key is non-extractable");
-
-  console.log("\n=== 5. base64url Helpers ===");
+  console.log("\n=== 4. base64url Helpers ===");
   const bytes = new Uint8Array([0, 1, 2, 250, 255]);
   const b64 = bufferToBase64Url(bytes);
   assert(!b64.includes("+") && !b64.includes("/") && !b64.includes("="), "base64url has no unsafe chars");
