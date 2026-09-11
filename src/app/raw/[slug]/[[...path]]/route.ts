@@ -86,7 +86,25 @@ export async function GET(request: Request, context: RouteParams) {
     );
   }
 
-  return new NextResponse(file.data as unknown as BodyInit, {
+  let responseBody: BodyInit = file.data as unknown as BodyInit;
+
+  // In-memory localStorage/sessionStorage shim for sandboxed HTML documents.
+  // Sandboxed iframes without allow-same-origin have an opaque 'null' origin,
+  // causing browser window.localStorage access to throw SecurityError/DOMException.
+  // This polyfill provides a safe, transparent in-memory storage so AI artifacts function smoothly.
+  if (file.contentType.toLowerCase().includes("text/html")) {
+    const rawHtml = file.data.toString("utf-8");
+    const storageShim = `<script>(function(){try{var t="__storage_test__";window.localStorage.setItem(t,t);window.localStorage.removeItem(t);}catch(e){var m={};function S(){this.getItem=function(k){return m.hasOwnProperty(k)?m[k]:null;};this.setItem=function(k,v){m[k]=String(v);};this.removeItem=function(k){delete m[k];};this.clear=function(){m={};};this.key=function(i){return Object.keys(m)[i]||null;};Object.defineProperty(this,"length",{get:function(){return Object.keys(m).length;}});};try{Object.defineProperty(window,"localStorage",{value:new S(),writable:true,configurable:true});Object.defineProperty(window,"sessionStorage",{value:new S(),writable:true,configurable:true});}catch(err){}}})();</script>`;
+    if (rawHtml.includes("<head>")) {
+      responseBody = rawHtml.replace("<head>", `<head>${storageShim}`);
+    } else if (rawHtml.includes("<HEAD>")) {
+      responseBody = rawHtml.replace("<HEAD>", `<HEAD>${storageShim}`);
+    } else {
+      responseBody = storageShim + rawHtml;
+    }
+  }
+
+  return new NextResponse(responseBody, {
     status: 200,
     headers,
   });
