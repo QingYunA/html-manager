@@ -84,7 +84,7 @@ export default async function WorkspacePage() {
             <CardContent className="p-4 pt-0">
               <div className="text-2xl font-bold font-mono tracking-tight">{projects.length}</div>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                {currentUser?.role === "admin" && currentUser.id !== "selfhost-admin" ? "平台公开单页与个人项目" : "你的个人项目总数"}
+                {currentUser?.role === "admin" && currentUser.id !== "selfhost-admin" ? "平台公开作品与个人项目" : "你的个人项目总数"}
               </p>
             </CardContent>
           </Card>

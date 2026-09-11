@@ -302,7 +302,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                         slug={item.slug}
                         title={item.title}
                         category={item.category}
-                        openRunnerText="运行单页"
+                        openRunnerText="在线运行"
                       />
 
                       {/* Badges on top of miniature viewport */}
@@ -501,7 +501,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           category={item.category}
                           variant="table-cell"
                           icon={CategoryIcon}
-                          openRunnerText="运行单页"
+                          openRunnerText="在线运行"
                         />
                       </td>
 
@@ -650,7 +650,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                 </span>
               )}
               <span className="block text-[11px] text-destructive/85 font-normal">
-                {t.workspace?.deleteWarningNote || "请谨慎操作：删除后该路由对应的单页应用将立刻失效下线，外部访问链接将失效不可用。"}
+                {t.workspace?.deleteWarningNote || "请谨慎操作：删除后该路由对应的页面将立刻下线，外部访问链接将无法访问。"}
               </span>
             </DialogDescription>
           </DialogHeader>
