@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
+import { tokenNameSchema } from "@/lib/validation";
 import {
   generatePersonalAccessToken,
   listUserApiTokens,
@@ -14,8 +15,13 @@ export async function createTokenAction(name: string) {
     return { error: "请先登录后再创建 API 密钥" };
   }
 
+  const parsedName = tokenNameSchema.safeParse(name);
+  if (!parsedName.success) {
+    return { error: parsedName.error.issues[0]?.message || "密钥名称不合法" };
+  }
+
   try {
-    const result = await generatePersonalAccessToken(user.id, name);
+    const result = await generatePersonalAccessToken(user.id, parsedName.data);
     revalidatePath("/admin/settings/tokens");
     return {
       success: true,

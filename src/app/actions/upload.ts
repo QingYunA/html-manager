@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { processAndCreateProject } from "@/lib/services/project-service";
+import { uploadPayloadSchema, MAX_UPLOAD_BYTES } from "@/lib/validation";
 
 export interface UploadActionResult {
   success?: boolean;
@@ -19,24 +20,41 @@ export async function handleUploadAction(
     return { error: "无权限：请先登录管理员或用户账号" };
   }
 
-  const uploadType = formData.get("uploadType") as string; // 'file' | 'paste'
-  const title = (formData.get("title") as string) || "";
-  const slug = (formData.get("slug") as string) || "";
-  const description = (formData.get("description") as string) || "";
-  const category = (formData.get("category") as string) || "tools";
-  const tagsRaw = (formData.get("tags") as string) || "";
-  const visibility = ((formData.get("visibility") as string) || "public") as "public" | "unlisted" | "private";
-  const isPinned = formData.get("isPinned") === "true";
+  const str = (key: string): string | undefined => {
+    const value = formData.get(key);
+    return typeof value === "string" ? value : undefined;
+  };
 
-  // E2EE fields
-  const isEncrypted = formData.get("isEncrypted") === "true";
-  const encryptionIv = (formData.get("encryptionIv") as string) || "";
-  const preUploadedStoragePath = (formData.get("preUploadedStoragePath") as string) || "";
+  const parseResult = uploadPayloadSchema.safeParse({
+    title: str("title"),
+    slug: str("slug"),
+    description: str("description"),
+    category: str("category"),
+    tags: str("tags") ?? "",
+    visibility: str("visibility") ?? "public",
+    isPinned: formData.get("isPinned") === "true",
+    isEncrypted: formData.get("isEncrypted") === "true",
+    encryptionIv: str("encryptionIv"),
+    preUploadedStoragePath: str("preUploadedStoragePath"),
+  });
 
-  const tags = tagsRaw
-    .split(/[,，]/)
-    .map((t) => t.trim())
-    .filter(Boolean);
+  if (!parseResult.success) {
+    return { error: parseResult.error.issues[0]?.message || "表单参数不合法" };
+  }
+
+  const uploadType = str("uploadType"); // 'file' | 'paste'
+  const {
+    title,
+    slug,
+    description,
+    category,
+    tags,
+    visibility,
+    isPinned,
+    isEncrypted,
+    encryptionIv,
+    preUploadedStoragePath,
+  } = parseResult.data;
 
   try {
     if (preUploadedStoragePath) {
@@ -59,9 +77,12 @@ export async function handleUploadAction(
       revalidatePath("/admin");
       return { success: true, slug: project.slug };
     } else if (uploadType === "paste") {
-      const htmlContent = formData.get("htmlContent") as string;
+      const htmlContent = str("htmlContent");
       if (!htmlContent || !htmlContent.trim()) {
         return { error: "请输入或粘贴 HTML 代码" };
+      }
+      if (Buffer.byteLength(htmlContent, "utf-8") > MAX_UPLOAD_BYTES) {
+        return { error: `HTML 内容过大：最大允许 ${MAX_UPLOAD_BYTES / (1024 * 1024)}MB` };
       }
 
       const project = await processAndCreateProject({
@@ -80,9 +101,12 @@ export async function handleUploadAction(
       revalidatePath("/admin");
       return { success: true, slug: project.slug };
     } else {
-      const file = formData.get("file") as File | null;
-      if (!file || file.size === 0) {
+      const file = formData.get("file");
+      if (!(file instanceof File) || file.size === 0) {
         return { error: "请选择要上传的 .html 或 .zip 文件" };
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+        return { error: `文件过大：最大允许 ${MAX_UPLOAD_BYTES / (1024 * 1024)}MB` };
       }
 
       const arrayBuffer = await file.arrayBuffer();

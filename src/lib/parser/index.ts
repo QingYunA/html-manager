@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import type { StorageFile } from "../storage/types";
 import { getContentType } from "../storage/mime";
+import { MAX_ZIP_ENTRIES, MAX_ZIP_EXTRACTED_BYTES } from "../validation";
 
 export interface ExtractedMetadata {
   title: string;
@@ -55,6 +56,23 @@ export async function unpackZipBundle(
     }
   });
 
+  // Zip-bomb protection: cap entry count and total uncompressed size
+  if (fileEntries.length > MAX_ZIP_ENTRIES) {
+    throw new Error(`ZIP contains too many entries (max ${MAX_ZIP_ENTRIES})`);
+  }
+
+  let totalUncompressed = 0;
+  for (const { zipEntry } of fileEntries) {
+    const size =
+      (zipEntry as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize ?? 0;
+    totalUncompressed += size;
+    if (totalUncompressed > MAX_ZIP_EXTRACTED_BYTES) {
+      throw new Error(
+        `ZIP uncompressed size exceeds limit (max ${MAX_ZIP_EXTRACTED_BYTES / (1024 * 1024)}MB)`
+      );
+    }
+  }
+
   // Find index.html or top-level html
   const exactIndex = fileEntries.find((f) => f.name.toLowerCase() === "index.html");
   const anyIndex = fileEntries.find((f) => f.name.toLowerCase().endsWith("/index.html"));
@@ -68,8 +86,15 @@ export async function unpackZipBundle(
     entryPath = anyHtml.name;
   }
 
+  let extractedTotal = 0;
   for (const { name, zipEntry } of fileEntries) {
     const content = await zipEntry.async("nodebuffer");
+    extractedTotal += content.byteLength;
+    if (extractedTotal > MAX_ZIP_EXTRACTED_BYTES) {
+      throw new Error(
+        `ZIP uncompressed size exceeds limit (max ${MAX_ZIP_EXTRACTED_BYTES / (1024 * 1024)}MB)`
+      );
+    }
     const contentType = getContentType(name);
     files.push({
       path: name,

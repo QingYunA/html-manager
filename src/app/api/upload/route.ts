@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { processAndCreateProject } from "@/lib/services/project-service";
+import { uploadPayloadSchema, MAX_UPLOAD_BYTES } from "@/lib/validation";
+import type { Project } from "@/db/schema";
 
 export async function POST(request: Request) {
   const currentUser = await getCurrentUser(request);
@@ -26,12 +28,21 @@ export async function POST(request: Request) {
   const contentType = request.headers.get("content-type") || "";
 
   try {
-    let project;
+    let project: Project;
 
     if (contentType.includes("application/json")) {
-      const body = await request.json();
-      const htmlContent = body.html || body.code || body.content;
-      if (!htmlContent) {
+      const rawJson = await request.json();
+      const parseResult = uploadPayloadSchema.safeParse(rawJson);
+      if (!parseResult.success) {
+        return NextResponse.json(
+          { success: false, error: parseResult.error.issues[0]?.message || "Invalid payload" },
+          { status: 400 }
+        );
+      }
+
+      const body = parseResult.data;
+      const htmlContent = body.htmlContent || rawJson.html || rawJson.code || rawJson.content;
+      if (!htmlContent || typeof htmlContent !== "string" || !htmlContent.trim()) {
         return NextResponse.json(
           { success: false, error: "Missing 'html' or 'code' field in JSON body" },
           { status: 400 }
@@ -44,54 +55,71 @@ export async function POST(request: Request) {
         slug: body.slug,
         description: body.description,
         category: body.category,
-        tags: Array.isArray(body.tags) ? body.tags : typeof body.tags === "string" ? body.tags.split(",") : [],
-        visibility: body.visibility || "public",
-        isPinned: Boolean(body.isPinned),
+        tags: body.tags,
+        visibility: body.visibility,
+        isPinned: body.isPinned,
         htmlContent,
       });
     } else if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const file = formData.get("file") as File | null;
-      const htmlContent = formData.get("html") as string | null;
+      const rawHtml = formData.get("html");
+      const htmlContent = typeof rawHtml === "string" ? rawHtml : null;
 
-      const title = (formData.get("title") as string) || "";
-      const slug = (formData.get("slug") as string) || "";
-      const description = (formData.get("description") as string) || "";
-      const category = (formData.get("category") as string) || "tools";
-      const tagsRaw = (formData.get("tags") as string) || "";
-      const visibility = ((formData.get("visibility") as string) || "public") as "public" | "unlisted" | "private";
-      const isPinned = formData.get("isPinned") === "true";
+      const rawVisibility = formData.get("visibility");
+      const rawTags = formData.get("tags");
 
-      const tags = tagsRaw
-        .split(/[,，]/)
-        .map((t) => t.trim())
-        .filter(Boolean);
+      const parseResult = uploadPayloadSchema.safeParse({
+        title: typeof formData.get("title") === "string" ? (formData.get("title") as string) : undefined,
+        slug: typeof formData.get("slug") === "string" ? (formData.get("slug") as string) : undefined,
+        description: typeof formData.get("description") === "string" ? (formData.get("description") as string) : undefined,
+        category: typeof formData.get("category") === "string" ? (formData.get("category") as string) : undefined,
+        tags: typeof rawTags === "string" ? rawTags : [],
+        visibility: typeof rawVisibility === "string" ? rawVisibility : "public",
+        isPinned: formData.get("isPinned") === "true",
+      });
+
+      if (!parseResult.success) {
+        return NextResponse.json(
+          { success: false, error: parseResult.error.issues[0]?.message || "Invalid form data" },
+          { status: 400 }
+        );
+      }
+
+      const body = parseResult.data;
 
       if (file && file.size > 0) {
+        if (file.size > MAX_UPLOAD_BYTES) {
+          return NextResponse.json(
+            { success: false, error: `File too large: maximum allowed upload size is ${MAX_UPLOAD_BYTES / (1024 * 1024)}MB` },
+            { status: 413 }
+          );
+        }
+
         const arrayBuffer = await file.arrayBuffer();
         const fileBuffer = Buffer.from(arrayBuffer);
         project = await processAndCreateProject({
           userId: currentUser.id === "selfhost-admin" ? undefined : currentUser.id,
-          title,
-          slug,
-          description,
-          category,
-          tags,
-          visibility,
-          isPinned,
+          title: body.title,
+          slug: body.slug,
+          description: body.description,
+          category: body.category,
+          tags: body.tags,
+          visibility: body.visibility,
+          isPinned: body.isPinned,
           fileBuffer,
           fileName: file.name,
         });
-      } else if (htmlContent) {
+      } else if (htmlContent && htmlContent.trim()) {
         project = await processAndCreateProject({
           userId: currentUser.id === "selfhost-admin" ? undefined : currentUser.id,
-          title,
-          slug,
-          description,
-          category,
-          tags,
-          visibility,
-          isPinned,
+          title: body.title,
+          slug: body.slug,
+          description: body.description,
+          category: body.category,
+          tags: body.tags,
+          visibility: body.visibility,
+          isPinned: body.isPinned,
           htmlContent,
         });
       } else {
