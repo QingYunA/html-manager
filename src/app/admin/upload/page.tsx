@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
+import { useState, useRef, useTransition, useEffect } from "react";
 import Link from "next/link";
 import {
   UploadCloud,
@@ -36,6 +36,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { scanHtmlForSensitiveData, type SensitiveRiskMatch } from "@/lib/scanner/sensitive-scanner";
 import { PublicRiskDialog } from "@/components/public-risk-dialog";
 import HoverSandboxPreview from "@/components/hover-sandbox-preview";
+import { sandboxPool } from "@/lib/sandbox-pool";
 
 const CATEGORIES = [
   { id: "tools", label: "实用工具", icon: Wrench },
@@ -73,6 +74,12 @@ export default function AdminUploadPage() {
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successSlug, setSuccessSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (successSlug) {
+      sandboxPool.activate(successSlug);
+    }
+  }, [successSlug]);
 
   const tryExtractFromHtml = (html: string) => {
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
