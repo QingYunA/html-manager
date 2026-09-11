@@ -93,7 +93,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/95 backdrop-blur-xs px-3 sm:px-6 md:px-8 h-12 flex items-center">
+    <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/95 backdrop-blur-xs px-3 sm:px-6 md:px-8 h-14 flex items-center">
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
         {/* Brand logo & Desktop Navigation */}
         <div className="flex items-center gap-6 shrink-0">
@@ -103,7 +103,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
             className="flex items-center gap-2 font-semibold tracking-tight text-sm text-foreground group shrink-0"
           >
             <BrandLogo size={24} className="w-6 h-6 shrink-0" />
-            <span className="font-semibold">Pagepod</span>
+            <span className="font-semibold text-sm">Pagepod</span>
           </Link>
 
           {/* Desktop Primary Navigation Links */}
@@ -118,13 +118,13 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
                   key={item.href}
                   href={item.href}
                   prefetch={true}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     isActive
                       ? "text-foreground bg-muted font-semibold"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5 opacity-70" />
+                  <Icon className="w-4 h-4 opacity-70" />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -133,20 +133,20 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
         </div>
 
         {/* Action Controls & Navigation */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {/* GitHub Repo Link (Desktop / Tablet) */}
           <Button
             variant="ghost"
             size="sm"
             asChild
-            className="h-8 text-xs text-muted-foreground hover:text-foreground hidden sm:inline-flex"
+            className="h-8.5 text-sm text-muted-foreground hover:text-foreground hidden sm:inline-flex px-2.5"
           >
             <a
               href="https://github.com/QingYunA/html-manager"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <svg className="w-3.5 h-3.5 mr-1 fill-current" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 mr-1.5 fill-current" viewBox="0 0 24 24">
                 <path
                   fillRule="evenodd"
                   clipRule="evenodd"
@@ -168,10 +168,10 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
           <Button
             size="sm"
             asChild
-            className="h-8 text-xs font-medium hidden sm:inline-flex"
+            className="h-8.5 text-sm font-medium hidden sm:inline-flex px-3"
           >
             <Link href="/admin/upload" prefetch={true}>
-              <Plus className="w-3.5 h-3.5 mr-1" />
+              <Plus className="w-4 h-4 mr-1" />
               <span>{t.nav.publish}</span>
             </Link>
           </Button>
@@ -180,12 +180,12 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
           {user ? (
             <UserDropdown currentUser={user} />
           ) : (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Button
                 variant="ghost"
                 size="sm"
                 asChild
-                className="h-8 text-xs font-medium px-2 sm:px-3"
+                className="h-8.5 text-sm font-medium px-2.5 sm:px-3"
               >
                 <Link href="/admin/login" prefetch={true}>
                   {t.nav.login}
@@ -195,7 +195,7 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
                 variant="outline"
                 size="sm"
                 asChild
-                className="h-8 text-xs font-medium hidden sm:inline-flex"
+                className="h-8.5 text-sm font-medium hidden sm:inline-flex px-3"
               >
                 <Link href="/admin/login?tab=signup" prefetch={true}>
                   {t.nav.signup}

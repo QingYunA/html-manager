@@ -13,7 +13,7 @@ interface ExploreClientProps {
 }
 
 export default function ExploreClient({ projects }: ExploreClientProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const categoryCards = [
@@ -22,28 +22,40 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
       label: t.categories.tools,
       icon: Wrench,
       count: projects.filter((p) => p.category === "tools").length,
-      desc: "Calculators, converters, formatters, and utilities",
+      desc:
+        locale === "zh"
+          ? "微型计算器、数据转换器、正则与开发轻工具"
+          : "Calculators, converters, formatters, and developer utilities",
     },
     {
       id: "games",
       label: t.categories.games,
       icon: Gamepad2,
       count: projects.filter((p) => p.category === "games").length,
-      desc: "Arcade, puzzle, canvas mini games, and interactive play",
+      desc:
+        locale === "zh"
+          ? "Canvas 微游戏、益智解谜、2048 与复古街机"
+          : "Canvas mini-games, puzzles, arcade games, and interactive play",
     },
     {
       id: "visualization",
       label: t.categories.visualization,
       icon: BarChart2,
       count: projects.filter((p) => p.category === "visualization").length,
-      desc: "Interactive charts, financial dashboards, and statistics",
+      desc:
+        locale === "zh"
+          ? "交互图表、动态数据看板与 WebGL/SVG 视效"
+          : "Interactive charts, statistical dashboards, and WebGL visual experiments",
     },
     {
       id: "prototypes",
       label: t.categories.prototypes,
       icon: Layers,
       count: projects.filter((p) => p.category === "prototypes").length,
-      desc: "App mockups, landing pages, and UI interaction designs",
+      desc:
+        locale === "zh"
+          ? "概念落地页、UI 交互雏形、组件与设计稿"
+          : "Concept landing pages, UI interaction prototypes, and mockups",
     },
   ];
 
@@ -166,7 +178,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
               onClick={() => setSelectedCategory("all")}
               className="h-7 text-xs text-muted-foreground hover:text-foreground"
             >
-              重置筛选 (Clear)
+              {locale === "zh" ? "显示全部专题" : "View all topics"}
             </Button>
           )}
         </div>
@@ -175,11 +187,11 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
           <div className="text-center py-16 border border-dashed border-border rounded-xl">
             <Compass className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
             <p className="text-xs text-muted-foreground mb-4">
-              该分类下暂无已发布的公开单页
+              {locale === "zh" ? "这个专题下暂时还没有已公开的单页" : "No public pages under this topic yet"}
             </p>
             <Button size="sm" asChild className="h-8 text-xs">
               <Link href="/admin/upload">
-                发布第一个 {categoryCards.find((c) => c.id === selectedCategory)?.label || "作品"}
+                {locale === "zh" ? "+ 上传一个单页到这个专题" : "+ Publish a page here"}
               </Link>
             </Button>
           </div>
@@ -229,6 +241,24 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
             ))}
           </div>
         )}
+
+        {/* Link back to Showcase Gallery */}
+        <div className="mt-14 p-6 rounded-xl border border-border bg-card/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">
+              {locale === "zh" ? "想看最新发布的全部作品？" : "Want to browse all pages in real-time?"}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {locale === "zh" ? "前往画廊，支持即时搜索、置顶筛选与鼠标悬停沙箱即时预览。" : "Head to the Showcase for instant search, live sorting, and hover sandbox previews."}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild className="shrink-0 h-8 text-xs">
+            <Link href="/" className="gap-1.5">
+              <span>{t.explore.viewAll}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -6,24 +6,24 @@ const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
 
 export const metadata: Metadata = {
-  title: "Explore AI HTML Artifacts - Tools, Games & Web Apps",
+  title: "Curated Collections & Topics | Pagepod",
   description:
-    "Discover top AI-generated single-page applications, interactive calculators, web games, and prototypes created with Claude Artifacts, ChatGPT Canvas & v0.",
+    "Explore curated AI-generated mini tools, games, visualizations, and prototypes. Test-run them directly in the sandbox.",
   alternates: {
     canonical: "/explore",
   },
   openGraph: {
-    title: "Explore AI HTML Artifacts | Pagepod",
+    title: "Curated Collections & Topics | Pagepod",
     description:
-      "Curated directory of AI single-page tools, mini-games, and UI prototypes. Try interactive sandboxes instantly.",
+      "Explore curated AI-generated mini tools, games, visualizations, and prototypes. Test-run them directly in the sandbox.",
     url: `${siteUrl}/explore`,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Explore AI HTML Artifacts | Pagepod",
+    title: "Curated Collections & Topics | Pagepod",
     description:
-      "Curated directory of AI single-page tools, mini-games, and UI prototypes. Try interactive sandboxes instantly.",
+      "Explore curated AI-generated mini tools, games, visualizations, and prototypes. Test-run them directly in the sandbox.",
   },
 };
 
