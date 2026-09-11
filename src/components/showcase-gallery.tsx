@@ -14,7 +14,6 @@ import {
   FileCode2,
   FolderArchive,
   Play,
-  Code2,
   SlidersHorizontal,
   Wrench,
   Gamepad2,
@@ -23,7 +22,7 @@ import {
   Sparkles,
   Layers,
   X,
-  Lock,
+  Loader2,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -45,6 +44,50 @@ const CATEGORY_ICONS = {
   animations: Sparkles,
   others: Layers,
 };
+
+function GalleryCardThumbnail({
+  slug,
+  title,
+  loadingLabel,
+  children,
+}: {
+  slug: string;
+  title: string;
+  loadingLabel?: string;
+  children: React.ReactNode;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
+      {/* Loading Skeleton Shimmer */}
+      <div
+        className={`absolute inset-0 z-0 flex items-center justify-center bg-neutral-950 transition-opacity duration-300 ${
+          loaded ? "opacity-0 pointer-events-none" : "opacity-100"
+        }`}
+      >
+        <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-500">
+          <Loader2 className="w-3 h-3 animate-spin text-neutral-600" />
+          <span>{loadingLabel || "沙箱准备中..."}</span>
+        </div>
+      </div>
+
+      <iframe
+        src={`/raw/${slug}`}
+        title={title}
+        tabIndex={-1}
+        sandbox="allow-scripts"
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        className={`w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white transition-opacity duration-300 ${
+          loaded ? "opacity-95 group-hover:opacity-100" : "opacity-0"
+        }`}
+      />
+
+      {children}
+    </div>
+  );
+}
 
 export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProps) {
   const { t } = useLanguage();
@@ -249,16 +292,12 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                 key={p.id}
                 className="group relative flex flex-col overflow-hidden border-border bg-card/80 hover:border-neutral-600 transition-all duration-150"
               >
-                {/* Miniature Thumbnail Viewport */}
-                <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
-                  <iframe
-                    src={`/raw/${p.slug}`}
-                    title={p.title}
-                    tabIndex={-1}
-                    sandbox="allow-scripts"
-                    loading="lazy"
-                    className="w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white opacity-95 group-hover:opacity-100 transition-opacity"
-                  />
+                {/* Miniature Thumbnail Viewport with Skeleton */}
+                <GalleryCardThumbnail
+                  slug={p.slug}
+                  title={p.title}
+                  loadingLabel={t.gallery.loadingPreview}
+                >
                   {/* Clickable Overlay to enter Runner directly */}
                   <Link
                     href={`/p/${p.slug}`}
@@ -300,7 +339,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                       <Share2 className="w-3 h-3" />
                     )}
                   </button>
-                </div>
+                </GalleryCardThumbnail>
 
                 {/* Card Body */}
                 <CardHeader className="p-4 pb-2 space-y-1">

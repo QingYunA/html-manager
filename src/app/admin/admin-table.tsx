@@ -12,6 +12,7 @@ import {
   FolderArchive,
   Eye,
   Calendar,
+  Loader2,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { togglePinAction, updateVisibilityAction, deleteProjectAction } from "@/app/actions/manage";
@@ -19,6 +20,13 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface AdminTableProps {
   initialProjects: Project[];
@@ -30,6 +38,8 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [previewingProject, setPreviewingProject] = useState<Project | null>(null);
+  const [modalIframeLoading, setModalIframeLoading] = useState(true);
 
   const filtered = projects.filter((p) => {
     if (categoryFilter !== "all" && p.category !== categoryFilter) return false;
@@ -207,6 +217,19 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                   {/* Action buttons */}
                   <td className="py-3 px-3 text-right">
                     <div className="inline-flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setModalIframeLoading(true);
+                          setPreviewingProject(item);
+                        }}
+                        title="即时沙箱预览"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
+
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" asChild>
                         <Link href={`/p/${item.slug}`} target="_blank" title="在新标签页运行">
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -227,7 +250,11 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                         className="h-7 w-7 text-muted-foreground hover:text-destructive"
                         title="删除项目"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        {deletingId === item.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-destructive" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
                       </Button>
                     </div>
                   </td>
@@ -237,6 +264,77 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Quick Sandbox Preview Modal in Workspace */}
+      <Dialog
+        open={Boolean(previewingProject)}
+        onOpenChange={(open) => !open && setPreviewingProject(null)}
+      >
+        <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0 border-border bg-card overflow-hidden">
+          <DialogHeader className="p-3.5 border-b border-border flex flex-row items-center justify-between space-y-0 shrink-0">
+            <div>
+              <DialogTitle className="text-xs font-semibold flex items-center gap-2">
+                <span>{previewingProject?.title}</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  {previewingProject?.category}
+                </Badge>
+              </DialogTitle>
+              <DialogDescription className="text-[11px] font-mono text-muted-foreground mt-0.5">
+                /p/{previewingProject?.slug}
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2 mr-6">
+              {previewingProject && (
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" asChild>
+                  <Link href={`/p/${previewingProject.slug}`} target="_blank">
+                    <span>全屏运行台</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 bg-card dark:bg-neutral-950 relative w-full h-full overflow-hidden">
+            {/* Indeterminate Hairline Progress Bar */}
+            {modalIframeLoading && (
+              <div className="absolute top-0 left-0 right-0 h-[2px] w-full z-20 overflow-hidden bg-muted/40">
+                <div className="h-full bg-foreground dark:bg-zinc-200 animate-pulse w-full" />
+              </div>
+            )}
+
+            {/* Sandbox Bootloader Overlay */}
+            <div
+              className={`absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/90 dark:bg-neutral-950/90 backdrop-blur-[2px] transition-opacity duration-300 ${
+                modalIframeLoading
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card/90 shadow-xs">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                <span className="text-xs font-mono text-muted-foreground">
+                  正在初始化安全沙箱...
+                </span>
+              </div>
+            </div>
+
+            {previewingProject && (
+              <iframe
+                src={`/raw/${previewingProject.slug}/`}
+                title={previewingProject.title}
+                sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals"
+                allow="fullscreen; clipboard-write"
+                allowFullScreen
+                onLoad={() => setModalIframeLoading(false)}
+                className={`w-full h-full border-0 bg-white transition-opacity duration-300 ${
+                  modalIframeLoading ? "opacity-0" : "opacity-100"
+                }`}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

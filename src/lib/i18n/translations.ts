@@ -46,6 +46,7 @@ export const translations = {
       previewDialogTitle: "沙箱即时预览",
       openFullscreenRunner: "打开全屏运行台",
       views: "次访问",
+      loadingPreview: "沙箱准备中...",
     },
     footer: {
       sandboxGuaranteed: "沙箱安全隔离",
@@ -90,6 +91,8 @@ export const translations = {
       embedDesc: "复制下方标准 iframe 代码，粘贴到你的 Notion、博客或网页中：",
       copyEmbed: "复制嵌入代码",
       relatedTitle: "相关单页应用推荐",
+      initializingSandbox: "正在初始化安全沙箱...",
+      reloading: "正在重新加载...",
     },
     riskDialog: {
       title: "公开安全风险检测与免责声明",
@@ -326,6 +329,7 @@ export const translations = {
       previewDialogTitle: "Live Sandbox Preview",
       openFullscreenRunner: "Open Fullscreen Runner",
       views: "views",
+      loadingPreview: "Preparing sandbox...",
     },
     footer: {
       sandboxGuaranteed: "Sandbox Hardened",
@@ -370,6 +374,8 @@ export const translations = {
       embedDesc: "Copy the standard iframe code below to embed into Notion, blogs, or websites:",
       copyEmbed: "Copy Embed Code",
       relatedTitle: "Related Artifacts",
+      initializingSandbox: "Initializing secure sandbox...",
+      reloading: "Reloading...",
     },
     riskDialog: {
       title: "Public Security Risk Check & Disclaimer",
