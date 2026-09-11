@@ -45,7 +45,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/context";
 import HoverSandboxPreview from "@/components/hover-sandbox-preview";
-import { sandboxPool } from "@/lib/sandbox-pool";
 
 interface AdminTableProps {
   initialProjects: Project[];
