@@ -151,9 +151,15 @@ export async function POST(request: Request) {
       visibility: project.visibility,
     });
   } catch (err: unknown) {
-    console.error("API upload error:", err);
+    const errorObj = err as Error;
+    console.error("API upload error:", errorObj);
     return NextResponse.json(
-      { success: false, error: (err as Error)?.message || "Failed to process and store project" },
+      {
+        success: false,
+        error: errorObj?.message || "Failed to process and store project",
+        stack: errorObj?.stack,
+        details: String(err),
+      },
       { status: 500 }
     );
   }
