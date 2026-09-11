@@ -41,7 +41,7 @@ export function PublicRiskDialog({
             <div
               className={`w-8 h-8 rounded-md flex items-center justify-center border shrink-0 ${
                 hasSevereRisk
-                  ? "bg-amber-500/10 text-amber-500 border-amber-500/30"
+                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
                   : "bg-muted text-foreground border-border"
               }`}
             >
@@ -62,7 +62,7 @@ export function PublicRiskDialog({
         {hasSevereRisk && (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 <span>{t.riskDialog.detectedTitle}</span>
               </span>
@@ -85,7 +85,7 @@ export function PublicRiskDialog({
                   </div>
                   <div className="text-muted-foreground">{m.description}</div>
                   {m.sample && (
-                    <code className="text-amber-300 font-mono text-[10px] bg-muted/60 px-1 py-0.5 rounded mt-0.5">
+                    <code className="text-amber-700 dark:text-amber-300 font-mono text-[10px] bg-muted/60 px-1 py-0.5 rounded mt-0.5">
                       命中片段: {m.sample}
                     </code>
                   )}
@@ -93,7 +93,7 @@ export function PublicRiskDialog({
               ))}
             </div>
 
-            <p className="text-[11px] text-amber-300/90 leading-relaxed pt-1">
+            <p className="text-[11px] text-amber-700/90 dark:text-amber-300/90 leading-relaxed pt-1">
               {t.riskDialog.adviceDesc}
             </p>
           </div>

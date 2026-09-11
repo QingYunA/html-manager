@@ -34,6 +34,10 @@ const CodeMirror = dynamic(() => import("./code-editor"), {
 import { updateProjectFullAction } from "@/app/actions/edit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { scanHtmlForSensitiveData, type SensitiveRiskMatch } from "@/lib/scanner/sensitive-scanner";
@@ -194,7 +198,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
       </header>
 
       {errorMsg && (
-        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 text-destructive text-xs flex items-center gap-2">
+        <div role="alert" className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 text-destructive text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4" /> {errorMsg}
         </div>
       )}
@@ -280,13 +284,14 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
               </CardHeader>
               <CardContent className="p-4 space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1.5">项目标题</label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                  <label htmlFor="edit-title" className="block text-xs font-medium text-foreground mb-1.5">项目标题</label>
+                  <Input id="edit-title" value={title} onChange={(e) => setTitle(e.target.value)} />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1.5">简介描述</label>
-                  <textarea
+                  <label htmlFor="edit-description" className="block text-xs font-medium text-foreground mb-1.5">简介描述</label>
+                  <Textarea
+                    id="edit-description"
                     rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -362,28 +367,26 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border">
                   <div>
-                    <label className="block text-xs font-medium text-foreground mb-1.5">公开状态</label>
-                    <select
+                    <label htmlFor="edit-visibility" className="block text-xs font-medium text-foreground mb-1.5">公开状态</label>
+                    <Select
+                      id="edit-visibility"
                       value={visibility}
                       onChange={(e) => {
                         setVisibility(e.target.value as "public" | "unlisted" | "private");
                         setBypassedRiskCheck(false);
                       }}
-                      className="w-full bg-muted/30 border border-input rounded-md px-3 h-8 text-xs text-foreground outline-none focus:border-ring"
                     >
                       <option value="public">公开 (Showcase 展示)</option>
                       <option value="unlisted">仅链接 (Unlisted)</option>
                       <option value="private">私有 (Private，完全隐蔽)</option>
-                    </select>
+                    </Select>
                   </div>
 
                   <div className="flex flex-col justify-end">
                     <label className="flex items-center gap-2.5 h-8 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={isPinned}
                         onChange={(e) => setIsPinned(e.target.checked)}
-                        className="rounded border-input text-foreground focus:ring-1 focus:ring-ring"
                       />
                       <span className="text-xs text-foreground font-medium">置顶到画廊前列</span>
                     </label>
