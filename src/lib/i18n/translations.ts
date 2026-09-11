@@ -105,6 +105,16 @@ export const translations = {
       proceedPublic: "仍然公开并发布",
       cancel: "返回修改",
     },
+    workspace: {
+      deleteTitle: "删除项目",
+      deleteConfirmText: "确定要永久删除此项目吗？此操作不可逆，将永久抹除数据库元数据及关联的所有存储资源与静态文件。",
+      deleteWarningNote: "请谨慎操作：删除后该路由对应的单页应用将立刻失效下线，外部访问链接将失效不可用。",
+      cancel: "取消",
+      confirmDelete: "确认永久删除",
+      deleting: "正在删除...",
+      deleteSuccessToast: "项目已成功删除",
+      deleteFailToast: "删除项目失败",
+    },
     auth: {
       loginTitle: "登录你的账号",
       signupTitle: "创建新账号",
@@ -384,6 +394,16 @@ export const translations = {
       switchToPrivate: "Switch to Private (Recommended)",
       proceedPublic: "Proceed to Publish Publicly",
       cancel: "Cancel & Edit",
+    },
+    workspace: {
+      deleteTitle: "Delete Project",
+      deleteConfirmText: "Are you sure you want to permanently delete this project? This action cannot be undone and will purge database metadata and all associated storage files.",
+      deleteWarningNote: "Please proceed with caution: The project route will immediately become unavailable to visitors.",
+      cancel: "Cancel",
+      confirmDelete: "Confirm Delete",
+      deleting: "Deleting...",
+      deleteSuccessToast: "Project was successfully deleted",
+      deleteFailToast: "Failed to delete project",
     },
     auth: {
       loginTitle: "Log in to your account",
