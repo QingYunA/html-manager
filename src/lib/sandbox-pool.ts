@@ -10,12 +10,18 @@ import { useSyncExternalStore } from "react";
 export const MAX_ACTIVE_SANDBOXES = 6;
 
 let activeSlugs: string[] = [];
+let warmupTimeouts: NodeJS.Timeout[] = [];
 const listeners = new Set<() => void>();
 
 function emitChange() {
   for (const listener of listeners) {
     listener();
   }
+}
+
+function clearWarmupTimeouts() {
+  warmupTimeouts.forEach((t) => clearTimeout(t));
+  warmupTimeouts = [];
 }
 
 export const sandboxPool = {
@@ -45,7 +51,32 @@ export const sandboxPool = {
     }
   },
 
+  /**
+   * Pre-warm / pre-activate the first batch of visible items (up to MAX_ACTIVE_SANDBOXES).
+   * Staggers activations by ~70ms so the browser compiler doesn't freeze on initial load.
+   */
+  warmup(slugs: string[], staggerMs = 70) {
+    if (!slugs || slugs.length === 0) return;
+    clearWarmupTimeouts();
+
+    const targetSlugs = slugs.slice(0, MAX_ACTIVE_SANDBOXES);
+    const toActivate = targetSlugs.filter((s) => !activeSlugs.includes(s));
+    if (toActivate.length === 0) return;
+
+    toActivate.forEach((slug, idx) => {
+      if (idx === 0) {
+        this.activate(slug);
+      } else {
+        const timeout = setTimeout(() => {
+          this.activate(slug);
+        }, idx * staggerMs);
+        warmupTimeouts.push(timeout);
+      }
+    });
+  },
+
   clear() {
+    clearWarmupTimeouts();
     if (activeSlugs.length > 0) {
       activeSlugs = [];
       emitChange();

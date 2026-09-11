@@ -45,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/context";
 import HoverSandboxPreview from "@/components/hover-sandbox-preview";
+import { sandboxPool } from "@/lib/sandbox-pool";
 
 interface AdminTableProps {
   initialProjects: Project[];
@@ -135,6 +136,16 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
       );
     });
   }, [projects, categoryFilter, search]);
+
+  // Auto-warmup the first batch of visible projects into the sandbox pool when in grid view
+  useEffect(() => {
+    if (viewMode === "grid") {
+      const visibleSlugs = filtered.slice(0, 6).map((p) => p.slug);
+      if (visibleSlugs.length > 0) {
+        sandboxPool.warmup(visibleSlugs);
+      }
+    }
+  }, [filtered, viewMode]);
 
   const handleTogglePin = (id: string, current: boolean) => {
     startTransition(async () => {
