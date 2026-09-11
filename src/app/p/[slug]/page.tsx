@@ -177,7 +177,7 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
       : null;
 
   // Fetch related public projects for internal linking & recommendations
-  let relatedProjects: any[] = [];
+  let relatedProjects: import("@/db/schema").Project[] = [];
   try {
     const allPublic = await getAllProjects({ category: project.category });
     relatedProjects = allPublic
@@ -196,12 +196,22 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
     relatedProjects = [];
   }
 
+  // Safe JSON-LD serialization preventing </script> breakout & XSS
+  const safeJsonLdString = jsonLd
+    ? JSON.stringify(jsonLd)
+        .replace(/</g, "\\u003c")
+        .replace(/>/g, "\\u003e")
+        .replace(/&/g, "\\u0026")
+        .replace(/\u2028/g, "\\u2028")
+        .replace(/\u2029/g, "\\u2029")
+    : null;
+
   return (
     <>
-      {jsonLd && (
+      {safeJsonLdString && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLdString }}
         />
       )}
       <RunnerClient

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import * as schema from "./schema";
 import type { Project, NewProject, ApiToken, NewApiToken } from "./schema";
 
@@ -578,20 +578,22 @@ export async function touchApiTokenLastUsed(id: string): Promise<void> {
 
 export async function deleteApiTokenById(id: string, userId: string): Promise<boolean> {
   const db = getDatabase();
+  const isSuperAdmin = userId === "selfhost-admin";
   if (db) {
     try {
-      await withTableFallback(() =>
-        db
-          .delete(schema.apiTokens)
-          .where(eq(schema.apiTokens.id, id))
-      );
+      await withTableFallback(() => {
+        const condition = isSuperAdmin
+          ? eq(schema.apiTokens.id, id)
+          : and(eq(schema.apiTokens.id, id), eq(schema.apiTokens.userId, userId));
+        return db.delete(schema.apiTokens).where(condition);
+      });
       return true;
     } catch (err) {
       console.error("deleteApiTokenById DB error, falling back to local data:", err);
       const local = readLocalData();
       const beforeLen = (local.apiTokens || []).length;
       local.apiTokens = (local.apiTokens || []).filter(
-        (t) => !(t.id === id && (t.userId === userId || userId === "selfhost-admin"))
+        (t) => !(t.id === id && (t.userId === userId || isSuperAdmin))
       );
       writeLocalData(local);
       return (local.apiTokens || []).length < beforeLen;
@@ -600,7 +602,7 @@ export async function deleteApiTokenById(id: string, userId: string): Promise<bo
     const local = readLocalData();
     const beforeLen = (local.apiTokens || []).length;
     local.apiTokens = (local.apiTokens || []).filter(
-      (t) => !(t.id === id && (t.userId === userId || userId === "selfhost-admin"))
+      (t) => !(t.id === id && (t.userId === userId || isSuperAdmin))
     );
     writeLocalData(local);
     return (local.apiTokens || []).length < beforeLen;

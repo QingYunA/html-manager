@@ -55,7 +55,7 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
   }
 
   // Ensure slug uniqueness
-  let existing = await getProjectBySlug(slug);
+  const existing = await getProjectBySlug(slug);
   if (existing) {
     slug = `${slug}-${nanoid(4).toLowerCase()}`;
   }
@@ -143,11 +143,25 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
   return project;
 }
 
-export async function updateProjectHtml(id: string, newHtml: string): Promise<Project> {
+export async function updateProjectHtml(
+  id: string,
+  newHtml: string,
+  expectedUser?: { id: string; role?: string }
+): Promise<Project> {
   const { getProjectById } = await import("@/db");
   const project = await getProjectById(id);
   if (!project) {
     throw new Error("Project not found");
+  }
+
+  if (expectedUser) {
+    const isAllowed =
+      expectedUser.role === "admin" ||
+      expectedUser.id === "selfhost-admin" ||
+      (project.userId && project.userId === expectedUser.id);
+    if (!isAllowed) {
+      throw new Error("Forbidden: You do not have permission to modify this project");
+    }
   }
 
   const storage = getStorage();

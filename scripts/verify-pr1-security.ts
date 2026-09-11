@@ -1,0 +1,77 @@
+import { assertSafeStoragePath, assertSafeStorageKey, UnsafePathError } from "../src/lib/storage/path-safety";
+import { sanitizeRedirectPath, sanitizeNextParam } from "../src/lib/safe-redirect";
+import { canManageProject, type CurrentUser } from "../src/lib/auth";
+
+let passed = 0;
+let failed = 0;
+
+function assert(condition: boolean, name: string) {
+  if (condition) {
+    passed++;
+    console.log(`  ✓ ${name}`);
+  } else {
+    failed++;
+    console.error(`  ✗ FAIL: ${name}`);
+  }
+}
+
+function assertThrows(fn: () => void, name: string) {
+  try {
+    fn();
+    failed++;
+    console.error(`  ✗ FAIL (did not throw): ${name}`);
+  } catch (err) {
+    if (err instanceof UnsafePathError) {
+      passed++;
+      console.log(`  ✓ ${name}`);
+    } else {
+      failed++;
+      console.error(`  ✗ FAIL (wrong error type): ${name}`, err);
+    }
+  }
+}
+
+console.log("\n=== 1. Storage Path Containment Tests ===");
+assertThrows(() => assertSafeStoragePath("/tmp/storage", "../etc/passwd"), "Rejects parent directory ..");
+assertThrows(() => assertSafeStoragePath("/tmp/storage", "foo/../../etc/passwd"), "Rejects nested traversal");
+assertThrows(() => assertSafeStoragePath("/tmp/storage", "foo\0bar"), "Rejects null bytes");
+assertThrows(() => assertSafeStorageKey("sites/../../etc/passwd", "sites"), "Rejects traversal in storage key");
+assertThrows(() => assertSafeStorageKey("other/file.html", "sites"), "Enforces required sites/ prefix");
+
+const safeResolved = assertSafeStoragePath("/tmp/storage", "sites/abc12345/index.html");
+assert(safeResolved.startsWith("/tmp/storage/sites/abc12345/index.html"), "Allows valid storage path");
+
+const safeKey = assertSafeStorageKey("sites/my-slug/index.html", "sites");
+assert(safeKey === "sites/my-slug/index.html", "Allows canonical storage key under sites/");
+
+console.log("\n=== 2. Open Redirect Sanitization Tests ===");
+assert(sanitizeRedirectPath("https://evil.com") === "/admin", "Rejects absolute https:// URL");
+assert(sanitizeRedirectPath("//evil.com") === "/admin", "Rejects protocol-relative // URL");
+assert(sanitizeRedirectPath("/\\evil.com") === "/admin", "Rejects /\\ backslash trick");
+assert(sanitizeRedirectPath("javascript:alert(1)") === "/admin", "Rejects javascript: scheme");
+assert(sanitizeRedirectPath("/admin/projects") === "/admin/projects", "Allows safe relative /admin/projects");
+assert(sanitizeRedirectPath("/p/my-slug") === "/p/my-slug", "Allows safe relative /p/my-slug");
+assert(sanitizeNextParam("@evil.com") === "/admin", "Rejects @userinfo redirect trick");
+assert(sanitizeNextParam("/explore") === "/explore", "Allows safe /explore");
+
+console.log("\n=== 3. Project Authorization (IDOR) Tests ===");
+const superAdmin: CurrentUser = { id: "selfhost-admin", role: "admin" };
+const cloudAdmin: CurrentUser = { id: "user_admin", role: "admin" };
+const ownerUser: CurrentUser = { id: "user_alice", role: "user" };
+const otherUser: CurrentUser = { id: "user_bob", role: "user" };
+
+const aliceProject = { id: "p1", userId: "user_alice" };
+const legacyNoUserProject = { id: "p2", userId: null };
+
+assert(canManageProject(superAdmin, aliceProject), "Selfhost admin can manage any project");
+assert(canManageProject(cloudAdmin, aliceProject), "Cloud admin can manage any project");
+assert(canManageProject(ownerUser, aliceProject), "Owner can manage own project");
+assert(!canManageProject(otherUser, aliceProject), "Other user CANNOT manage Alice's project (IDOR blocked)");
+assert(!canManageProject(ownerUser, legacyNoUserProject), "Regular user cannot manage legacy unclaimed project");
+assert(canManageProject(superAdmin, legacyNoUserProject), "Admin can manage legacy unclaimed project");
+assert(!canManageProject(null, aliceProject), "Guest cannot manage project");
+
+console.log(`\nResults: ${passed} passed, ${failed} failed`);
+if (failed > 0) {
+  process.exit(1);
+}

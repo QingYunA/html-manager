@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjectById } from "@/db";
 import { getStorage } from "@/lib/storage";
+import { getCurrentUser, canManageProject } from "@/lib/auth";
 import ProjectEditorClient from "./editor-client";
 
 interface EditPageProps {
@@ -13,9 +14,10 @@ export const dynamic = "force-dynamic";
 
 export default async function ProjectEditPage({ params }: EditPageProps) {
   const { id } = await params;
+  const currentUser = await getCurrentUser();
   const project = await getProjectById(id);
 
-  if (!project) {
+  if (!project || !canManageProject(currentUser, project)) {
     notFound();
   }
 
