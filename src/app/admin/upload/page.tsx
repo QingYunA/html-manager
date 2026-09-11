@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { encryptArtifact, encryptWithRawKey } from "@/lib/crypto/e2ee";
+import { generateRecoveryKey, encryptWithKey, saveLocalProjectKey } from "@/lib/crypto/e2ee";
 import { scanHtmlForSensitiveData, type SensitiveRiskMatch } from "@/lib/scanner/sensitive-scanner";
 import { PublicRiskDialog } from "@/components/public-risk-dialog";
 
@@ -207,6 +207,8 @@ export default function AdminUploadPage() {
       try {
         let preUploadedStoragePath = "";
         let encryptionIv = "";
+        let keyMode = "zk-recovery" as const;
+        let recoveryKeyForUser = "";
 
         if (shouldEncrypt) {
           let rawBytes: Uint8Array;
@@ -237,22 +239,19 @@ export default function AdminUploadPage() {
             throw new Error(presignData.error || "Presigned URL error");
           }
 
-          let encryptedCiphertext: Uint8Array;
-          if (presignData.userKey) {
-            const res = await encryptWithRawKey(rawBytes, presignData.userKey);
-            encryptedCiphertext = res.ciphertext;
-            encryptionIv = res.ivBase64;
-          } else {
-            const res = await encryptArtifact(rawBytes);
-            encryptedCiphertext = res.ciphertext;
-            encryptionIv = res.ivBase64;
-            setE2eeKeyResult(res.keyBase64);
-          }
+          // Zero-knowledge: generate the key in the browser and encrypt locally.
+          // The key is never sent to the server; only the ciphertext and public IV are.
+          const { keyBase64, key } = await generateRecoveryKey();
+          recoveryKeyForUser = keyBase64;
+          keyMode = "zk-recovery";
+
+          const { ciphertext, ivBase64 } = await encryptWithKey(key, rawBytes);
+          encryptionIv = ivBase64;
 
           const uploadRes = await fetch(presignData.uploadUrl, {
             method: presignData.uploadMethod || "PUT",
             headers: { "Content-Type": "application/octet-stream" },
-            body: new Blob([encryptedCiphertext as unknown as BlobPart]),
+            body: new Blob([ciphertext as unknown as BlobPart]),
           });
 
           if (!uploadRes.ok) {
@@ -260,6 +259,9 @@ export default function AdminUploadPage() {
           }
 
           preUploadedStoragePath = presignData.storagePath;
+          // Cache the key in this browser so the owner can reopen without copy-pasting
+          saveLocalProjectKey(finalSlug, { keyMode, key: recoveryKeyForUser });
+          setE2eeKeyResult(recoveryKeyForUser);
         }
 
         const formData = new FormData();
@@ -275,6 +277,7 @@ export default function AdminUploadPage() {
         if (shouldEncrypt) {
           formData.append("isEncrypted", "true");
           formData.append("encryptionIv", encryptionIv);
+          formData.append("keyMode", keyMode);
           formData.append("preUploadedStoragePath", preUploadedStoragePath);
         } else {
           if (mode === "file" && file) {

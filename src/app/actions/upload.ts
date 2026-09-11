@@ -35,6 +35,8 @@ export async function handleUploadAction(
     isPinned: formData.get("isPinned") === "true",
     isEncrypted: formData.get("isEncrypted") === "true",
     encryptionIv: str("encryptionIv"),
+    keyMode: str("keyMode"),
+    kdfSalt: str("kdfSalt"),
     preUploadedStoragePath: str("preUploadedStoragePath"),
   });
 
@@ -53,6 +55,8 @@ export async function handleUploadAction(
     isPinned,
     isEncrypted,
     encryptionIv,
+    keyMode,
+    kdfSalt,
     preUploadedStoragePath,
   } = parseResult.data;
 
@@ -70,6 +74,8 @@ export async function handleUploadAction(
         isPinned,
         isEncrypted,
         encryptionIv,
+        keyMode,
+        kdfSalt,
         preUploadedStoragePath,
       });
 

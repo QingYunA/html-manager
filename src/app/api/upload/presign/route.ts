@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, verifyAdminTokenFromRequest } from "@/lib/auth";
-import { deriveUserMasterKey, bufferToBase64Url } from "@/lib/crypto/e2ee";
+import { verifyAdminTokenFromRequest } from "@/lib/auth";
 import { getStorage } from "@/lib/storage";
 import { sanitizeSlug } from "@/lib/services/project-service";
 import { assertSafeStorageKey } from "@/lib/storage/path-safety";
@@ -20,8 +19,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const currentUser = await getCurrentUser();
-
   try {
     const body = await request.json();
     const { contentType, isEncrypted } = body;
@@ -38,28 +35,18 @@ export async function POST(request: Request) {
         ? "application/octet-stream"
         : "text/html; charset=utf-8";
 
-    // If encrypted and user is authenticated, also export their user-derived master key
-    // so the client can encrypt deterministically without asking the user to copy-paste passwords
-    let userKeyBase64: string | null = null;
-    if (isEncrypted && currentUser?.id) {
-      const cryptoKey = await deriveUserMasterKey(currentUser.id);
-      const rawKey = await crypto.subtle.exportKey("raw", cryptoKey);
-      userKeyBase64 = bufferToBase64Url(rawKey);
-    }
+    // NOTE: The server intentionally does NOT derive or return any encryption key.
+    // Encryption is zero-knowledge: the client owns the key and the server only stores ciphertext.
 
     const storage = getStorage();
     if (storage.createPresignedUploadUrl) {
-      const presigned = await storage.createPresignedUploadUrl(
-        storagePath,
-        safeContentType
-      );
+      const presigned = await storage.createPresignedUploadUrl(storagePath, safeContentType);
       return NextResponse.json({
         success: true,
         slug,
         storagePath,
         uploadUrl: presigned.url,
         uploadMethod: presigned.method,
-        userKey: userKeyBase64,
       });
     }
 
@@ -70,7 +57,6 @@ export async function POST(request: Request) {
       storagePath,
       uploadUrl: `/api/upload/direct-local?path=${encodeURIComponent(storagePath)}`,
       uploadMethod: "PUT",
-      userKey: userKeyBase64,
     });
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error)?.message || "Failed to generate presigned upload URL" }, { status: 500 });

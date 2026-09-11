@@ -34,12 +34,18 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { decryptArtifactToHtml, extractKeyFromUrlHash } from "@/lib/crypto/e2ee";
+import {
+  decryptWithKey,
+  deriveKeyFromPassphrase,
+  extractKeyFromUrlHash,
+  importRecoveryKey,
+  loadLocalProjectKey,
+  KDF_ITERATIONS_DEFAULT,
+} from "@/lib/crypto/e2ee";
 
 interface RunnerClientProps {
   project: Project;
   initialSourceCode: string;
-  seamlessDecryptedHtml?: string;
   isOwner?: boolean;
   relatedProjects?: Project[];
 }
@@ -49,7 +55,6 @@ type DeviceMode = "desktop" | "tablet" | "mobile";
 export default function RunnerClient({
   project,
   initialSourceCode,
-  seamlessDecryptedHtml = "",
   isOwner = false,
   relatedProjects = [],
 }: RunnerClientProps) {
@@ -65,16 +70,17 @@ export default function RunnerClient({
   const [copiedEmbed, setCopiedEmbed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // E2EE Decryption States: default to seamless decrypted HTML if owner is authenticated!
-  const [decryptedHtml, setDecryptedHtml] = useState<string | null>(seamlessDecryptedHtml || null);
-  const [isDecrypting, setIsDecrypting] = useState(Boolean(project.isEncrypted && !seamlessDecryptedHtml));
+  // Zero-knowledge decryption state. The key lives only in the browser.
+  const [decryptedHtml, setDecryptedHtml] = useState<string | null>(null);
+  const [isDecrypting, setIsDecrypting] = useState(Boolean(project.isEncrypted));
   const [decryptError, setDecryptError] = useState<string | null>(null);
   const [manualKeyInput, setManualKeyInput] = useState("");
 
   const rawUrl = `/raw/${project.slug}/`;
 
-  const attemptDecryption = async (key: string) => {
-    if (!project.isEncrypted || !project.encryptionIv) return;
+  // Resolves a secret (recovery key or passphrase) into a decryption result.
+  const attemptDecryption = async (secret: string, modeOverride?: string) => {
+    if (!project.isEncrypted || !project.encryptionIv || !secret) return;
     setIsDecrypting(true);
     setDecryptError(null);
 
@@ -83,11 +89,22 @@ export default function RunnerClient({
       if (!res.ok) throw new Error(`Status: ${res.status}`);
       const ciphertextBuffer = await res.arrayBuffer();
 
-      const html = await decryptArtifactToHtml(
-        new Uint8Array(ciphertextBuffer),
-        key,
-        project.encryptionIv
-      );
+      const mode = modeOverride || project.keyMode || "legacy-server";
+      let html: string;
+
+      if (mode === "zk-passphrase") {
+        const iterations = project.kdfIterations || KDF_ITERATIONS_DEFAULT;
+        const salt = project.kdfSalt || "";
+        if (!salt) throw new Error("Missing KDF salt for passphrase key mode");
+        const cryptoKey = await deriveKeyFromPassphrase(secret, salt, iterations);
+        html = await decryptWithKey(cryptoKey, new Uint8Array(ciphertextBuffer), project.encryptionIv);
+      } else if (mode === "zk-recovery") {
+        const cryptoKey = await importRecoveryKey(secret);
+        html = await decryptWithKey(cryptoKey, new Uint8Array(ciphertextBuffer), project.encryptionIv);
+      } else {
+        // legacy-server mode is no longer decryptable client-side (deprecated scheme)
+        throw new Error("This artifact uses the deprecated legacy encryption scheme. Please migrate it.");
+      }
 
       setDecryptedHtml(html);
       setIsDecrypting(false);
@@ -99,22 +116,32 @@ export default function RunnerClient({
   };
 
   useEffect(() => {
-    if (seamlessDecryptedHtml) {
-      setDecryptedHtml(seamlessDecryptedHtml);
+    if (!project.isEncrypted) {
       setIsDecrypting(false);
       return;
     }
 
-    if (project.isEncrypted) {
-      const hash = typeof window !== "undefined" ? window.location.hash : "";
-      const extractedKey = extractKeyFromUrlHash(hash);
-      if (extractedKey) {
-        attemptDecryption(extractedKey);
-      } else {
-        setIsDecrypting(false);
+    // 1. Prefer an explicit key passed via the URL fragment (never sent to the server)
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    const extractedKey = extractKeyFromUrlHash(hash);
+    if (extractedKey) {
+      attemptDecryption(extractedKey);
+      return;
+    }
+
+    // 2. Fall back to the owner's browser-local key cache (zero-knowledge, device-scoped)
+    const cached = loadLocalProjectKey(project.slug);
+    if (cached) {
+      const secret = cached.keyMode === "zk-passphrase" ? cached.passphrase : cached.key;
+      if (secret) {
+        attemptDecryption(secret, cached.keyMode);
+        return;
       }
     }
-  }, [project.isEncrypted, seamlessDecryptedHtml, reloadKey]);
+
+    setIsDecrypting(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.isEncrypted, project.slug, reloadKey]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
