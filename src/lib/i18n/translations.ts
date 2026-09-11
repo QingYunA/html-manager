@@ -19,9 +19,9 @@ export const translations = {
       workspaceOwner: "工作区所有者",
     },
     hero: {
-      badge: "开源 HTML 托管工具",
-      title: "把 AI 写的 HTML 页面存起来，随时分享",
-      desc: "传一个 HTML 文件或 Zip 包，就能拿到一个干净的独立访问链接。代码在沙箱里安全运行，不需要配 Git 仓库，也不需要折腾服务器。",
+      badge: "HTML 单页沙箱与展示",
+      title: "保存、运行并分享你的 HTML 单页应用",
+      desc: "支持单文件 HTML 与 Zip 资源包。无论是 Claude Artifacts、ChatGPT 生成的原型还是手写小工具，上传即可获得受安全沙箱保护的独立链接，开箱即用。",
     },
     categories: {
       all: "全部",
@@ -182,7 +182,7 @@ export const translations = {
       faqDesc: "关于托管架构、安全沙箱、端到端加密与自定义域名的说明。",
       faqs: [
         {
-          q: "Pagepod 和传统的 Vercel 或 GitHub Pages 有什么不同？",
+          q: "Pagepod 和传统的 Vercel 或 GitHub Pages 有什么区别？",
           a: "Pagepod 专为单文件 HTML 和 AI 交互产物设计。无需初始化代码仓库、安装依赖或配置构建流水线，上传文件或粘贴代码就能拿到独立运行链接与沙箱预览。",
         },
         {
@@ -204,9 +204,9 @@ export const translations = {
       ],
     },
     explore: {
-      badge: "作品合辑",
-      title: "大家都在用 AI 跑哪些页面？",
-      desc: "收集了社区里用 Claude、ChatGPT 和手写的各种网页小应用。计算器、小游戏、数据图表或原型，点开就能直接玩。",
+      badge: "精选合辑",
+      title: "探索社区里的交互单页与创意实现",
+      desc: "汇集微型工具、Canvas 小游戏、数据图表与交互原型，点击即可在沙箱中直接试玩。",
       viewAll: "查看全部作品",
       openInRunner: "在沙箱中运行",
       popularTags: "按标签筛选",
@@ -214,25 +214,25 @@ export const translations = {
       itemsCount: "个单页",
     },
     aboutPage: {
-      badge: "关于这个项目",
-      title: "写 Pagepod 的原因",
-      subtitle: "平时用 Claude 或 ChatGPT 写个小工具、计算器或者小游戏，只要一两句话就能拿到一个单文件 HTML。但要想发给朋友体验，或者自己留在手机随时用，往往得专门建个仓库、搭环境、配置托管服务。Pagepod 就是为了解决这个顺手用的小需求。",
+      badge: "关于 Pagepod",
+      title: "为什么做 Pagepod",
+      subtitle: "现代 AI 模型能在几秒钟内生成一个可运行的 HTML 工具、计算器或小游戏。但要想把这些单页代码分享出去或留存使用，往往仍需繁琐的仓库配置与托管流程。Pagepod 旨在消除这层摩擦，让单文件网页随时可用。",
       pillars: [
         {
-          title: "单文件直接访问",
-          desc: "拖进一个 HTML 或 Zip 包就能拿到可访问的链接，不用建仓库，也不用装任何依赖。",
+          title: "单文件即开即用",
+          desc: "上传 HTML 或 Zip 包即可生成专属访问链接，无需配置 Git 仓库与构建流程。",
         },
         {
-          title: "浏览器端直接加密",
-          desc: "私有工具用 AES-GCM 在浏览器本地加密，解密密钥留在你的链接里，服务器也看不到代码。",
+          title: "端到端本地加密",
+          desc: "私密项目在浏览器本地通过 AES-GCM 加密，解密密钥仅存留在你的设备或分享链接中，服务端仅保存密文。",
         },
         {
-          title: "代码跑在沙箱里",
-          desc: "严格限制运行权限与 Cookie 隔离，在自己页面里测试别人的脚本也不用担心安全问题。",
+          title: "安全沙箱隔离",
+          desc: "所有单页运行在严格的 iframe 隔离沙箱中，物理隔绝 Cookie 与主站权限，安全无后顾之忧。",
         },
         {
-          title: "支持脚本自动上传",
-          desc: "提供简单的 HTTP API，可以在 Cursor、终端或自己的自动化脚本里一键推送到工作区。",
+          title: "支持 API 自动化",
+          desc: "提供清晰规范的 HTTP 接口与访问令牌，方便与 Cursor、命令行脚本及自动化流程无缝协同。",
         },
       ],
       communityTitle: "开源与社区",
@@ -313,9 +313,9 @@ export const translations = {
       workspaceOwner: "Workspace Owner",
     },
     hero: {
-      badge: "Open-Source HTML Sandbox",
-      title: "Save and share AI-generated HTML pages",
-      desc: "Upload an HTML file or zip bundle to get a clean, shareable URL instantly. Runs safely in a hardened sandbox without needing a Git repo or server setup.",
+      badge: "HTML Sandbox & Showcase",
+      title: "Run and share single-page HTML apps",
+      desc: "Supports standalone HTML files and zip bundles. Whether it's a Claude Artifact, a quick prototype, or an interactive tool, get an isolated sandbox and a clean shareable link in seconds.",
     },
     categories: {
       all: "All",
