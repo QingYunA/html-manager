@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getAllProjects } from "@/db";
 
-// Cache the sitemap instead of regenerating it on every crawl.
-export const revalidate = 3600;
+// Revalidate sitemap every 60s so newly published projects are immediately crawlable
+export const revalidate = 60;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
