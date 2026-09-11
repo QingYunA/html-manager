@@ -187,11 +187,11 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
           <div className="text-center py-16 border border-dashed border-border rounded-xl">
             <Compass className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
             <p className="text-xs text-muted-foreground mb-4">
-              {locale === "zh" ? "这个专题下暂时还没有已公开的单页" : "No public pages under this topic yet"}
+              {locale === "zh" ? "该专题下暂无公开项目" : "No public artifacts under this topic yet"}
             </p>
             <Button size="sm" asChild className="h-8 text-xs">
               <Link href="/admin/upload">
-                {locale === "zh" ? "+ 上传一个单页到这个专题" : "+ Publish a page here"}
+                {locale === "zh" ? "+ 上传首个单页至该专题" : "+ Publish first page here"}
               </Link>
             </Button>
           </div>
@@ -246,10 +246,10 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
         <div className="mt-14 p-6 rounded-xl border border-border bg-card/60 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold text-foreground">
-              {locale === "zh" ? "想看最新发布的全部作品？" : "Want to browse all pages in real-time?"}
+              {locale === "zh" ? "想要按时间流浏览全部项目？" : "Want to browse all artifacts in real-time?"}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {locale === "zh" ? "前往画廊，支持即时搜索、置顶筛选与鼠标悬停沙箱即时预览。" : "Head to the Showcase for instant search, live sorting, and hover sandbox previews."}
+              {locale === "zh" ? "前往画廊，支持即时全文检索、视图模式切换与鼠标悬停沙箱即时预览。" : "Head to the Showcase for instant search, live sorting, and hover sandbox previews."}
             </p>
           </div>
           <Button variant="outline" size="sm" asChild className="shrink-0 h-8 text-xs">
