@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-export default function ApiTokenGuideModal({ configuredTokens: _configuredTokens }: { configuredTokens: string }) {
+export default function ApiTokenGuideModal({ configuredTokens: _configuredTokens }: { configuredTokens?: string } = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 

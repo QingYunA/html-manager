@@ -155,14 +155,14 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
         {/* Primary Shortcuts */}
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/admin" className="cursor-pointer gap-2">
+            <Link href="/admin" prefetch={true} className="cursor-pointer gap-2">
               <LayoutDashboard className="w-3.5 h-3.5 text-muted-foreground" />
               <span>{t.nav.workspace}</span>
             </Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild>
-            <Link href="/admin/upload" className="cursor-pointer gap-2">
+            <Link href="/admin/upload" prefetch={true} className="cursor-pointer gap-2">
               <Plus className="w-3.5 h-3.5 text-muted-foreground" />
               <span>{t.nav.publish}</span>
             </Link>

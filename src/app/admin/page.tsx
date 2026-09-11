@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
-import { getAllProjects, getSetting } from "@/db";
+import { getAllProjects } from "@/db";
 import type { Project } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -31,37 +31,25 @@ export default async function AdminDashboardPage() {
   //    - If standard user: ONLY views projects belonging to their own userId.
   //    - If platform admin: ONLY permitted to manage and inspect PUBLIC projects. User-private projects are strictly hidden!
   let projects: Project[] = [];
-  let apiTokens = "";
 
   if (currentUser?.id === "selfhost-admin") {
-    [projects, apiTokens] = await Promise.all([
-      getAllProjects({ includePrivate: true }),
-      getSetting("api_tokens", ""),
-    ]);
+    projects = await getAllProjects({ includePrivate: true });
   } else if (currentUser?.id) {
     if (currentUser.role === "admin") {
       // Platform admin also sees public items from everyone for moderation, but NEVER others' private items!
-      const [myProjects, publicProjects, tokens] = await Promise.all([
+      const [myProjects, publicProjects] = await Promise.all([
         getAllProjects({ userId: currentUser.id }),
         getAllProjects({ includePrivate: false }),
-        getSetting("api_tokens", ""),
       ]);
       const map = new Map<string, Project>();
       [...myProjects, ...publicProjects].forEach((p) => map.set(p.id, p));
       projects = Array.from(map.values());
-      apiTokens = tokens;
     } else {
       // User sees their own projects (including their own private ones)
-      [projects, apiTokens] = await Promise.all([
-        getAllProjects({ userId: currentUser.id }),
-        getSetting("api_tokens", ""),
-      ]);
+      projects = await getAllProjects({ userId: currentUser.id });
     }
   } else {
-    [projects, apiTokens] = await Promise.all([
-      getAllProjects({ includePrivate: false }),
-      getSetting("api_tokens", ""),
-    ]);
+    projects = await getAllProjects({ includePrivate: false });
   }
 
   const totalViews = projects.reduce((sum, p) => sum + (p.viewCount || 0), 0);
@@ -91,14 +79,14 @@ export default async function AdminDashboardPage() {
           </Button>
 
           <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 border-border hidden sm:inline-flex">
-            <Link href="/admin/settings/tokens">
+            <Link href="/admin/settings/tokens" prefetch={true}>
               <Key className="w-3.5 h-3.5" />
               <span>API 密钥</span>
             </Link>
           </Button>
 
           <Button size="sm" asChild className="h-8 text-xs font-medium">
-            <Link href="/admin/upload">
+            <Link href="/admin/upload" prefetch={true}>
               <Plus className="w-3.5 h-3.5 sm:mr-1" />
               <span className="hidden sm:inline">发布新单页</span>
             </Link>
@@ -168,7 +156,7 @@ export default async function AdminDashboardPage() {
               <strong>隐私安全承诺</strong>：管理员仅可监管公开内容，用户的私有项目（Private / E2EE）受物理权限隔离，管理员及第三方绝对无法接触。
             </span>
           </div>
-          <ApiTokenGuideModal configuredTokens={apiTokens} />
+          <ApiTokenGuideModal />
         </div>
 
         {/* Projects Management Table */}

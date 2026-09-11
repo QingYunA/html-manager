@@ -23,7 +23,7 @@ export default async function ApiTokensPage() {
       <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-3 sm:px-8 h-12 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Button variant="ghost" size="icon" asChild className="h-7 w-7 text-muted-foreground hover:text-foreground">
-            <Link href="/admin">
+            <Link href="/admin" prefetch={true}>
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>

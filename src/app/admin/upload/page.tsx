@@ -302,7 +302,7 @@ export default function AdminUploadPage() {
         {/* Top Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground hover:text-foreground">
-            <Link href="/admin">
+            <Link href="/admin" prefetch={true}>
               <ArrowLeft className="w-3.5 h-3.5 mr-1" /> 返回项目列表
             </Link>
           </Button>
