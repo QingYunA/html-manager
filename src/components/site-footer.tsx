@@ -33,7 +33,7 @@ export function SiteFooter() {
 
         {/* Bottom Legal & Compliance Links */}
         <div className="pt-4 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Link href="/about" className="hover:text-foreground transition-colors">
               {t.footer.about}
             </Link>
@@ -48,7 +48,7 @@ export function SiteFooter() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-4 text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-muted-foreground">
             <a
               href="https://github.com/QingYunA/html-manager"
               target="_blank"

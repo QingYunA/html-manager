@@ -77,7 +77,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
       </div>
 
       {/* Category Hub Cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
         {categoryCards.map((cat) => {
           const Icon = cat.icon;
           const isSelected = selectedCategory === cat.id;
@@ -184,7 +184,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
             </Button>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredProjects.map((project) => (
               <div
                 key={project.id}
