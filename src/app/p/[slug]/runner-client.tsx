@@ -95,7 +95,7 @@ export default function RunnerClient({
 
   const embedSnippet = `<iframe src="${
     typeof window !== "undefined" ? window.location.origin : ""
-  }/raw/${project.slug}/" width="100%" height="600" frameborder="0" sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals" allowfullscreen></iframe>`;
+  }/raw/${project.slug}/" width="100%" height="600" frameborder="0" sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals" allow="fullscreen; clipboard-write" allowfullscreen></iframe>`;
 
   const isPrivate = project.visibility === "private";
 
@@ -319,6 +319,8 @@ export default function RunnerClient({
               src={rawUrl}
               title={project.title}
               sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals"
+              allow="fullscreen; clipboard-write"
+              allowFullScreen
               className="w-full h-full border-0"
             />
           </div>

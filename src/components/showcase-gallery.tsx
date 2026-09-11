@@ -255,7 +255,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     src={`/raw/${p.slug}`}
                     title={p.title}
                     tabIndex={-1}
-                    sandbox="allow-scripts allow-same-origin"
+                    sandbox="allow-scripts"
                     loading="lazy"
                     className="w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white opacity-95 group-hover:opacity-100 transition-opacity"
                   />

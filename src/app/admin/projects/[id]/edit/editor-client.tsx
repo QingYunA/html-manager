@@ -249,6 +249,8 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
                     src={`/raw/${project.slug}/`}
                     title="Live Preview"
                     sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals"
+                    allow="fullscreen; clipboard-write"
+                    allowFullScreen
                     className="w-full h-full rounded-md bg-white border border-border"
                   />
                 </div>

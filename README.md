@@ -21,8 +21,8 @@
   - 浏览器原生全屏模式、HTML 源码查看与一键复制、直达链接与二维码分享；
   - 独立洁净沙箱直链 `/raw/[slug]/` 供外链直接引用或嵌入。
 - 🛡️ **严格安全沙箱防护**：
-  - Iframe 隔离沙箱 (`sandbox="allow-scripts allow-forms allow-downloads allow-popups"`)；
-  - 物理切断外部脚本访问宿主 LocalStorage、Cookies 与 Session 的途径，安全可靠；
+  - Iframe 隔离沙箱 (`sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals"`，配置 `allow="fullscreen; clipboard-write"`)；
+  - 物理切断外部脚本访问宿主 LocalStorage、Cookies 与 Session 的途径，内置安全透明的内存 Storage Polyfill；
   - 纯净端点自动注入严格 `Content-Security-Policy`。
 - ⚡ **多形态极速入库**：
   - 单文件 `.html` 拖拽或选择上传；
