@@ -1,7 +1,6 @@
 import { processAndCreateProject, updateProjectHtml } from "../src/lib/services/project-service";
-import { getAllProjects, getProjectBySlug, deleteProject } from "../src/db";
+import { deleteProject } from "../src/db";
 import { getStorage } from "../src/lib/storage";
-import { encryptWithKey, decryptWithKey, generateRecoveryKey, importRecoveryKey } from "../src/lib/crypto/e2ee";
 import JSZip from "jszip";
 
 async function runE2ETests() {
@@ -81,45 +80,29 @@ async function runE2ETests() {
   }
   console.log("✓ Code modification verified in storage!");
 
-  // Test 5: Verify Zero-Knowledge E2EE (client-held key) and In-Memory Decryption
-  console.log("\n[Test 5] Testing Zero-Knowledge End-to-End Encryption & Decryption Pipeline...");
-  const confidentialHtml = `<!DOCTYPE html><html><body><h1>Secret Financial Chart</h1><p>Confidential data: $1,234,567</p></body></html>`;
+  // Test 5: Verify Private Project Access Control (ACL)
+  console.log("\n[Test 5] Testing Account-level Private Project Access Control...");
+  const privateHtml = `<!DOCTYPE html><html><body><h1>Private Confidential Dashboard</h1><p>Owner-only revenue data: $1,234,567</p></body></html>`;
 
-  // Client generates the key and encrypts locally; key never reaches the server
-  const { keyBase64, key } = await generateRecoveryKey();
-  const encryptedPayload = await encryptWithKey(key, confidentialHtml);
-  console.log(`✓ Client encrypted artifact: IV=${encryptedPayload.ivBase64}, Key length=${keyBase64.length}`);
-
-  // Server stores ONLY ciphertext (zero plaintext leak)
   const p3 = await processAndCreateProject({
-    title: "机密图表单页",
+    title: "私有数据单页",
     category: "visualization",
-    tags: ["Encrypted", "E2EE"],
-    isEncrypted: true,
-    encryptionIv: encryptedPayload.ivBase64,
-    keyMode: "zk-recovery",
-    fileBuffer: Buffer.from(encryptedPayload.ciphertext),
-    fileName: "bundle.enc",
+    tags: ["Private", "OwnerOnly"],
+    visibility: "private",
+    userId: "user_alice_123",
+    htmlContent: privateHtml,
   });
 
-  const storedCipher = await storage.getFile(`${p3.storagePrefix}/${p3.entryPath}`);
-  if (!storedCipher) throw new Error("Could not retrieve encrypted file from storage");
-  if (storedCipher.data.toString("utf-8").includes("Secret Financial Chart")) {
-    throw new Error("CRITICAL SECURITY FAILURE: Plaintext leaked into storage!");
+  if (p3.visibility !== "private" || p3.userId !== "user_alice_123") {
+    throw new Error("Private project metadata not stored correctly!");
   }
-  console.log("✓ Stored file is completely unreadable ciphertext (verified zero plaintext leak)");
 
-  // Client decrypts with the key it holds (simulating URL hash #key=...)
-  const reimportedKey = await importRecoveryKey(keyBase64);
-  const decrypted = await decryptWithKey(
-    reimportedKey,
-    storedCipher.data,
-    p3.encryptionIv!
-  );
-  if (!decrypted.includes("Secret Financial Chart") || !decrypted.includes("$1,234,567")) {
-    throw new Error("Client decryption verification failed!");
+  const storedPrivateFile = await storage.getFile(`${p3.storagePrefix}/${p3.entryPath}`);
+  if (!storedPrivateFile) throw new Error("Could not retrieve private project file from storage");
+  if (!storedPrivateFile.data.toString("utf-8").includes("Private Confidential Dashboard")) {
+    throw new Error("Private project content corrupted or missing in storage!");
   }
-  console.log("✓ Client in-memory decryption successfully recovered original HTML content!");
+  console.log("✓ Private project successfully stored under user ownership!");
 
   // Cleanup test artifacts
   console.log("\n[Cleanup] Cleaning up test projects...");

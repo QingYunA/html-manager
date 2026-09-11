@@ -106,7 +106,7 @@ export default async function CategoryDetailPage({ params }: CategoryPageProps) 
   }
 
   const allProjects = await getAllProjects({ includePrivate: false, category });
-  const publicProjects = allProjects.filter((p) => p.visibility === "public" && !p.isEncrypted);
+  const publicProjects = allProjects.filter((p) => p.visibility === "public");
   const Icon = catInfo.icon;
 
   const otherCategories = Object.entries(CATEGORY_MAP).filter(([k]) => k !== category);

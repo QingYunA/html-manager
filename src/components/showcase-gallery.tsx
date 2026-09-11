@@ -281,12 +281,6 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                       <CategoryIcon className="w-3 h-3" />
                       <span>{cat.label}</span>
                     </Badge>
-                    {p.isEncrypted && (
-                      <Badge variant="default" className="text-[10px] gap-1 bg-emerald-500/90 text-black font-semibold">
-                        <Lock className="w-2.5 h-2.5" />
-                        <span>E2EE</span>
-                      </Badge>
-                    )}
                     {p.isPinned && (
                       <Badge variant="default" className="text-[10px] gap-1 bg-amber-500/90 text-black font-semibold">
                         <Pin className="w-2.5 h-2.5 fill-black" />

@@ -21,22 +21,17 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { contentType, isEncrypted } = body;
+    const { contentType } = body;
 
     const rawSlug = body.slug ? String(body.slug) : "";
     const slug = rawSlug ? sanitizeSlug(rawSlug) : nanoid(8).toLowerCase();
-    const entryFile = isEncrypted ? "bundle.enc" : "index.html";
+    const entryFile = "index.html";
     const storagePath = assertSafeStorageKey(`sites/${slug}/${entryFile}`, "sites");
 
     const safeContentType =
       contentType && ALLOWED_CONTENT_TYPES.has(contentType)
         ? contentType
-        : isEncrypted
-        ? "application/octet-stream"
         : "text/html; charset=utf-8";
-
-    // NOTE: The server intentionally does NOT derive or return any encryption key.
-    // Encryption is zero-knowledge: the client owns the key and the server only stores ciphertext.
 
     const storage = getStorage();
     if (storage.createPresignedUploadUrl) {

@@ -79,7 +79,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Only query and expose public projects to search engines
     const projects = await getAllProjects({ includePrivate: false });
     const publicProjects = projects.filter(
-      (p) => p.visibility === "public" && !p.isEncrypted
+      (p) => p.visibility === "public"
     );
 
     for (const p of publicProjects) {
