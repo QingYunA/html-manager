@@ -133,14 +133,17 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
 
         <DropdownMenuSeparator />
 
-        {/* Sign Out Action */}
+        {/* Sign Out Action: DropdownMenuItem renders as the button to keep menu semantics intact */}
         <form action={logoutAdmin} className="w-full">
-          <button type="submit" className="w-full">
-            <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 w-full">
+          <DropdownMenuItem
+            asChild
+            className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 w-full"
+          >
+            <button type="submit" className="w-full">
               <LogOut className="w-3.5 h-3.5" />
               <span>{t.nav.logout}</span>
-            </DropdownMenuItem>
-          </button>
+            </button>
+          </DropdownMenuItem>
         </form>
       </DropdownMenuContent>
     </DropdownMenu>

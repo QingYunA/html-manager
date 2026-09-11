@@ -16,6 +16,7 @@ import {
 import type { Project } from "@/db/schema";
 import { togglePinAction, updateVisibilityAction, deleteProjectAction } from "@/app/actions/manage";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
@@ -80,6 +81,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="搜索项目标题、Slug、标签..."
+            aria-label="搜索项目标题、Slug、标签"
             className="pl-8 text-xs bg-muted/20 border-border"
           />
         </div>
@@ -177,7 +179,8 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
 
                   {/* Visibility selector */}
                   <td className="py-3 px-3">
-                    <select
+                    <Select
+                      aria-label="修改可见性"
                       value={item.visibility}
                       onChange={(e) =>
                         handleUpdateVisibility(
@@ -185,12 +188,12 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           e.target.value as "public" | "unlisted" | "private"
                         )
                       }
-                      className="bg-muted/40 border border-border text-[11px] text-foreground rounded-md px-2 py-1 outline-none"
+                      className="text-[11px] h-auto px-2 py-1"
                     >
                       <option value="public">公开 (Public)</option>
                       <option value="unlisted">仅链接 (Unlisted)</option>
                       <option value="private">私有 (Private)</option>
-                    </select>
+                    </Select>
                   </td>
 
                   {/* Date */}

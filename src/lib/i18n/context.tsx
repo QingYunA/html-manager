@@ -21,17 +21,22 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // 1. Read stored preference
     const saved = localStorage.getItem("html_manager_locale") as Locale | null;
+    let resolved: Locale | null = null;
+
     if (saved && (saved === "zh" || saved === "en")) {
-      setLocaleState(saved);
-      return;
+      resolved = saved;
+    } else {
+      // 2. Otherwise detect from browser navigator.language
+      const browserLang = typeof navigator !== "undefined" ? navigator.language.toLowerCase() : "";
+      resolved = browserLang.startsWith("zh") ? "zh" : "en";
     }
 
-    // 2. Otherwise detect from browser navigator.language
-    const browserLang = typeof navigator !== "undefined" ? navigator.language.toLowerCase() : "";
-    if (browserLang.startsWith("zh")) {
-      setLocaleState("zh");
-    } else {
-      setLocaleState("en");
+    setLocaleState(resolved);
+    // Keep the document lang attribute in sync with the resolved locale for a11y & SEO
+    try {
+      document.documentElement.lang = resolved === "zh" ? "zh-CN" : "en";
+    } catch {
+      // ignore
     }
   }, []);
 

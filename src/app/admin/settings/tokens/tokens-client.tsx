@@ -183,8 +183,9 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
 
           <form onSubmit={handleCreate} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">Token 备注名称</label>
+              <label htmlFor="token-name" className="text-xs font-medium text-foreground">Token 备注名称</label>
               <Input
+                id="token-name"
                 required
                 autoFocus
                 placeholder="例如：Cursor Sync / CLI Uploader / Raycast"
@@ -195,7 +196,7 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
             </div>
 
             {createError && (
-              <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+              <div role="alert" className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{createError}</span>
               </div>
@@ -229,7 +230,7 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
           </DialogHeader>
 
           {deleteError && (
-            <div className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+            <div role="alert" className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{deleteError}</span>
             </div>

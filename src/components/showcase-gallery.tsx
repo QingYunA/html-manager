@@ -23,6 +23,7 @@ import {
   Sparkles,
   Layers,
   X,
+  Lock,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -175,11 +176,13 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t.gallery.searchPlaceholder}
+            aria-label={t.gallery.searchPlaceholder}
             className="pl-8 text-xs bg-muted/20 border-border"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
+              aria-label="清除搜索"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="w-3 h-3" />
@@ -194,6 +197,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
               <span>#{selectedTag}</span>
               <button
                 onClick={() => setSelectedTag(null)}
+                aria-label="移除标签筛选"
                 className="hover:text-foreground ml-1 cursor-pointer"
               >
                 ×
@@ -204,8 +208,17 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
               <Badge
                 key={tag}
                 variant="outline"
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedTag === tag}
                 className="cursor-pointer hover:bg-muted/60 transition-colors text-muted-foreground"
                 onClick={() => setSelectedTag(tag)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedTag(tag);
+                  }
+                }}
               >
                 #{tag}
               </Badge>
@@ -281,7 +294,8 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     </Badge>
                     {p.isEncrypted && (
                       <Badge variant="default" className="text-[10px] gap-1 bg-emerald-500/90 text-black font-semibold">
-                        <span>🔒 E2EE</span>
+                        <Lock className="w-2.5 h-2.5" />
+                        <span>E2EE</span>
                       </Badge>
                     )}
                     {p.isPinned && (
@@ -329,10 +343,20 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                       <Badge
                         key={tag}
                         variant="subtle"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`按标签 #${tag} 筛选`}
                         className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-muted"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedTag(tag);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedTag(tag);
+                          }
                         }}
                       >
                         #{tag}

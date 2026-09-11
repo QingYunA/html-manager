@@ -422,6 +422,7 @@ export default function RunnerClient({
                       <div className="flex items-center gap-2 w-full">
                         <input
                           type="text"
+                          aria-label={t.runner.inputKeyPlaceholder}
                           value={manualKeyInput}
                           onChange={(e) => setManualKeyInput(e.target.value)}
                           placeholder={t.runner.inputKeyPlaceholder}

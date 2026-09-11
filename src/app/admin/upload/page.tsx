@@ -26,6 +26,11 @@ import {
 import { handleUploadAction } from "@/app/actions/upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -527,12 +532,13 @@ export default function AdminUploadPage() {
                       <span>HTML 源代码</span>
                       <span>粘贴后将自动抽取 &lt;title&gt; 作为标题</span>
                     </div>
-                    <textarea
+                    <Textarea
                       rows={9}
+                      aria-label="HTML 源代码"
                       value={pasteContent}
                       onChange={(e) => handlePasteChange(e.target.value)}
                       placeholder="<!DOCTYPE html><html>... 在此粘贴 AI 编写的 HTML 代码"
-                      className="w-full bg-neutral-950 border border-border rounded-md p-3 font-mono text-xs text-neutral-200 outline-none resize-y focus:border-ring transition-colors"
+                      className="bg-neutral-950 border-border font-mono resize-y text-neutral-200"
                     />
                   </CardContent>
                 </Card>
@@ -561,15 +567,12 @@ export default function AdminUploadPage() {
                   </div>
                 </div>
 
-                <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={enableE2EE}
-                    onChange={(e) => setEnableE2EE(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-foreground"></div>
-                </label>
+                <Switch
+                  checked={enableE2EE}
+                  onCheckedChange={setEnableE2EE}
+                  aria-label="启用端到端加密保护"
+                  className="shrink-0"
+                />
               </CardContent>
             </Card>
 
@@ -583,10 +586,11 @@ export default function AdminUploadPage() {
               <CardContent className="p-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                    <Label htmlFor="upload-title" className="block mb-1.5">
                       项目标题
-                    </label>
+                    </Label>
                     <Input
+                      id="upload-title"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder={file ? file.name.replace(/\.[^/.]+$/, "") : "例如：2048 小游戏"}
@@ -594,12 +598,13 @@ export default function AdminUploadPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                    <Label htmlFor="upload-slug" className="block mb-1.5">
                       短链接路由 Slug
-                    </label>
+                    </Label>
                     <div className="flex items-center rounded-md border border-input bg-transparent px-2.5 h-8 text-xs">
                       <span className="text-muted-foreground font-mono text-[11px] mr-1">/p/</span>
                       <input
+                        id="upload-slug"
                         type="text"
                         value={slug}
                         onChange={(e) => setSlug(e.target.value)}
@@ -611,10 +616,11 @@ export default function AdminUploadPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-foreground mb-1.5">
+                  <Label htmlFor="upload-description" className="block mb-1.5">
                     简介描述（可选）
-                  </label>
+                  </Label>
                   <Input
+                    id="upload-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="简要概括单页的功能或操作指南"
@@ -709,30 +715,28 @@ export default function AdminUploadPage() {
                 {/* Visibility and Pin */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border">
                   <div>
-                    <label className="block text-xs font-medium text-foreground mb-1.5">
+                    <Label htmlFor="upload-visibility" className="block mb-1.5">
                       公开访问状态
-                    </label>
-                    <select
+                    </Label>
+                    <Select
+                      id="upload-visibility"
                       value={visibility}
                       onChange={(e) => {
                         setVisibility(e.target.value as "public" | "unlisted" | "private");
                         setBypassedRiskCheck(false);
                       }}
-                      className="w-full bg-muted/30 border border-input rounded-md px-3 h-8 text-xs text-foreground outline-none focus:border-ring"
                     >
                       <option value="public">公开 (Showcase 画廊展示)</option>
                       <option value="unlisted">仅链接可见 (Unlisted)</option>
                       <option value="private">私有 (仅自己可见，绝对保密)</option>
-                    </select>
+                    </Select>
                   </div>
 
                   <div className="flex flex-col justify-end">
                     <label className="flex items-center gap-2.5 h-8 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={isPinned}
                         onChange={(e) => setIsPinned(e.target.checked)}
-                        className="rounded border-input text-foreground focus:ring-1 focus:ring-ring"
                       />
                       <span className="text-xs text-foreground font-medium">置顶到画廊前列</span>
                     </label>
@@ -742,7 +746,7 @@ export default function AdminUploadPage() {
             </Card>
 
             {errorMessage && (
-              <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
+              <div role="alert" className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMessage}</span>
               </div>

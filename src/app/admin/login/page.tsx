@@ -108,7 +108,7 @@ function LoginForm() {
         </div>
 
         {(oauthError || errorMsg || (errorParam && errorParam !== "oauth_exchange_failed")) && (
-          <div className="p-2.5 text-xs bg-destructive/10 text-destructive border border-destructive/20 rounded-md text-center">
+          <div role="alert" className="p-2.5 text-xs bg-destructive/10 text-destructive border border-destructive/20 rounded-md text-center">
             {oauthError || errorMsg || errorParam}
           </div>
         )}
@@ -130,10 +130,11 @@ function LoginForm() {
           <input type="hidden" name="isSignUp" value={String(isSignUp)} />
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground">
+            <label htmlFor="login-email" className="text-xs font-medium text-foreground">
               {t.auth.emailLabel}
             </label>
             <Input
+              id="login-email"
               type="email"
               name="email"
               required
@@ -144,10 +145,11 @@ function LoginForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground">
+            <label htmlFor="login-password" className="text-xs font-medium text-foreground">
               {t.auth.passwordLabel}
             </label>
             <Input
+              id="login-password"
               type="password"
               name="password"
               required
@@ -157,7 +159,7 @@ function LoginForm() {
           </div>
 
           {emailState?.error && (
-            <p className="text-[11px] text-destructive font-medium">
+            <p role="alert" className="text-[11px] text-destructive font-medium">
               {emailState.error}
             </p>
           )}
@@ -203,10 +205,11 @@ function LoginForm() {
         <input type="hidden" name="from" value={from} />
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-foreground">
+          <label htmlFor="admin-password" className="text-xs font-medium text-foreground">
             {t.auth.adminPasswordLabel}
           </label>
           <Input
+            id="admin-password"
             type="password"
             name="password"
             required
@@ -215,7 +218,7 @@ function LoginForm() {
             className="h-9 text-xs"
           />
           {adminState?.error && (
-            <p className="text-[11px] text-destructive font-medium">
+            <p role="alert" className="text-[11px] text-destructive font-medium">
               {adminState.error}
             </p>
           )}

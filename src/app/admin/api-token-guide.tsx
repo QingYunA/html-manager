@@ -11,9 +11,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-export default function ApiTokenGuideModal({ configuredTokens }: { configuredTokens: string }) {
+export default function ApiTokenGuideModal({ configuredTokens: _configuredTokens }: { configuredTokens: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const curlExample = `curl -X POST https://your-domain.com/api/upload \\
   -H "Authorization: Bearer YOUR_API_TOKEN" \\
@@ -30,10 +30,10 @@ export default function ApiTokenGuideModal({ configuredTokens }: { configuredTok
     "category": "tools"
   }'`;
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (key: string, text: string) => {
     navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 2000);
   };
 
   return (
@@ -72,9 +72,10 @@ export default function ApiTokenGuideModal({ configuredTokens }: { configuredTok
                   variant="ghost"
                   size="sm"
                   className="h-6 text-[11px] px-2"
-                  onClick={() => copyToClipboard(curlExample)}
+                  aria-label="复制 cURL 示例"
+                  onClick={() => copyToClipboard("curl", curlExample)}
                 >
-                  {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  {copiedKey === "curl" ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   <span className="ml-1">复制</span>
                 </Button>
               </div>
@@ -90,9 +91,10 @@ export default function ApiTokenGuideModal({ configuredTokens }: { configuredTok
                   variant="ghost"
                   size="sm"
                   className="h-6 text-[11px] px-2"
-                  onClick={() => copyToClipboard(jsonExample)}
+                  aria-label="复制 JSON 示例"
+                  onClick={() => copyToClipboard("json", jsonExample)}
                 >
-                  {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  {copiedKey === "json" ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   <span className="ml-1">复制</span>
                 </Button>
               </div>
