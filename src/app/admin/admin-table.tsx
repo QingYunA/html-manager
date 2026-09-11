@@ -24,6 +24,7 @@ import {
   Sparkles,
   Layers,
   Boxes,
+  Loader2,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { togglePinAction, updateVisibilityAction, deleteProjectAction } from "@/app/actions/manage";
@@ -134,7 +135,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
   };
 
   const handleDelete = (id: string, title: string) => {
-    if (!confirm(`确定要删除项目 "${title}" 吗？此操作不可逆。`)) return;
+    if (!confirm(`确定要删除项目 "${title}" 吗？`)) return;
     setDeletingId(id);
     startTransition(async () => {
       await deleteProjectAction(id);
@@ -153,23 +154,11 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card overflow-hidden space-y-0">
-      {/* Table Header Filter & View Controls Toolbar */}
-      <div className="p-3.5 border-b border-border flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between bg-card/60">
-        {/* Left: Search Bar */}
-        <div className="relative w-full lg:w-72 shrink-0">
-          <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索标题、Slug、描述或标签..."
-            aria-label="搜索项目标题、Slug、标签"
-            className="pl-8 text-xs bg-muted/20 border-border h-8"
-          />
-        </div>
-
-        {/* Center: Enhanced Category Pills with Icons & Counts */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none flex-1 lg:justify-center">
+    <div className="space-y-4">
+      {/* Category Pills & View Mode Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-border w-full min-w-0 max-w-full overflow-hidden">
+        {/* Category Pills with Counters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none w-full min-w-0 max-w-full">
           {categories.map((cat) => {
             const Icon = cat.icon;
             const isSelected = categoryFilter === cat.id;
@@ -178,18 +167,17 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
             return (
               <button
                 key={cat.id}
-                type="button"
                 onClick={() => setCategoryFilter(cat.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md transition-all shrink-0 cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                   isSelected
-                    ? "bg-foreground text-background font-semibold shadow-xs"
+                    ? "bg-foreground text-background font-semibold"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                 }`}
               >
-                <Icon className="w-3 h-3 shrink-0" />
+                <Icon className="w-3.5 h-3.5" />
                 <span>{cat.label}</span>
                 <span
-                  className={`text-[10px] font-mono px-1 py-0.2 rounded-full ${
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                     isSelected
                       ? "bg-background/20 text-background"
                       : "bg-muted text-muted-foreground"
@@ -202,36 +190,51 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
           })}
         </div>
 
-        {/* Right: View Mode Toggle (Grid vs Table) */}
-        <div className="flex items-center justify-end gap-1 shrink-0">
-          <div className="inline-flex items-center rounded-md border border-border p-0.5 bg-muted/20">
+        {/* View Mode Toggle Switcher */}
+        <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+          <span className="text-xs text-muted-foreground hidden sm:inline font-mono">
+            {filtered.length} / {projects.length} 项
+          </span>
+          <div className="flex items-center border border-border rounded-md p-0.5 bg-muted/30">
             <Button
               variant={viewMode === "grid" ? "secondary" : "ghost"}
-              size="sm"
+              size="icon"
+              className="h-7 w-7 rounded-sm"
               onClick={() => handleViewModeChange("grid")}
-              className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
-              title="网格卡片视口视图"
+              title="卡片沙箱视图 (Grid)"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">卡片</span>
             </Button>
             <Button
               variant={viewMode === "table" ? "secondary" : "ghost"}
-              size="sm"
+              size="icon"
+              className="h-7 w-7 rounded-sm"
               onClick={() => handleViewModeChange("table")}
-              className="h-7 px-2.5 text-xs gap-1.5 rounded-sm"
-              title="数据表格列表视图"
+              title="紧凑表格视图 (Table)"
             >
               <List className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">表格</span>
             </Button>
           </div>
         </div>
       </div>
 
-      {/* VIEW MODE 1: GRID CARDS (Live Miniature Sandboxed Previews) */}
+      {/* Search Input Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="relative w-full sm:w-80">
+          <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="搜索项目标题、Slug、标签..."
+            aria-label="搜索项目标题、Slug、标签"
+            className="pl-8 text-xs bg-muted/20 border-border"
+          />
+        </div>
+      </div>
+
+      {/* VIEW MODE 1: VISUAL GRID VIEW (Card with 16:9 Miniature Live Sandbox) */}
       {viewMode === "grid" ? (
-        <div className="p-4 bg-muted/5 min-h-[300px]">
+        <div>
           {filtered.length === 0 ? (
             <div className="py-16 text-center text-xs text-muted-foreground space-y-2">
               <Layers className="w-8 h-8 mx-auto text-muted-foreground/50" />
@@ -380,7 +383,11 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
                             title="删除项目"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            {deletingId === item.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-destructive" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -392,7 +399,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
           )}
         </div>
       ) : (
-        /* VIEW MODE 2: TABLE VIEW (Enhanced with 16:9 Thumbnail Column) */
+        /* VIEW MODE 2: TABLE VIEW (Enhanced with 16:9 Thumbnail Column & Loading Skeleton) */
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -541,7 +548,11 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
                             title="删除项目"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            {deletingId === item.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-destructive" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
                           </Button>
                         </div>
                       </td>

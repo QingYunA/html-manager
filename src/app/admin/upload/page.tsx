@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Copy,
   Check,
+  Loader2,
 } from "lucide-react";
 import { handleUploadAction } from "@/app/actions/upload";
 import { Button } from "@/components/ui/button";
@@ -689,9 +690,16 @@ export default function AdminUploadPage() {
             <Button
               type="submit"
               disabled={isPending}
-              className="w-full h-9 text-xs font-medium"
+              className="w-full h-9 text-xs font-medium gap-1.5"
             >
-              {isPending ? "正在处理并保存..." : "立即保存并发布"}
+              {isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>正在解析文件与部署沙箱资源...</span>
+                </>
+              ) : (
+                "立即保存并发布"
+              )}
             </Button>
           </form>
         )}

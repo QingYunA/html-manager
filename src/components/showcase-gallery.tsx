@@ -14,7 +14,6 @@ import {
   FileCode2,
   FolderArchive,
   Play,
-  Code2,
   SlidersHorizontal,
   Wrench,
   Gamepad2,
@@ -23,7 +22,6 @@ import {
   Sparkles,
   Layers,
   X,
-  Lock,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
