@@ -292,11 +292,44 @@ export default function AdminUploadPage() {
           }
         }
 
-        const res = await handleUploadAction(null, formData);
-        if (res.error) {
-          setErrorMessage(res.error);
-        } else if (res.success && res.slug) {
-          setSuccessSlug(res.slug);
+        try {
+          const res = await handleUploadAction(null, formData);
+          if (res.error) {
+            setErrorMessage(res.error);
+          } else if (res.success && res.slug) {
+            setSuccessSlug(res.slug);
+          }
+        } catch (serverActionErr: unknown) {
+          console.error("handleUploadAction call error:", serverActionErr);
+          // Fallback to direct REST API upload if Server Action fails with network/load error
+          try {
+            const apiFormData = new FormData();
+            if (mode === "file" && file) {
+              apiFormData.append("file", file);
+            } else {
+              apiFormData.append("html", pasteContent);
+            }
+            apiFormData.append("title", finalTitle);
+            apiFormData.append("slug", finalSlug);
+            apiFormData.append("description", description);
+            apiFormData.append("category", category);
+            apiFormData.append("tags", tags.join(","));
+            apiFormData.append("visibility", targetVisibility);
+            apiFormData.append("isPinned", String(isPinned));
+
+            const apiRes = await fetch("/api/upload", {
+              method: "POST",
+              body: apiFormData,
+            });
+            const apiData = await apiRes.json();
+            if (apiRes.ok && apiData.success && apiData.slug) {
+              setSuccessSlug(apiData.slug);
+              return;
+            }
+            setErrorMessage(apiData.error || (serverActionErr as Error)?.message || "发布失败，请重试");
+          } catch {
+            setErrorMessage((serverActionErr as Error)?.message || "发布过程中网络异常，请重试");
+          }
         }
       } catch (err: unknown) {
         setErrorMessage((err as Error)?.message || "发布过程中出现异常，请重试");
