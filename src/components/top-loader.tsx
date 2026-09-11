@@ -10,8 +10,13 @@ function TopLoaderInner() {
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // When pathname or searchParams changes, finish the progress bar
+  // When pathname or searchParams changes, finish the progress bar and kill any active interval
   useEffect(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
     let hideTimer: NodeJS.Timeout | null = null;
     const frame = requestAnimationFrame(() => {
       setProgress(100);
@@ -88,10 +93,11 @@ function TopLoaderInner() {
       className="fixed top-0 left-0 right-0 z-50 pointer-events-none h-[2px] w-full bg-transparent overflow-hidden"
     >
       <div
-        className="h-full bg-foreground dark:bg-zinc-100 transition-all duration-200 ease-out shadow-[0_0_8px_rgba(0,0,0,0.15)] dark:shadow-[0_0_8px_rgba(255,255,255,0.2)]"
+        className="h-full w-full bg-foreground dark:bg-zinc-100 transition-transform duration-200 ease-linear origin-left shadow-[0_0_8px_rgba(0,0,0,0.15)] dark:shadow-[0_0_8px_rgba(255,255,255,0.2)]"
         style={{
-          width: `${progress}%`,
+          transform: `scaleX(${progress / 100})`,
           opacity: visible ? 1 : 0,
+          transitionProperty: "transform, opacity",
         }}
       />
     </div>

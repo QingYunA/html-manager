@@ -28,16 +28,26 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
-      className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+      className="relative h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 overflow-hidden"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       title={isDark ? "切换为浅色模式" : "切换为深色模式"}
       aria-label={isDark ? "切换到浅色模式" : "切换到深色模式"}
     >
-      {isDark ? (
-        <Sun className="h-4 w-4 transition-transform" />
-      ) : (
-        <Moon className="h-4 w-4 transition-transform" />
-      )}
+      <Sun
+        className={`h-4 w-4 absolute transition-all duration-200 ease-out ${
+          isDark
+            ? "scale-100 rotate-0 opacity-100 filter-none"
+            : "scale-50 -rotate-90 opacity-0 blur-[2px]"
+        }`}
+      />
+      <Moon
+        className={`h-4 w-4 absolute transition-all duration-200 ease-out ${
+          isDark
+            ? "scale-50 rotate-90 opacity-0 blur-[2px]"
+            : "scale-100 rotate-0 opacity-100 filter-none"
+        }`}
+      />
+      <span className="sr-only">Toggle theme</span>
     </Button>
   );
 }

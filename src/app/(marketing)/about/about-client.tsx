@@ -16,9 +16,6 @@ export default function AboutClient() {
     <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-8 py-12 sm:py-16">
       {/* Intro */}
       <div className="space-y-4 mb-12">
-        <Badge variant="outline" className="px-3 py-0.5 text-xs font-mono">
-          {page.badge}
-        </Badge>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
           {page.title}
         </h1>
