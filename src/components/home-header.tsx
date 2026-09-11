@@ -17,6 +17,7 @@ import {
   Menu,
 } from "lucide-react";
 import type { CurrentUser } from "@/lib/auth";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import { UserDropdown } from "@/components/user-dropdown";
 import {
   DropdownMenu,
@@ -28,13 +29,55 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface HomeHeaderProps {
-  currentUser: CurrentUser | null;
+  currentUser?: CurrentUser | null;
 }
 
 export function HomeHeader({ currentUser }: HomeHeaderProps) {
   const { t } = useLanguage();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [user, setUser] = React.useState<CurrentUser | null>(currentUser ?? null);
+
+  React.useEffect(() => {
+    if (currentUser !== undefined) {
+      setUser(currentUser);
+      return;
+    }
+
+    // Client-side authentication resolution (0ms server overhead, 100% static layout)
+    const supabase = createSupabaseClient();
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          const metadata = session.user.user_metadata || {};
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            role: "user",
+            fullName: metadata.full_name || metadata.name || metadata.user_name,
+            avatarUrl: metadata.avatar_url || metadata.picture,
+          });
+        }
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          const metadata = session.user.user_metadata || {};
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            role: "user",
+            fullName: metadata.full_name || metadata.name || metadata.user_name,
+            avatarUrl: metadata.avatar_url || metadata.picture,
+          });
+        } else {
+          setUser(null);
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    }
+  }, [currentUser]);
 
   const navItems = [
     { href: "/", label: t.nav.showcase, icon: Sparkles, exact: true },
@@ -113,8 +156,8 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
           <ThemeToggle />
 
           {/* Dynamic Login / User Status */}
-          {currentUser ? (
-            <UserDropdown currentUser={currentUser} />
+          {user ? (
+            <UserDropdown currentUser={user} />
           ) : (
             <div className="flex items-center gap-1">
               <Button
