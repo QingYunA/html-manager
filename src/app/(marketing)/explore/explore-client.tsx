@@ -175,7 +175,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
               该分类下暂无已发布的公开单页
             </p>
             <Button size="sm" asChild className="h-8 text-xs">
-              <Link href="/admin/upload">
+              <Link href="/workspace/upload">
                 发布第一个 {categoryCards.find((c) => c.id === selectedCategory)?.label || "作品"}
               </Link>
             </Button>

@@ -102,7 +102,8 @@ export async function getCurrentUser(request?: Request): Promise<CurrentUser | n
       if (tokenMatch) {
         return {
           id: tokenMatch.userId,
-          email: tokenMatch.userId === "selfhost-admin" ? "admin@selfhost.local" : undefined,
+          email: tokenMatch.userId === "selfhost-admin" ? "owner@workspace.local" : undefined,
+          fullName: tokenMatch.userId === "selfhost-admin" ? "Workspace Owner" : undefined,
           role: tokenMatch.userId === "selfhost-admin" ? "admin" : "user",
           tokenId: tokenMatch.tokenId,
           tokenName: tokenMatch.name,
@@ -148,7 +149,8 @@ export async function getCurrentUser(request?: Request): Promise<CurrentUser | n
     if (isValid) {
       return {
         id: "selfhost-admin",
-        email: "admin@selfhost.local",
+        email: "owner@workspace.local",
+        fullName: "Workspace Owner",
         role: "admin",
       };
     }

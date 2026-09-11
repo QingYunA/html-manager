@@ -45,13 +45,15 @@ const safeKey = assertSafeStorageKey("sites/my-slug/index.html", "sites");
 assert(safeKey === "sites/my-slug/index.html", "Allows canonical storage key under sites/");
 
 console.log("\n=== 2. Open Redirect Sanitization Tests ===");
-assert(sanitizeRedirectPath("https://evil.com") === "/admin", "Rejects absolute https:// URL");
-assert(sanitizeRedirectPath("//evil.com") === "/admin", "Rejects protocol-relative // URL");
-assert(sanitizeRedirectPath("/\\evil.com") === "/admin", "Rejects /\\ backslash trick");
-assert(sanitizeRedirectPath("javascript:alert(1)") === "/admin", "Rejects javascript: scheme");
-assert(sanitizeRedirectPath("/admin/projects") === "/admin/projects", "Allows safe relative /admin/projects");
+assert(sanitizeRedirectPath("https://evil.com") === "/workspace", "Rejects absolute https:// URL");
+assert(sanitizeRedirectPath("//evil.com") === "/workspace", "Rejects protocol-relative // URL");
+assert(sanitizeRedirectPath("/\\evil.com") === "/workspace", "Rejects /\\ backslash trick");
+assert(sanitizeRedirectPath("javascript:alert(1)") === "/workspace", "Rejects javascript: scheme");
+assert(sanitizeRedirectPath("/admin") === "/workspace", "Normalizes legacy /admin to /workspace");
+assert(sanitizeRedirectPath("/admin/projects") === "/workspace/projects", "Normalizes /admin/projects to /workspace/projects");
+assert(sanitizeRedirectPath("/workspace/upload") === "/workspace/upload", "Allows safe relative /workspace/upload");
 assert(sanitizeRedirectPath("/p/my-slug") === "/p/my-slug", "Allows safe relative /p/my-slug");
-assert(sanitizeNextParam("@evil.com") === "/admin", "Rejects @userinfo redirect trick");
+assert(sanitizeNextParam("@evil.com") === "/workspace", "Rejects @userinfo redirect trick");
 assert(sanitizeNextParam("/explore") === "/explore", "Allows safe /explore");
 
 console.log("\n=== 3. Project Authorization (IDOR) Tests ===");

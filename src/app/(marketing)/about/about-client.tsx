@@ -57,7 +57,7 @@ export default function AboutClient() {
             </a>
           </Button>
           <Button size="sm" asChild className="h-8 text-xs gap-1.5">
-            <Link href="/admin/upload">
+            <Link href="/workspace/upload">
               <span>{page.startDeploy}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>

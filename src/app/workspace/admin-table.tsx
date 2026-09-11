@@ -415,7 +415,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                             className="h-7 w-7 text-muted-foreground hover:text-foreground"
                             asChild
                           >
-                            <Link href={`/admin/projects/${item.id}/edit`} title="在线编辑代码">
+                            <Link href={`/workspace/projects/${item.id}/edit`} title="在线编辑代码">
                               <Edit3 className="w-3.5 h-3.5" />
                             </Link>
                           </Button>
@@ -583,7 +583,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           </Button>
 
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" asChild>
-                            <Link href={`/admin/projects/${item.id}/edit`} title="在线编辑代码">
+                            <Link href={`/workspace/projects/${item.id}/edit`} title="在线编辑代码">
                               <Edit3 className="w-3.5 h-3.5" />
                             </Link>
                           </Button>

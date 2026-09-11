@@ -233,7 +233,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
               </p>
             </div>
             <Button asChild size="sm" variant="outline" className="mt-2">
-              <Link href="/admin/upload">{t.gallery.uploadNow}</Link>
+              <Link href="/workspace/upload">{t.gallery.uploadNow}</Link>
             </Button>
           </CardContent>
         </Card>

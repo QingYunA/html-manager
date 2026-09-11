@@ -16,6 +16,7 @@ export const translations = {
       apiTokens: "API 密钥",
       accountSettings: "账号与设置",
       signedInAs: "当前登录为",
+      workspaceOwner: "工作区所有者",
     },
     hero: {
       badge: "自建专属 AI 单页托管",
@@ -309,6 +310,7 @@ export const translations = {
       apiTokens: "API Tokens",
       accountSettings: "Settings",
       signedInAs: "Signed in as",
+      workspaceOwner: "Workspace Owner",
     },
     hero: {
       badge: "Self-hosted AI Artifacts",
