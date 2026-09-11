@@ -220,7 +220,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
                     <Button size="sm" variant="outline" asChild className="h-7 text-xs gap-1 px-2.5">
                       <Link href={`/p/${project.slug}`}>
                         <Play className="w-3 h-3 text-emerald-500 fill-emerald-500" />
-                        <span>运行</span>
+                        <span>{t.gallery.openRunner}</span>
                       </Link>
                     </Button>
                   </div>

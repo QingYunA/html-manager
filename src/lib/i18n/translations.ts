@@ -37,8 +37,8 @@ export const translations = {
       noProjectsTitle: "没有找到匹配的单页",
       noProjectsDesc: "请尝试更换关键词，或进入控制台上传你的 AI HTML 作品。",
       uploadNow: "+ 上传新作品",
-      playPreview: "试玩预览",
-      openRunner: "运行台",
+      openRunner: "在线运行",
+      viewCode: "查看代码",
       openDirect: "打开",
       pinned: "置顶",
       singleHtml: "单页",
@@ -199,6 +199,87 @@ export const translations = {
       filterCategory: "按分类筛选",
       itemsCount: "个作品",
     },
+    aboutPage: {
+      badge: "关于我们与使命",
+      title: "关于 Pagepod",
+      subtitle: "Pagepod 专为解决现代化 AI 开发痛点而生：Claude、ChatGPT Canvas 与各类大模型正在源源不断生成惊艳的单页应用、计算器和网页工具，但长久以来它们的托管、展示与分享却异常琐碎繁杂。",
+      pillars: [
+        {
+          title: "零配置秒级极速运行",
+          desc: "无需建 Git 仓库，无需 npm install，无需经历漫长的 CI/CD 构建流水线。粘贴 HTML 源代码或直接拖拽压缩包，Pagepod 即可在几毫秒内将其置于安全沙箱中发布上线。",
+        },
+        {
+          title: "零知识私密硬件级加密",
+          desc: "基于 W3C Web Crypto AES-GCM-256 标准，用户的私有项目在浏览器本地即完成端到端加密，密文直存。平台管理员在物理与逻辑层面均无权亦无法查看任何私密源码。",
+        },
+        {
+          title: "100% 开源与自由自建",
+          desc: "任何人都可以一键在 Vercel、Supabase 与 Cloudflare R2 上免费自建专属 Pagepod 实例，掌握全部数据主权，永久免除出站流量费用。",
+        },
+        {
+          title: "REST API 与现代化开发流",
+          desc: "提供完善规范的 OpenAPI 接口与 Personal Access Token (PAT) 机制，支持 Cursor、自动化脚本与命令行工具无缝将 AI 产物推送到个人工作区。",
+        },
+      ],
+      communityTitle: "加入开源社区",
+      communityDesc: "Pagepod 遵循 MIT 开源许可协议。欢迎在 GitHub 上提出 Issue、提交 Pull Request 或分享你的 AI 单页创作心得。",
+      viewGitHub: "在 GitHub 上查看源码",
+      startDeploy: "开始上传单页",
+    },
+    privacyPage: {
+      badge: "更新日期：2026 年 9 月",
+      title: "隐私政策 (Privacy Policy)",
+      subtitle: "Pagepod 始终坚守严格的数据所有权边界、多层沙箱隔离与零知识端到端加密标准。本政策明确规范了您的数据在平台上的处理方式与权益保障。",
+      sections: [
+        {
+          title: "1. 零知识私密保险箱 (E2EE)",
+          content: "当您将作品设为【私密 (端到端加密)】时，所有 HTML、CSS、JS 代码及多媒体文件均在您的浏览器本地采用 AES-GCM-256 算法完成加密后再行上传。Pagepod 服务器、数据库以及云存储服务商均无法解密或获取您的明文源码与密钥。",
+        },
+        {
+          title: "2. 公开作品与物理沙箱隔离",
+          content: "公开发布的作品旨在供社区发现与交互试玩。所有运行端点均强制注入严格的沙箱隔离指令 (CSP)，物理隔绝第三方脚本访问宿主主域的 Cookie、管理员 Session 与本地存储。",
+        },
+        {
+          title: "3. 我们收集的信息",
+          content: "在云端 SaaS 模式下，仅收集您通过 GitHub 或 Google OAuth 授权提供的基础账号标识符（如邮箱）；以及您主动填写的单页标题、描述、标签等元数据。",
+        },
+        {
+          title: "4. 第三方服务基础设施",
+          content: "依据具体部署环境，系统深度整合经过安全合规认证的云服务：Supabase（PostgreSQL 与身份验证）、Cloudflare（R2 对象存储与全球边缘加速）以及 Vercel（边缘托管）。",
+        },
+        {
+          title: "5. 数据保留与随时删除权",
+          content: "您对上传的所有代码享有 100% 的全部所有权。您可以随时在个人工作区控制台中彻底删除任何项目，删除操作将永久彻底清除数据库元数据与对象存储文件。",
+        },
+      ],
+    },
+    termsPage: {
+      badge: "生效日期：2026 年 9 月",
+      title: "服务条款 (Terms of Service)",
+      subtitle: "在您使用 Pagepod 托管平台或发布任何 HTML 单页应用之前，请认真阅读以下服务条款与免责协议。",
+      sections: [
+        {
+          title: "1. 条款接受与开源许可",
+          content: "访问或使用本平台即代表您同意受本服务条款约束。如果您是在自有服务器上部署运行 Pagepod 源码，则该自建实例完全遵循 MIT 开源协议。",
+        },
+        {
+          title: "2. 用户内容与知识产权",
+          content: "您对发布或托管在 Pagepod 上的所有代码、文本与设计资产享有完整知识产权。将作品标记为公开即代表您授予访客按照开放网络规范查阅和交互运行该作品的非排他性许可。",
+        },
+        {
+          title: "3. 合理使用与安全红线",
+          content: "严禁在平台上发布用于钓鱼、恶意软件分发、挖矿脚本或侵犯他人合法权益的代码。经系统检测或用户举报存在恶意行为的单页将立即被封禁与下线。",
+        },
+        {
+          title: "4. 免责声明与运行风险",
+          content: "平台提供严格的前端沙箱隔离保护，但公开网页执行纯属前端运行行为。Pagepod 按“现状 (As-is)”提供服务，不对用户因主动公开个人密钥或凭据所造成的损失承担任何责任。",
+        },
+        {
+          title: "5. 侵权与下架机制 (DMCA)",
+          content: "我们充分尊重知识产权。如果您发现平台上托管的作品侵犯了您的著作权，请通过 GitHub 仓库或工单提交下架申请，管理员将在核实后迅速处理。",
+        },
+      ],
+    },
   },
   en: {
     nav: {
@@ -236,8 +317,8 @@ export const translations = {
       noProjectsTitle: "No matching artifacts found",
       noProjectsDesc: "Try different keywords or upload your own AI HTML projects in the console.",
       uploadNow: "+ Upload new project",
-      playPreview: "Quick Play",
-      openRunner: "Runner",
+      openRunner: "Run App",
+      viewCode: "View Code",
       openDirect: "Open",
       pinned: "PIN",
       singleHtml: "Single HTML",
@@ -397,6 +478,87 @@ export const translations = {
       popularTags: "Popular Tags & Ecosystem",
       filterCategory: "Filter by Category",
       itemsCount: "items",
+    },
+    aboutPage: {
+      badge: "About Us & Mission",
+      title: "About Pagepod",
+      subtitle: "Pagepod was created to solve a modern developer problem: AI models like Claude, ChatGPT Canvas, and v0 generate incredible single-page applications, calculators, and games, but sharing them has been fragmented, clumsy, and difficult.",
+      pillars: [
+        {
+          title: "Zero-Config Instant Execution",
+          desc: "No Git repos, no npm installs, and no multi-minute CI/CD pipelines. Paste HTML code or drop a zip bundle, and Pagepod serves it in an isolated sandbox within milliseconds.",
+        },
+        {
+          title: "Zero-Knowledge Private Vaults",
+          desc: "Using client-side Web Crypto AES-GCM-256, user-private projects are encrypted in the browser before upload. Platform administrators have zero access or keys to decrypt private user artifacts.",
+        },
+        {
+          title: "100% Open-Source & Self-Hostable",
+          desc: "Anyone can 1-click deploy Pagepod on Vercel with Supabase PostgreSQL and Cloudflare R2 object storage, maintaining complete data sovereignty and zero egress fee costs.",
+        },
+        {
+          title: "REST API Automation",
+          desc: "Full OpenAPI documentation with Personal Access Tokens (PAT). Integrate Cursor, build scripts, or CLI pipelines directly into your developer workflows.",
+        },
+      ],
+      communityTitle: "Open Source Community",
+      communityDesc: "Pagepod is proudly released under the permissive MIT license. Join us on GitHub to file issues, submit pull requests, or explore real-world AI single-page apps.",
+      viewGitHub: "View on GitHub",
+      startDeploy: "Start Deploying",
+    },
+    privacyPage: {
+      badge: "Last Updated: September 2026",
+      title: "Privacy Policy",
+      subtitle: "Pagepod is committed to strict data ownership, security sandboxing, and zero-knowledge encryption. This policy outlines how your data is handled across our platform.",
+      sections: [
+        {
+          title: "1. Zero-Knowledge Private Vaults (E2EE)",
+          content: "When you publish artifacts marked as Private (End-to-End Encrypted), all HTML, CSS, JS, and media files are encrypted in your browser using the W3C Web Crypto API with AES-GCM-256 before upload. Pagepod servers, database administrators, and cloud storage providers never receive your plaintext source code or decryption keys.",
+        },
+        {
+          title: "2. Public Artifacts & Sandbox Execution",
+          content: "Artifacts published as Public are intentionally accessible for discovery in our showcase gallery. All standalone executions run under strict HTML5 sandbox isolation to physically isolate third-party scripts from host cookies and authentication tokens.",
+        },
+        {
+          title: "3. Information We Collect",
+          content: "In Cloud SaaS mode, we collect minimal account data (email) via GitHub or Google OAuth through Supabase Auth, along with titles, descriptions, and tags you explicitly attach to artifacts.",
+        },
+        {
+          title: "4. Third-Party Infrastructure",
+          content: "Depending on configuration, Pagepod integrates with trusted infrastructure providers: Supabase (PostgreSQL & Auth), Cloudflare (R2 object storage & CDN), and Vercel (Edge Hosting & Analytics). These providers adhere to SOC 2 Type II and GDPR standards.",
+        },
+        {
+          title: "5. Data Retention & Deletion Rights",
+          content: "You retain 100% ownership of your code. You can delete any uploaded project at any time from your Workspace dashboard. Deletion permanently purges metadata from the database and assets from storage buckets.",
+        },
+      ],
+    },
+    termsPage: {
+      badge: "Last Updated: September 2026",
+      title: "Terms of Service",
+      subtitle: "Please read these terms carefully before deploying or publishing artifacts on Pagepod.",
+      sections: [
+        {
+          title: "1. Acceptance of Terms",
+          content: "By accessing or using Pagepod, you agree to be bound by these Terms of Service. If you are deploying your own self-hosted instance under the MIT License, your instance is governed by the terms of the MIT License.",
+        },
+        {
+          title: "2. User Content & Ownership",
+          content: "You retain all intellectual property rights to the HTML files, JavaScript code, and assets you publish or host on Pagepod. By marking a project as Public, you grant visitors a non-exclusive license to inspect, execute, and interact with the artifact in accordance with the open web.",
+        },
+        {
+          title: "3. Acceptable Use Policy",
+          content: "You agree not to host or distribute artifacts designed for phishing, malware distribution, cryptocurrency mining, or illegal content. Artifacts detected performing malicious activities will be immediately taken down.",
+        },
+        {
+          title: "4. Sandboxing & Security Disclaimer",
+          content: "While Pagepod enforces strict sandbox restrictions on embedded frames to prevent cookie and localStorage theft, public web execution carries inherent risks. Pagepod is provided as-is without warranty of any kind.",
+        },
+        {
+          title: "5. Termination & Takedowns",
+          content: "We reserve the right to remove any public project or suspend accounts that violate our acceptable use policy. Copyright owners may submit takedown notices via GitHub issues or directly to platform administrators.",
+        },
+      ],
     },
   },
 };

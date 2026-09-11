@@ -9,12 +9,12 @@ import {
   Pin,
   Eye,
   ExternalLink,
-  Maximize2,
   Share2,
   Check,
   FileCode2,
   FolderArchive,
   Play,
+  Code2,
   SlidersHorizontal,
   Wrench,
   Gamepad2,
@@ -30,13 +30,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { useLanguage } from "@/lib/i18n/context";
 
 interface ShowcaseGalleryProps {
@@ -59,7 +52,6 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [previewProject, setPreviewProject] = useState<Project | null>(null);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
   const categories = [
@@ -260,34 +252,31 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                 {/* Miniature Thumbnail Viewport */}
                 <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
                   <iframe
-                    src={`/raw/${p.slug}/`}
+                    src={`/raw/${p.slug}`}
                     title={p.title}
                     tabIndex={-1}
-                    sandbox="allow-scripts"
+                    sandbox="allow-scripts allow-same-origin"
                     loading="lazy"
                     className="w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white opacity-95 group-hover:opacity-100 transition-opacity"
                   />
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                  {/* Clickable Overlay to enter Runner directly */}
+                  <Link
+                    href={`/p/${p.slug}`}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px] z-10"
+                    title={t.gallery.openRunner}
+                  >
                     <Button
                       size="sm"
-                      variant="secondary"
-                      className="h-8 shadow-md"
-                      onClick={() => setPreviewProject(p)}
+                      variant="default"
+                      className="h-8 text-xs gap-1.5 shadow-lg pointer-events-none font-medium"
                     >
-                      <Play className="w-3 h-3 fill-current" />
-                      <span>{t.gallery.playPreview}</span>
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>{t.gallery.openRunner}</span>
                     </Button>
-                    <Button size="sm" variant="default" className="h-8 shadow-md" asChild>
-                      <Link href={`/p/${p.slug}`}>
-                        <span>{t.gallery.openRunner}</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </Link>
-                    </Button>
-                  </div>
+                  </Link>
 
                   {/* Badges on top of thumbnail */}
-                  <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none z-20">
                     <Badge variant="subtle" className="text-[10px] gap-1 backdrop-blur-md bg-black/60 border-neutral-800 text-neutral-200">
                       <CategoryIcon className="w-3 h-3" />
                       <span>{cat.label}</span>
@@ -309,7 +298,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                   <button
                     onClick={(e) => handleShare(p.slug, e)}
                     title={t.runner.copyLink}
-                    className="absolute top-2 right-2 p-1.5 rounded-md bg-black/60 hover:bg-black/80 text-neutral-300 hover:text-white border border-neutral-800 backdrop-blur-md transition-colors cursor-pointer"
+                    className="absolute top-2 right-2 p-1.5 rounded-md bg-black/60 hover:bg-black/80 text-neutral-300 hover:text-white border border-neutral-800 backdrop-blur-md transition-colors cursor-pointer z-20"
                   >
                     {copiedSlug === p.slug ? (
                       <Check className="w-3 h-3 text-emerald-400" />
@@ -448,19 +437,10 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setPreviewProject(p)}
-                    >
-                      <Play className="w-3 h-3 fill-current" />
-                      <span>{t.gallery.playPreview}</span>
-                    </Button>
-                    <Button variant="default" size="sm" className="h-7 text-xs" asChild>
+                    <Button variant="default" size="sm" className="h-7 text-xs gap-1" asChild>
                       <Link href={`/p/${p.slug}`}>
+                        <Play className="w-3 h-3 fill-current" />
                         <span>{t.gallery.openRunner}</span>
-                        <ExternalLink className="w-3 h-3" />
                       </Link>
                     </Button>
                   </div>
@@ -470,43 +450,6 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
           })}
         </div>
       )}
-
-      {/* QUICK PREVIEW DIALOG (Using Radix Dialog) */}
-      <Dialog open={Boolean(previewProject)} onOpenChange={(open) => !open && setPreviewProject(null)}>
-        <DialogContent className="max-w-5xl h-[85vh] p-0 flex flex-col gap-0 overflow-hidden border-border bg-card">
-          <DialogHeader className="p-3.5 border-b border-border flex flex-row items-center justify-between space-y-0">
-            <div>
-              <DialogTitle className="text-sm font-semibold">
-                {previewProject?.title}
-              </DialogTitle>
-              <DialogDescription className="font-mono text-[11px] text-muted-foreground">
-                /raw/{previewProject?.slug}/
-              </DialogDescription>
-            </div>
-            <div className="flex items-center gap-2 mr-6">
-              {previewProject && (
-                <Button size="sm" variant="outline" asChild className="h-7 text-xs">
-                  <Link href={`/p/${previewProject.slug}`}>
-                    <Maximize2 className="w-3.5 h-3.5" />
-                    <span>{t.gallery.openFullscreenRunner}</span>
-                  </Link>
-                </Button>
-              )}
-            </div>
-          </DialogHeader>
-
-          <div className="flex-1 bg-white relative w-full h-full">
-            {previewProject && (
-              <iframe
-                src={`/raw/${previewProject.slug}/`}
-                title={previewProject.title}
-                sandbox="allow-scripts allow-forms allow-downloads allow-popups"
-                className="w-full h-full border-0"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
