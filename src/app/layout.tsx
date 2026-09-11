@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LanguageProvider } from "@/lib/i18n/context";
+import { TopLoader } from "@/components/top-loader";
 import { Analytics } from "@vercel/analytics/next";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
@@ -115,6 +116,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <TopLoader />
           <LanguageProvider>
             {children}
           </LanguageProvider>

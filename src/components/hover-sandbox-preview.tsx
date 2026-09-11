@@ -211,6 +211,10 @@ export default function HoverSandboxPreview({
 
             {!iframeLoaded && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-neutral-950/90 text-neutral-400">
+                {/* 2px hairline indeterminate loader across the top */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden bg-neutral-900 z-30 pointer-events-none">
+                  <div className="h-full bg-neutral-200/90 animate-pulse w-full" />
+                </div>
                 <Loader2 className="w-4 h-4 animate-spin text-neutral-300" />
                 <span className="text-[10px] font-mono">加载实时沙箱中...</span>
               </div>
@@ -276,6 +280,10 @@ export default function HoverSandboxPreview({
           {/* Loading indicator while active iframe is compiling */}
           {!iframeLoaded && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-neutral-950/80 backdrop-blur-xs text-neutral-400">
+              {/* 2px hairline indeterminate loader across the top */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden bg-neutral-900 z-30 pointer-events-none">
+                <div className="h-full bg-neutral-200/90 animate-pulse w-full" />
+              </div>
               <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
               <span className="text-[11px] font-mono tracking-tight">启动沙箱环境中...</span>
             </div>
