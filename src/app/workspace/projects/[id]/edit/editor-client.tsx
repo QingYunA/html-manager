@@ -141,7 +141,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
           </Button>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-foreground max-w-xs truncate">
-              {title || "编辑单页"}
+              {title || "编辑项目"}
             </span>
             <span className="text-[11px] font-mono text-muted-foreground">/p/{project.slug}</span>
           </div>

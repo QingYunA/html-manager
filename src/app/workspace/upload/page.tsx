@@ -565,7 +565,7 @@ export default function WorkspaceUploadPage() {
                     id="upload-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="简要概括单页的功能或操作指南"
+                    placeholder="简要概括项目的功能或操作指南"
                   />
                 </div>
 

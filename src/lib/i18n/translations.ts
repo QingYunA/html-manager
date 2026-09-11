@@ -11,7 +11,7 @@ export const translations = {
       login: "登录",
       signup: "注册",
       logout: "退出登录",
-      publish: "发布单页",
+      publish: "发布 HTML",
       myProjects: "我的项目",
       apiTokens: "API 密钥",
       accountSettings: "账号与设置",
@@ -19,9 +19,9 @@ export const translations = {
       workspaceOwner: "工作区所有者",
     },
     hero: {
-      badge: "Artifacts Runtime & Gallery",
-      title: "为 AI 时代的代码产物，构建纯净的运行展厅",
-      desc: "无需配置仓库与构建流程。单个 HTML 文件或 Zip 资源包，即可获得受沙箱隔离保护的永久独立链接与展示舞台。",
+      badge: "HTML Runtime & Gallery",
+      title: "保存、运行并分享你的 HTML",
+      desc: "无需配置服务器与构建流水线。上传 HTML 文件或资源包，即刻获得受安全沙箱保护的永久链接与展示舞台。",
     },
     categories: {
       all: "全部",
@@ -42,7 +42,7 @@ export const translations = {
       viewCode: "查看代码",
       openDirect: "打开",
       pinned: "置顶",
-      singleHtml: "单页",
+      singleHtml: "HTML",
       zipBundle: "Zip 包",
       previewDialogTitle: "沙箱即时预览",
       openFullscreenRunner: "打开全屏运行台",
@@ -80,7 +80,7 @@ export const translations = {
       plainOutput: "明文直出",
       description: "简介：",
       close: "收起",
-      lockedTitle: "此单页受端到端加密保护",
+      lockedTitle: "此页面受端到端加密保护",
       lockedDescOwner: "正在使用授权密钥解密中...",
       lockedDescVisitor: "未在链接中检测到访问密钥。如果你是拥有者，登录即可无感打开：",
       inputKeyPlaceholder: "输入 Base64 密钥...",
@@ -91,7 +91,7 @@ export const translations = {
       embedTitle: "嵌入到你的网站或博客",
       embedDesc: "复制下方标准 iframe 代码，粘贴到你的 Notion、博客或网页中：",
       copyEmbed: "复制嵌入代码",
-      relatedTitle: "相关单页应用推荐",
+      relatedTitle: "相关作品推荐",
       initializingSandbox: "正在初始化安全沙箱...",
       reloading: "正在重新加载...",
     },
@@ -112,7 +112,7 @@ export const translations = {
     workspace: {
       deleteTitle: "删除项目",
       deleteConfirmText: "确定要永久删除此项目吗？此操作不可逆，将永久抹除数据库元数据及关联的所有存储资源与静态文件。",
-      deleteWarningNote: "请谨慎操作：删除后该路由对应的单页应用将立刻失效下线，外部访问链接将失效不可用。",
+      deleteWarningNote: "请谨慎操作：删除后该路由对应的页面将立刻下线，外部访问链接将无法访问。",
       cancel: "取消",
       confirmDelete: "确认永久删除",
       deleting: "正在删除...",
@@ -123,7 +123,7 @@ export const translations = {
       loginTitle: "登录你的账号",
       signupTitle: "创建新账号",
       loginSubtitle: "选择你的登录方式进入 Pagepod 控制台",
-      signupSubtitle: "输入你的邮箱和密码立即开启专属单页托管",
+      signupSubtitle: "输入你的邮箱和密码，即刻开启 HTML 托管与分享",
       selfhostTitle: "自建管理员验证",
       selfhostSubtitle: "输入部署时设置的 ADMIN_PASSWORD 环境变量",
       githubBtn: "使用 GitHub 继续",
@@ -216,7 +216,7 @@ export const translations = {
     aboutPage: {
       badge: "设计初衷 · Rationale",
       title: "为什么构建 Pagepod",
-      subtitle: "大语言模型让交互式代码的诞生前所未有的迅捷。无数令人惊叹的计算器、生成艺术与微型工具在对话框中诞生，却往往在短暂的对话后被遗忘。Pagepod 为这些散落的单页代码提供持久的容器、纯净的沙箱与优雅的展示空间。",
+      subtitle: "大语言模型让交互式代码的诞生前所未有的迅捷。无数令人惊叹的计算器、生成艺术与微型工具在对话框中诞生，却往往在短暂的对话后被遗忘。Pagepod 为这些散落的代码提供持久的容器、纯净的沙箱与优雅的展示空间。",
       pillars: [
         {
           title: "瞬时就绪 (Instant Runtime)",
@@ -224,7 +224,7 @@ export const translations = {
         },
         {
           title: "端到端机密 (Zero-Knowledge)",
-          desc: "私密单页采用客户端 Web Crypto AES-GCM-256 加密，密钥仅属于创作者，服务端仅存密文。",
+          desc: "私密项目采用客户端 Web Crypto AES-GCM-256 加密，密钥仅属于创作者，服务端仅存密文。",
         },
         {
           title: "物理沙箱隔离 (Hardened)",
@@ -236,9 +236,9 @@ export const translations = {
         },
       ],
       communityTitle: "开源与社区",
-      communityDesc: "Pagepod 基于 MIT 协议开源。欢迎在 GitHub 上提交 Issue、贡献代码或分享你的单页作品。",
+      communityDesc: "Pagepod 基于 MIT 协议开源。欢迎在 GitHub 上提交 Issue、贡献代码或分享你的 HTML 作品。",
       viewGitHub: "在 GitHub 上查看源码",
-      startDeploy: "开始上传单页",
+      startDeploy: "开始上传 HTML",
     },
     privacyPage: {
       badge: "更新日期：2026 年 9 月",
@@ -255,7 +255,7 @@ export const translations = {
         },
         {
           title: "3. 我们收集的信息",
-          content: "在云端 SaaS 模式下，仅收集您通过 GitHub 或 Google OAuth 授权提供的基础账号标识符（如邮箱）；以及您主动填写的单页标题、描述、标签等元数据。",
+          content: "在云端 SaaS 模式下，仅收集您通过 GitHub 或 Google OAuth 授权提供的基础账号标识符（如邮箱）；以及您主动填写的项目标题、描述、标签等元数据。",
         },
         {
           title: "4. 第三方服务基础设施",
@@ -270,7 +270,7 @@ export const translations = {
     termsPage: {
       badge: "生效日期：2026 年 9 月",
       title: "服务条款 (Terms of Service)",
-      subtitle: "在您使用 Pagepod 托管平台或发布任何 HTML 单页应用之前，请认真阅读以下服务条款与免责协议。",
+      subtitle: "在您使用 Pagepod 托管平台或发布任何 HTML 内容之前，请认真阅读以下服务条款与免责协议。",
       sections: [
         {
           title: "1. 条款接受与开源许可",
@@ -282,7 +282,7 @@ export const translations = {
         },
         {
           title: "3. 合理使用与安全红线",
-          content: "严禁在平台上发布用于钓鱼、恶意软件分发、挖矿脚本或侵犯他人合法权益的代码。经系统检测或用户举报存在恶意行为的单页将立即被封禁与下线。",
+          content: "严禁在平台上发布用于钓鱼、恶意软件分发、挖矿脚本或侵犯他人合法权益的代码。经系统检测或用户举报存在恶意行为的项目将立即被封禁与下线。",
         },
         {
           title: "4. 免责声明与运行风险",
@@ -313,9 +313,9 @@ export const translations = {
       workspaceOwner: "Workspace Owner",
     },
     hero: {
-      badge: "Artifacts Runtime & Gallery",
-      title: "A pure runtime for AI-generated artifacts",
-      desc: "No repositories or build pipelines. Turn standalone HTML files and zip bundles into isolated, sandboxed web experiences with persistent shareable links.",
+      badge: "HTML Runtime & Gallery",
+      title: "Save, run, and share your HTML",
+      desc: "No server configuration or build pipelines required. Turn HTML files and zip bundles into sandboxed web experiences with shareable links.",
     },
     categories: {
       all: "All",
@@ -336,7 +336,7 @@ export const translations = {
       viewCode: "View Code",
       openDirect: "Open",
       pinned: "PIN",
-      singleHtml: "Single HTML",
+      singleHtml: "HTML",
       zipBundle: "Zip Bundle",
       previewDialogTitle: "Live Sandbox Preview",
       openFullscreenRunner: "Open Fullscreen Runner",
@@ -532,7 +532,7 @@ export const translations = {
       communityTitle: "Open Source Community",
       communityDesc: "Pagepod is released under the permissive MIT license. Feel free to open issues, submit pull requests, or share your creations.",
       viewGitHub: "View on GitHub",
-      startDeploy: "Upload your first page",
+      startDeploy: "Upload your first HTML",
     },
     privacyPage: {
       badge: "Last Updated: September 2026",

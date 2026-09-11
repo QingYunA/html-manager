@@ -62,7 +62,7 @@ export default function RunnerLoading() {
 
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-full border border-border bg-card shadow-xs">
             <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-            <span className="text-xs font-mono text-muted-foreground">正在加载单页运行台...</span>
+            <span className="text-xs font-mono text-muted-foreground">正在加载运行环境...</span>
           </div>
         </div>
       </div>

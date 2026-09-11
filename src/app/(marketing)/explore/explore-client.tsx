@@ -188,7 +188,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
             </p>
             <Button size="sm" asChild className="h-8 text-xs">
               <Link href="/workspace/upload">
-                {locale === "zh" ? "+ 上传首个单页至该专题" : "+ Publish first page here"}
+                {locale === "zh" ? "+ 上传首个作品至该专题" : "+ Publish first work here"}
               </Link>
             </Button>
           </div>
@@ -216,7 +216,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
                   </h3>
 
                   <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-4 min-h-[32px]">
-                    {project.description || "Interactive AI single-page application hosted on Pagepod."}
+                    {project.description || "Interactive web application hosted on Pagepod."}
                   </p>
                 </div>
 
@@ -243,7 +243,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
         <div className="mt-14 p-6 rounded-xl border border-border bg-card/60 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold text-foreground">
-              {locale === "zh" ? "想看全部单页作品？" : "Looking for all shared pages?"}
+              {locale === "zh" ? "想看全部作品？" : "Looking for all works?"}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
               {locale === "zh" ? "前往画廊浏览全部列表，支持快速搜索与鼠标悬停即时试玩。" : "Visit the showcase to browse everything with instant search and hover previews."}
