@@ -302,6 +302,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                         slug={item.slug}
                         title={item.title}
                         category={item.category}
+                        fileSize={item.fileSize || 0}
                         openRunnerText="在线运行"
                       />
 
@@ -499,6 +500,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           slug={item.slug}
                           title={item.title}
                           category={item.category}
+                          fileSize={item.fileSize || 0}
                           variant="table-cell"
                           icon={CategoryIcon}
                           openRunnerText="在线运行"

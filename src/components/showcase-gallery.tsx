@@ -255,6 +255,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     slug={p.slug}
                     title={p.title}
                     category={p.category}
+                    fileSize={p.fileSize || 0}
                     openRunnerText={t.gallery.openRunner}
                   />
 
