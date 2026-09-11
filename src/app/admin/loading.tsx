@@ -7,22 +7,31 @@ export default function AdminLoading() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col antialiased">
       {/* Top Navbar Skeleton */}
-      <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-3 sm:px-8 h-12 flex items-center justify-between">
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-2 font-semibold text-xs tracking-tight shrink-0">
-            <BrandLogo size={22} className="w-5.5 h-5.5 shrink-0" />
-            <span>Pagepod</span>
-          </div>
-          <span className="text-border">/</span>
-          <Skeleton className="h-4 w-16" />
-        </div>
+      <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/95 backdrop-blur-xs px-3 sm:px-6 md:px-8 h-12 flex items-center">
+        <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+          <div className="flex items-center gap-6 shrink-0">
+            <div className="flex items-center gap-2 font-semibold tracking-tight text-sm text-foreground shrink-0">
+              <BrandLogo size={24} className="w-6 h-6 shrink-0" />
+              <span className="font-semibold">Pagepod</span>
+            </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <Skeleton className="h-8 w-20 hidden sm:inline-block" />
-          <Skeleton className="h-8 w-20 hidden sm:inline-block" />
-          <Skeleton className="h-8 w-24" />
-          <Skeleton className="h-8 w-8 rounded-md" />
-          <Skeleton className="h-8 w-8 rounded-full" />
+            {/* Desktop Navigation Skeleton */}
+            <div className="hidden md:flex items-center gap-1">
+              <Skeleton className="h-7 w-14 rounded-md" />
+              <Skeleton className="h-7 w-20 rounded-md" />
+              <Skeleton className="h-7 w-20 rounded-md" />
+              <Skeleton className="h-7 w-16 rounded-md" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Skeleton className="h-8 w-16 hidden sm:inline-block rounded-md" />
+            <Skeleton className="h-8 w-8 rounded-md" />
+            <Skeleton className="h-8 w-8 rounded-md" />
+            <Skeleton className="h-8 w-20 hidden sm:inline-block rounded-md" />
+            <Skeleton className="h-8 w-24 hidden sm:inline-block rounded-md" />
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
         </div>
       </header>
 

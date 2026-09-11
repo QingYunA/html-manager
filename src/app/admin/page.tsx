@@ -1,13 +1,10 @@
 import Link from "next/link";
-import { BrandLogo } from "@/components/brand-logo";
 import { getAllProjects } from "@/db";
 import type { Project } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import {
   Layers,
   Eye,
-  ExternalLink,
-  Plus,
   Globe,
   ShieldAlert,
   Key,
@@ -15,10 +12,8 @@ import {
 import AdminTable from "./admin-table";
 import ApiTokenGuideModal from "./api-token-guide";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { UserDropdown } from "@/components/user-dropdown";
+import { HomeHeader } from "@/components/home-header";
 
 export const dynamic = "force-dynamic";
 
@@ -57,46 +52,23 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col antialiased">
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-3 sm:px-8 h-12 flex items-center justify-between">
-        <div className="flex items-center gap-2 shrink-0">
-          <Link href="/" className="flex items-center gap-2 font-semibold text-xs tracking-tight shrink-0">
-            <BrandLogo size={22} className="w-5.5 h-5.5 shrink-0" />
-            <span>Pagepod</span>
-          </Link>
-          <span className="text-border">/</span>
-          <Badge variant="outline" className="text-[10px] font-mono">
-            {currentUser?.role === "admin" ? "console" : "workspace"}
-          </Badge>
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <Button variant="ghost" size="sm" asChild className="h-8 text-xs text-muted-foreground hover:text-foreground hidden sm:inline-flex">
-            <Link href="/" target="_blank">
-              <span>公开画廊</span>
-              <ExternalLink className="w-3 h-3 ml-1" />
-            </Link>
-          </Button>
-
-          <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 border-border hidden sm:inline-flex">
+      {/* Universal Top Header */}
+      <HomeHeader
+        currentUser={currentUser}
+        extraActions={
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="h-8 text-xs gap-1.5 border-border hidden sm:inline-flex"
+          >
             <Link href="/admin/settings/tokens" prefetch={true}>
               <Key className="w-3.5 h-3.5" />
               <span>API 密钥</span>
             </Link>
           </Button>
-
-          <Button size="sm" asChild className="h-8 text-xs font-medium">
-            <Link href="/admin/upload" prefetch={true}>
-              <Plus className="w-3.5 h-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">发布新单页</span>
-            </Link>
-          </Button>
-
-          <ThemeToggle />
-
-          {currentUser && <UserDropdown currentUser={currentUser} />}
-        </div>
-      </header>
+        }
+      />
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-6">
