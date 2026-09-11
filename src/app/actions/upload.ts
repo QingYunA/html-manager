@@ -73,6 +73,7 @@ export async function handleUploadAction(
       });
 
       revalidatePath("/");
+      revalidatePath("/workspace");
       revalidatePath("/admin");
       return { success: true, slug: project.slug };
     } else {
@@ -101,6 +102,7 @@ export async function handleUploadAction(
       });
 
       revalidatePath("/");
+      revalidatePath("/workspace");
       revalidatePath("/admin");
       return { success: true, slug: project.slug };
     }

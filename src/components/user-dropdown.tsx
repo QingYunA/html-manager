@@ -85,16 +85,17 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
       console.error("Logout error:", err);
     } finally {
       // 4. Hard navigate to login page to completely purge all in-memory client state
-      window.location.href = "/admin/login";
+      window.location.href = "/login";
     }
   };
 
+  const isSelfhostOwner = currentUser.id === "selfhost-admin";
   const displayName =
-    currentUser.fullName ||
+    (isSelfhostOwner ? (t.nav.workspaceOwner || "Workspace Owner") : currentUser.fullName) ||
     currentUser.email?.split("@")[0] ||
-    (currentUser.role === "admin" ? "Admin" : "User");
+    (currentUser.role === "admin" ? (t.nav.workspaceOwner || "Owner") : "User");
 
-  const initialLetter = displayName.charAt(0).toUpperCase();
+  const initialLetter = isSelfhostOwner ? "O" : displayName.charAt(0).toUpperCase();
 
   return (
     <DropdownMenu modal={false}>
@@ -118,7 +119,7 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
             )}
           </div>
 
-          <span className="text-xs font-medium max-w-[100px] truncate hidden sm:inline-block">
+          <span className="text-xs font-medium max-w-[120px] truncate hidden sm:inline-block">
             {displayName}
           </span>
           <ChevronDown className="w-3 h-3 text-muted-foreground opacity-70 ml-0.5" />
@@ -139,10 +140,10 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
                 {displayName}
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded border border-border bg-muted text-muted-foreground uppercase">
-                {currentUser.role}
+                {isSelfhostOwner ? "OWNER" : currentUser.role}
               </span>
             </div>
-            {currentUser.email && (
+            {currentUser.email && !isSelfhostOwner && (
               <p className="text-[11px] text-muted-foreground truncate">
                 {currentUser.email}
               </p>
@@ -155,21 +156,21 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
         {/* Primary Shortcuts */}
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/admin" prefetch={true} className="cursor-pointer gap-2">
+            <Link href="/workspace" prefetch={true} className="cursor-pointer gap-2">
               <LayoutDashboard className="w-3.5 h-3.5 text-muted-foreground" />
               <span>{t.nav.workspace}</span>
             </Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild>
-            <Link href="/admin/upload" prefetch={true} className="cursor-pointer gap-2">
+            <Link href="/workspace/upload" prefetch={true} className="cursor-pointer gap-2">
               <Plus className="w-3.5 h-3.5 text-muted-foreground" />
               <span>{t.nav.publish}</span>
             </Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild>
-            <Link href="/admin/settings/tokens" className="cursor-pointer gap-2">
+            <Link href="/workspace/settings/tokens" className="cursor-pointer gap-2">
               <Key className="w-3.5 h-3.5 text-muted-foreground" />
               <span>{t.nav.apiTokens}</span>
             </Link>
