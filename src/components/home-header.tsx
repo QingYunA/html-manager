@@ -30,9 +30,10 @@ import {
 
 interface HomeHeaderProps {
   currentUser?: CurrentUser | null;
+  extraActions?: React.ReactNode;
 }
 
-export function HomeHeader({ currentUser }: HomeHeaderProps) {
+export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
   const { t } = useLanguage();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -83,7 +84,12 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
     { href: "/", label: t.nav.showcase, icon: Sparkles, exact: true },
     { href: "/explore", label: t.nav.explore, icon: Compass, exact: false },
     { href: "/pricing", label: t.nav.pricing, icon: CreditCard, exact: false },
-    { href: "/admin", label: t.nav.workspace, icon: LayoutDashboard, exact: false },
+    {
+      href: "/admin",
+      label: user?.role === "admin" ? t.nav.console : t.nav.workspace,
+      icon: LayoutDashboard,
+      exact: false,
+    },
   ];
 
   return (
@@ -155,6 +161,21 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
           <LanguageToggle />
           <ThemeToggle />
 
+          {/* Extra action controls */}
+          {extraActions}
+
+          {/* Publish Action Button (Desktop & Tablet) */}
+          <Button
+            size="sm"
+            asChild
+            className="h-8 text-xs font-medium hidden sm:inline-flex"
+          >
+            <Link href="/admin/upload" prefetch={true}>
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              <span>{t.nav.publish}</span>
+            </Link>
+          </Button>
+
           {/* Dynamic Login / User Status */}
           {user ? (
             <UserDropdown currentUser={user} />
@@ -182,18 +203,6 @@ export function HomeHeader({ currentUser }: HomeHeaderProps) {
               </Button>
             </div>
           )}
-
-          {/* Publish Action Button (Desktop & Tablet) */}
-          <Button
-            size="sm"
-            asChild
-            className="h-8 text-xs font-medium hidden sm:inline-flex"
-          >
-            <Link href="/admin/upload" prefetch={true}>
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              <span>{t.nav.publish}</span>
-            </Link>
-          </Button>
 
           {/* Mobile Navigation Dropdown Menu (Screen < 768px) */}
           <div className="md:hidden">
