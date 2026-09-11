@@ -22,7 +22,6 @@ import {
   Sparkles,
   Layers,
   X,
-  Loader2,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useLanguage } from "@/lib/i18n/context";
+import HoverSandboxPreview from "@/components/hover-sandbox-preview";
 
 interface ShowcaseGalleryProps {
   initialProjects: Project[];
@@ -44,50 +44,6 @@ const CATEGORY_ICONS = {
   animations: Sparkles,
   others: Layers,
 };
-
-function GalleryCardThumbnail({
-  slug,
-  title,
-  loadingLabel,
-  children,
-}: {
-  slug: string;
-  title: string;
-  loadingLabel?: string;
-  children: React.ReactNode;
-}) {
-  const [loaded, setLoaded] = useState(false);
-
-  return (
-    <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
-      {/* Loading Skeleton Shimmer */}
-      <div
-        className={`absolute inset-0 z-0 flex items-center justify-center bg-neutral-950 transition-opacity duration-300 ${
-          loaded ? "opacity-0 pointer-events-none" : "opacity-100"
-        }`}
-      >
-        <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-500">
-          <Loader2 className="w-3 h-3 animate-spin text-neutral-600" />
-          <span>{loadingLabel || "沙箱准备中..."}</span>
-        </div>
-      </div>
-
-      <iframe
-        src={`/raw/${slug}`}
-        title={title}
-        tabIndex={-1}
-        sandbox="allow-scripts"
-        loading="lazy"
-        onLoad={() => setLoaded(true)}
-        className={`w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white transition-opacity duration-300 ${
-          loaded ? "opacity-95 group-hover:opacity-100" : "opacity-0"
-        }`}
-      />
-
-      {children}
-    </div>
-  );
-}
 
 export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProps) {
   const { t } = useLanguage();
@@ -292,27 +248,14 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                 key={p.id}
                 className="group relative flex flex-col overflow-hidden border-border bg-card/80 hover:border-neutral-600 transition-all duration-150"
               >
-                {/* Miniature Thumbnail Viewport with Skeleton */}
-                <GalleryCardThumbnail
-                  slug={p.slug}
-                  title={p.title}
-                  loadingLabel={t.gallery.loadingPreview}
-                >
-                  {/* Clickable Overlay to enter Runner directly */}
-                  <Link
-                    href={`/p/${p.slug}`}
-                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px] z-10"
-                    title={t.gallery.openRunner}
-                  >
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="h-8 text-xs gap-1.5 shadow-lg pointer-events-none font-medium"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>{t.gallery.openRunner}</span>
-                    </Button>
-                  </Link>
+                {/* Miniature Thumbnail Viewport with Hover-Activated Sandbox */}
+                <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
+                  <HoverSandboxPreview
+                    slug={p.slug}
+                    title={p.title}
+                    category={p.category}
+                    openRunnerText={t.gallery.openRunner}
+                  />
 
                   {/* Badges on top of thumbnail */}
                   <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none z-20">
@@ -339,7 +282,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                       <Share2 className="w-3 h-3" />
                     )}
                   </button>
-                </GalleryCardThumbnail>
+                </div>
 
                 {/* Card Body */}
                 <CardHeader className="p-4 pb-2 space-y-1">

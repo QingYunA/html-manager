@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/lib/i18n/context";
+import HoverSandboxPreview from "@/components/hover-sandbox-preview";
 
 interface AdminTableProps {
   initialProjects: Project[];
@@ -48,75 +49,6 @@ const CATEGORY_ICONS = {
   animations: Sparkles,
   others: Boxes,
 };
-
-function AdminCardThumbnail({
-  slug,
-  title,
-  loadingLabel,
-  children,
-}: {
-  slug: string;
-  title: string;
-  loadingLabel?: string;
-  children: React.ReactNode;
-}) {
-  const [loaded, setLoaded] = useState(false);
-
-  return (
-    <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
-      {/* Loading Skeleton Shimmer */}
-      <div
-        className={`absolute inset-0 z-0 flex items-center justify-center bg-neutral-950 transition-opacity duration-300 ${
-          loaded ? "opacity-0 pointer-events-none" : "opacity-100"
-        }`}
-      >
-        <div className="flex items-center gap-1.5 text-[10px] font-mono text-neutral-500">
-          <Loader2 className="w-3 h-3 animate-spin text-neutral-600" />
-          <span>{loadingLabel || "沙箱准备中..."}</span>
-        </div>
-      </div>
-
-      <iframe
-        src={`/raw/${slug}`}
-        title={title}
-        tabIndex={-1}
-        sandbox="allow-scripts"
-        loading="lazy"
-        onLoad={() => setLoaded(true)}
-        className={`w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white transition-opacity duration-300 ${
-          loaded ? "opacity-95 group-hover:opacity-100" : "opacity-0"
-        }`}
-      />
-
-      {children}
-    </div>
-  );
-}
-
-function AdminMiniThumbnail({ slug, title }: { slug: string; title?: string }) {
-  const [loaded, setLoaded] = useState(false);
-
-  return (
-    <div className="w-16 aspect-video rounded overflow-hidden bg-neutral-950 border border-border/80 shrink-0 relative group/thumb shadow-xs">
-      {!loaded && (
-        <div className="absolute inset-0 bg-neutral-950 flex items-center justify-center z-0">
-          <Loader2 className="w-2.5 h-2.5 animate-spin text-neutral-600" />
-        </div>
-      )}
-      <iframe
-        src={`/raw/${slug}`}
-        title={title}
-        tabIndex={-1}
-        sandbox="allow-scripts"
-        loading="lazy"
-        onLoad={() => setLoaded(true)}
-        className={`w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white transition-opacity duration-300 ${
-          loaded ? "opacity-90 group-hover/thumb:opacity-100" : "opacity-0"
-        }`}
-      />
-    </div>
-  );
-}
 
 export default function AdminTable({ initialProjects }: AdminTableProps) {
   const { t } = useLanguage();
@@ -320,37 +252,14 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                     key={item.id}
                     className="group relative flex flex-col overflow-hidden border-border bg-card/80 hover:border-neutral-500 transition-all duration-150 shadow-xs"
                   >
-                    {/* Miniature 16:9 Sandbox Viewport with live HTML rendering and loading shimmer */}
-                    <AdminCardThumbnail
-                      slug={item.slug}
-                      title={item.title}
-                      loadingLabel={t.gallery.loadingPreview}
-                    >
-                      {/* Hover Quick Actions Overlay */}
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px] z-10">
-                        <Button
-                          size="sm"
-                          variant="default"
-                          className="h-8 text-xs gap-1.5 shadow-lg font-medium"
-                          asChild
-                        >
-                          <Link href={`/p/${item.slug}`} target="_blank">
-                            <Play className="w-3.5 h-3.5 fill-current" />
-                            <span>运行单页</span>
-                          </Link>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 text-xs gap-1.5 shadow-lg font-medium bg-black/40 border-neutral-700 text-neutral-200 hover:text-white"
-                          asChild
-                        >
-                          <Link href={`/admin/projects/${item.id}/edit`}>
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>编辑</span>
-                          </Link>
-                        </Button>
-                      </div>
+                    {/* Miniature 16:9 Sandbox Viewport with Hover-Activated Sandbox */}
+                    <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
+                      <HoverSandboxPreview
+                        slug={item.slug}
+                        title={item.title}
+                        category={item.category}
+                        openRunnerText="运行单页"
+                      />
 
                       {/* Badges on top of miniature viewport */}
                       <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 pointer-events-none z-20">
@@ -384,7 +293,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           <Share2 className="w-3.5 h-3.5" />
                         )}
                       </button>
-                    </AdminCardThumbnail>
+                    </div>
 
                     {/* Card Body: Title, Slug, Description */}
                     <CardHeader className="p-3.5 pb-2 space-y-1">
@@ -537,9 +446,16 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                         </Button>
                       </td>
 
-                      {/* 16:9 Miniature Preview Snapshot with Loading Skeleton */}
+                      {/* Hover-to-Activate Sandbox Preview Thumbnail */}
                       <td className="py-3 px-3">
-                        <AdminMiniThumbnail slug={item.slug} title={item.title} />
+                        <HoverSandboxPreview
+                          slug={item.slug}
+                          title={item.title}
+                          category={item.category}
+                          variant="table-cell"
+                          icon={CategoryIcon}
+                          openRunnerText="运行单页"
+                        />
                       </td>
 
                       {/* Title, slug & description */}
