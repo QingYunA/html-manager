@@ -8,6 +8,7 @@ const eslintConfig = defineConfig([
   {
     rules: {
       "react-hooks/set-state-in-effect": "warn",
+      "no-alert": "error",
     },
   },
   // Override default ignores of eslint-config-next.

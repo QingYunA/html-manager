@@ -14,7 +14,6 @@ import {
   FolderArchive,
   Eye,
   Calendar,
-  Play,
   Share2,
   Check,
   Wrench,
@@ -24,7 +23,9 @@ import {
   Sparkles,
   Layers,
   Boxes,
+  AlertTriangle,
   Loader2,
+  X,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { togglePinAction, updateVisibilityAction, deleteProjectAction } from "@/app/actions/manage";
@@ -33,6 +34,15 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/context";
 import HoverSandboxPreview from "@/components/hover-sandbox-preview";
 
@@ -55,22 +65,32 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
   const [projects, setProjects] = useState(initialProjects);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "table">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("pagepod_admin_view_mode");
+        if (saved === "grid" || saved === "table") return saved;
+      } catch {
+        // Ignore
+      }
+    }
+    return "grid";
+  });
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  // Sync viewMode with localStorage
+  // Auto-dismiss toast after 3.5s
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("pagepod_admin_view_mode");
-      if (saved === "grid" || saved === "table") {
-        setViewMode(saved);
-      }
-    } catch {
-      // Ignore
-    }
-  }, []);
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
 
   const handleViewModeChange = (mode: "grid" | "table") => {
     setViewMode(mode);
@@ -134,13 +154,32 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
     });
   };
 
-  const handleDelete = (id: string, title: string) => {
-    if (!confirm(`确定要删除项目 "${title}" 吗？`)) return;
-    setDeletingId(id);
+  const handleConfirmDelete = () => {
+    if (!deleteTarget || isPending) return;
+    const targetId = deleteTarget.id;
+    const targetTitle = deleteTarget.title;
+    setDeletingId(targetId);
+    setDeleteError(null);
     startTransition(async () => {
-      await deleteProjectAction(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-      setDeletingId(null);
+      try {
+        await deleteProjectAction(targetId);
+        setProjects((prev) => prev.filter((p) => p.id !== targetId));
+        setDeleteTarget(null);
+        setToastMessage({
+          text: (t.workspace?.deleteSuccessToast || "项目 \"{title}\" 已成功删除").replace("{title}", targetTitle),
+          type: "success",
+        });
+      } catch (err: unknown) {
+        console.error("Delete project failed:", err);
+        const msg = (err as Error)?.message || t.workspace?.deleteFailToast || "删除项目失败，请稍后重试";
+        setDeleteError(msg);
+        setToastMessage({
+          text: msg,
+          type: "error",
+        });
+      } finally {
+        setDeletingId(null);
+      }
     });
   };
 
@@ -150,6 +189,10 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
     const url = `${window.location.origin}/p/${slug}`;
     navigator.clipboard.writeText(url);
     setCopiedSlug(slug);
+    setToastMessage({
+      text: t.runner?.copied || "已复制链接",
+      type: "success",
+    });
     setTimeout(() => setCopiedSlug(null), 2000);
   };
 
@@ -378,10 +421,13 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(item.id, item.title)}
+                            onClick={() => {
+                              setDeleteError(null);
+                              setDeleteTarget(item);
+                            }}
                             disabled={deletingId === item.id || isPending}
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            title="删除项目"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive cursor-pointer"
+                            title={t.workspace?.deleteTitle || "删除项目"}
                           >
                             {deletingId === item.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-destructive" />
@@ -543,10 +589,13 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(item.id, item.title)}
+                            onClick={() => {
+                              setDeleteError(null);
+                              setDeleteTarget(item);
+                            }}
                             disabled={deletingId === item.id || isPending}
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            title="删除项目"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive cursor-pointer"
+                            title={t.workspace?.deleteTitle || "删除项目"}
                           >
                             {deletingId === item.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-destructive" />
@@ -562,6 +611,121 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open && !isPending) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md border-border bg-card">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5 text-destructive pb-1">
+              <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center border border-destructive/20 shrink-0">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
+              </div>
+              <DialogTitle className="text-sm font-semibold text-foreground">
+                {t.workspace?.deleteTitle || "删除项目"}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-muted-foreground pt-1 space-y-2">
+              <span className="block text-xs leading-relaxed text-muted-foreground">
+                {t.workspace?.deleteConfirmText || "确定要永久删除此项目吗？此操作不可逆，将永久抹除数据库元数据及关联的所有存储资源与静态文件。"}
+              </span>
+              {deleteTarget && (
+                <span className="block rounded-md border border-border/60 bg-muted/40 p-2.5 space-y-1 font-mono text-[11px] text-foreground">
+                  <span className="block font-sans font-medium text-xs text-foreground truncate">
+                    {deleteTarget.title}
+                  </span>
+                  <span className="block text-muted-foreground truncate">
+                    /p/{deleteTarget.slug}
+                  </span>
+                </span>
+              )}
+              <span className="block text-[11px] text-destructive/85 font-normal">
+                {t.workspace?.deleteWarningNote || "请谨慎操作：删除后该路由对应的单页应用将立刻失效下线，外部访问链接将失效不可用。"}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteError && (
+            <div role="alert" className="p-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span className="truncate">{deleteError}</span>
+            </div>
+          )}
+
+          <DialogFooter className="pt-2 gap-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={isPending}
+              onClick={() => {
+                setDeleteTarget(null);
+                setDeleteError(null);
+              }}
+              className="h-8 text-xs cursor-pointer"
+            >
+              {t.workspace?.cancel || "取消"}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={isPending}
+              onClick={handleConfirmDelete}
+              className="h-8 text-xs font-medium cursor-pointer"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                  <span>{t.workspace?.deleting || "正在删除..."}</span>
+                </>
+              ) : (
+                t.workspace?.confirmDelete || "确认永久删除"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200"
+        >
+          <div
+            className={cn(
+              "flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border shadow-lg text-xs font-medium backdrop-blur-md",
+              toastMessage.type === "success"
+                ? "bg-card/95 border-border text-foreground shadow-black/10"
+                : "bg-destructive/15 border-destructive/30 text-destructive shadow-destructive/10"
+            )}
+          >
+            {toastMessage.type === "success" ? (
+              <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+            )}
+            <span className="max-w-xs sm:max-w-sm truncate">{toastMessage.text}</span>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="ml-1 text-muted-foreground hover:text-foreground cursor-pointer rounded-sm p-0.5"
+              aria-label="关闭提示"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
         </div>
       )}
     </div>
