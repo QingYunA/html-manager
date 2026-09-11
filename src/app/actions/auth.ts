@@ -13,8 +13,8 @@ function formString(formData: FormData, key: string): string {
 
 export async function loginAdmin(prevState: { error?: string } | null, formData: FormData) {
   const password = formString(formData, "password");
-  const rawRedirectPath = formString(formData, "from") || "/admin";
-  const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/admin");
+  const rawRedirectPath = formString(formData, "from") || "/workspace";
+  const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/workspace");
 
   if (!password) {
     return { error: "请输入密码" };
@@ -49,8 +49,8 @@ export async function loginWithEmailAction(prevState: { error?: string } | null,
   const email = formString(formData, "email").trim();
   const password = formString(formData, "password").trim();
   const isSignUp = formData.get("isSignUp") === "true";
-  const rawRedirectPath = formString(formData, "from") || "/admin";
-  const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/admin");
+  const rawRedirectPath = formString(formData, "from") || "/workspace";
+  const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/workspace");
 
   if (!email || !password) {
     return { error: "请输入邮箱与密码" };

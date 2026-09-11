@@ -5,7 +5,7 @@
  */
 export function sanitizeRedirectPath(
   input: string | null | undefined,
-  fallback = "/admin"
+  fallback = "/workspace"
 ): string {
   if (!input || typeof input !== "string") {
     return fallback;
@@ -28,6 +28,14 @@ export function sanitizeRedirectPath(
     return fallback;
   }
 
+  // Automatically normalize legacy /admin path to /workspace
+  if (trimmed === "/admin") {
+    return "/workspace";
+  }
+  if (trimmed.startsWith("/admin/")) {
+    return trimmed.replace(/^\/admin/, "/workspace");
+  }
+
   return trimmed;
 }
 
@@ -37,7 +45,7 @@ export function sanitizeRedirectPath(
  */
 export function sanitizeNextParam(
   nextParam: string | null | undefined,
-  fallback = "/admin"
+  fallback = "/workspace"
 ): string {
   return sanitizeRedirectPath(nextParam, fallback);
 }

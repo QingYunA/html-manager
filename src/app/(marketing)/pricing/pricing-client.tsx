@@ -57,7 +57,7 @@ export default function PricingClient() {
           </div>
 
           <Button variant="outline" asChild className="w-full h-10 text-xs font-medium border-border hover:bg-muted">
-            <Link href="/admin/upload">
+            <Link href="/workspace/upload">
               {t.pricing.freePlan.cta}
             </Link>
           </Button>
@@ -103,7 +103,7 @@ export default function PricingClient() {
           </div>
 
           <Button asChild className="w-full h-10 text-xs font-medium gap-1.5 shadow-sm">
-            <Link href="/admin/upload">
+            <Link href="/workspace/upload">
               <span>{t.pricing.proPlan.cta}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>

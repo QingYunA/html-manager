@@ -135,7 +135,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
       <header className="h-12 border-b border-border bg-background/95 backdrop-blur-xs px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
-            <Link href="/admin" prefetch={true}>
+            <Link href="/workspace" prefetch={true}>
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>
