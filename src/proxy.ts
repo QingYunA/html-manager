@@ -27,9 +27,10 @@ export async function proxy(request: NextRequest) {
     // If not authenticated via Supabase, check Self-hosted Mode: JWT token
     if (!isValid) {
       const token = request.cookies.get(COOKIE_NAME)?.value;
-      if (token) {
+      const secret = getJwtSecret();
+      if (token && secret) {
         try {
-          const { payload } = await jwtVerify(token, getJwtSecret());
+          const { payload } = await jwtVerify(token, secret);
           if (payload.role === "admin") {
             isValid = true;
           }

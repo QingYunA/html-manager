@@ -34,16 +34,24 @@ export async function verifyPassword(password: string): Promise<boolean> {
 }
 
 export async function createAdminSessionToken(): Promise<string> {
+  const secret = getJwtSecret();
+  if (!secret) {
+    throw new Error("Cannot create admin session: no JWT secret configured");
+  }
   return await new SignJWT({ role: "admin" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(getJwtSecret());
+    .sign(secret);
 }
 
 export async function verifyAdminSessionToken(token: string): Promise<boolean> {
   try {
-    const { payload } = await jwtVerify(token, getJwtSecret());
+    const secret = getJwtSecret();
+    if (!secret) {
+      return false;
+    }
+    const { payload } = await jwtVerify(token, secret);
     return payload.role === "admin";
   } catch {
     return false;

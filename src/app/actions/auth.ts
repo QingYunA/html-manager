@@ -25,7 +25,14 @@ export async function loginAdmin(prevState: { error?: string } | null, formData:
     return { error: "密码错误，请重试" };
   }
 
-  const token = await createAdminSessionToken();
+  let token: string;
+  try {
+    token = await createAdminSessionToken();
+  } catch {
+    // Fail closed with a clear message instead of a 500 when no signing secret is configured.
+    return { error: "服务端未配置会话密钥（SESSION_SECRET，至少 16 位），暂时无法登录" };
+  }
+
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,

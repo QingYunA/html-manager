@@ -19,7 +19,6 @@ import {
   X,
   Upload,
   ShieldCheck,
-  Lock,
   Copy,
   Check,
 } from "lucide-react";
@@ -301,6 +300,18 @@ export default function AdminUploadPage() {
           }
         } catch (serverActionErr: unknown) {
           console.error("handleUploadAction call error:", serverActionErr);
+
+          // NEVER fall back to the plaintext REST endpoint for an encrypted upload:
+          // it does not carry the ciphertext/E2EE metadata, so it would silently store
+          // and serve the artifact in plaintext. Surface the error and let the user retry.
+          if (shouldEncrypt) {
+            setErrorMessage(
+              (serverActionErr as Error)?.message ||
+                "加密项目提交失败，请重试（未降级为明文上传以保证隐私）"
+            );
+            return;
+          }
+
           // Fallback to direct REST API upload if Server Action fails with network/load error
           try {
             const apiFormData = new FormData();
