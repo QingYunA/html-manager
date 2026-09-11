@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { getProjectBySlug, incrementViewCount, getAllProjects } from "@/db";
 import { getStorage } from "@/lib/storage";
 import { getCurrentUser } from "@/lib/auth";
-import { decryptArtifactForUser } from "@/lib/crypto/e2ee";
 import RunnerClient from "./runner-client";
 
 interface PageProps {
@@ -85,7 +84,6 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
   // Record view count
   await incrementViewCount(slug);
 
-  let initialDecryptedHtml = "";
   let sourceCode = "";
   const storage = getStorage();
 
@@ -121,25 +119,11 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
     );
   }
 
-  if (project.isEncrypted) {
-    // If encrypted, only the exact owner can trigger seamless user master key decryption
-    if (isExactCreator && project.encryptionIv) {
-      try {
-        const file = await storage.getFile(`${project.storagePrefix}/${project.entryPath}`);
-        if (file) {
-          const targetUserId = project.userId || currentUser!.id;
-          initialDecryptedHtml = await decryptArtifactForUser(
-            file.data,
-            targetUserId,
-            project.encryptionIv
-          );
-          sourceCode = initialDecryptedHtml;
-        }
-      } catch (err) {
-        console.error("Seamless user decryption failed, falling back to client hash:", err);
-      }
-    }
-  } else if (project.assetType === "single_html") {
+  // Zero-knowledge: the server NEVER decrypts encrypted artifacts and never holds the key.
+  // For encrypted projects, decryption happens entirely client-side using a key supplied via
+  // the URL fragment (#key=...) or the owner's browser-local key cache. Only public KDF
+  // parameters (salt, iterations, IV) are passed to the client.
+  if (!project.isEncrypted && project.assetType === "single_html") {
     try {
       const file = await storage.getFile(`${project.storagePrefix}/${project.entryPath}`);
       if (file) {
@@ -217,7 +201,6 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
       <RunnerClient
         project={project}
         initialSourceCode={sourceCode}
-        seamlessDecryptedHtml={initialDecryptedHtml}
         isOwner={isExactCreator}
         relatedProjects={relatedProjects}
       />

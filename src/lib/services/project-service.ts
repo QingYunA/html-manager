@@ -17,9 +17,12 @@ export interface CreateProjectInput {
   htmlContent?: string;
   fileBuffer?: Buffer;
   fileName?: string;
-  // Zero-knowledge encryption fields
+  // End-to-end encryption fields (zero-knowledge: server stores ciphertext + public KDF params only)
   isEncrypted?: boolean;
   encryptionIv?: string;
+  keyMode?: "legacy-server" | "zk-passphrase" | "zk-recovery";
+  kdfSalt?: string;
+  kdfIterations?: number;
   fileSize?: number;
   // Pre-uploaded storage path (via S3 Presigned direct PUT)
   preUploadedStoragePath?: string;
@@ -136,6 +139,9 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
     viewCount: 0,
     isEncrypted: Boolean(input.isEncrypted),
     encryptionIv: input.encryptionIv || null,
+    keyMode: input.keyMode || "legacy-server",
+    kdfSalt: input.kdfSalt || null,
+    kdfIterations: input.kdfIterations ?? null,
     fileSize: input.fileSize || 0,
     planTier: "free",
   });

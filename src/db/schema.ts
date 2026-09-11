@@ -16,9 +16,12 @@ export const projects = pgTable("projects", {
   isPinned: boolean("is_pinned").notNull().default(false),
   viewCount: integer("view_count").notNull().default(0),
   
-  // Zero-knowledge End-to-End Encryption fields
+  // End-to-End Encryption fields (zero-knowledge)
   isEncrypted: boolean("is_encrypted").notNull().default(false),
-  encryptionIv: text("encryption_iv"), // Base64 12-byte IV for AES-GCM (public, secret key stays in URL hash)
+  encryptionIv: text("encryption_iv"), // Base64url 12-byte IV for AES-GCM (public)
+  keyMode: text("key_mode").notNull().default("legacy-server"), // 'legacy-server' | 'zk-passphrase' | 'zk-recovery'
+  kdfSalt: text("kdf_salt"), // Base64url PBKDF2 salt (public, only for zk-passphrase)
+  kdfIterations: integer("kdf_iterations"), // PBKDF2 iteration count (public, only for zk-passphrase)
   fileSize: integer("file_size").default(0), // Bytes (for quota tracking)
   planTier: text("plan_tier").default("free"), // 'free' | 'pro'
 

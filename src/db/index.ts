@@ -62,6 +62,9 @@ function readLocalData(): LocalData {
     const data = JSON.parse(raw) as LocalData;
     data.projects = (data.projects || []).map((p) => ({
       ...p,
+      keyMode: p.keyMode ?? "legacy-server",
+      kdfSalt: p.kdfSalt ?? null,
+      kdfIterations: p.kdfIterations ?? null,
       createdAt: new Date(p.createdAt),
       updatedAt: new Date(p.updatedAt),
     }));
@@ -126,12 +129,22 @@ const SQL_PROJECTS = `
     view_count INTEGER NOT NULL DEFAULT 0,
     is_encrypted BOOLEAN NOT NULL DEFAULT false,
     encryption_iv TEXT,
+    key_mode TEXT NOT NULL DEFAULT 'legacy-server',
+    kdf_salt TEXT,
+    kdf_iterations INTEGER,
     file_size INTEGER DEFAULT 0,
     plan_tier TEXT DEFAULT 'free',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
 `;
+
+// Idempotent additive migrations for existing databases (ADD COLUMN IF NOT EXISTS)
+const SQL_PROJECTS_MIGRATIONS = [
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS key_mode TEXT NOT NULL DEFAULT 'legacy-server';`,
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS kdf_salt TEXT;`,
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS kdf_iterations INTEGER;`,
+];
 
 const SQL_SETTINGS = `
   CREATE TABLE IF NOT EXISTS settings (
@@ -163,7 +176,7 @@ async function ensurePostgresTables() {
       });
     }
     // Execute separately to prevent multi-statement transaction pooler/PgBouncer failures
-    for (const sql of [SQL_PROJECTS, SQL_SETTINGS, SQL_API_TOKENS]) {
+    for (const sql of [SQL_PROJECTS, SQL_SETTINGS, SQL_API_TOKENS, ...SQL_PROJECTS_MIGRATIONS]) {
       try {
         await pgPool.query(sql);
       } catch (tableErr) {
@@ -308,6 +321,9 @@ export async function createProject(data: NewProject): Promise<Project> {
     viewCount: data.viewCount ?? 0,
     isEncrypted: data.isEncrypted ?? false,
     encryptionIv: data.encryptionIv ?? null,
+    keyMode: data.keyMode ?? "legacy-server",
+    kdfSalt: data.kdfSalt ?? null,
+    kdfIterations: data.kdfIterations ?? null,
     fileSize: data.fileSize ?? 0,
     planTier: data.planTier ?? "free",
     createdAt: now,

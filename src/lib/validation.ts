@@ -36,6 +36,9 @@ export const uploadPayloadSchema = z.object({
   isPinned: z.boolean().default(false),
   isEncrypted: z.boolean().default(false),
   encryptionIv: z.string().trim().max(100).optional(),
+  keyMode: z.enum(["legacy-server", "zk-passphrase", "zk-recovery"]).optional(),
+  kdfSalt: z.string().trim().max(200).optional(),
+  kdfIterations: z.number().int().positive().max(10_000_000).optional(),
   preUploadedStoragePath: z.string().trim().max(500).optional(),
   htmlContent: z.string().max(20_000_000, "HTML content too large (max 20MB)").optional(),
 });
