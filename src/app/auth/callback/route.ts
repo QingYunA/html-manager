@@ -6,14 +6,14 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const rawNext = searchParams.get("next");
-  const safeNext = sanitizeNextParam(rawNext, "/admin");
+  const safeNext = sanitizeNextParam(rawNext, "/workspace");
   const errorParam = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
   // 1. If provider returned an explicit OAuth error
   if (errorParam) {
     return NextResponse.redirect(
-      `${origin}/admin/login?error=${encodeURIComponent(errorParam)}&msg=${encodeURIComponent(errorDescription || errorParam)}`
+      `${origin}/login?error=${encodeURIComponent(errorParam)}&msg=${encodeURIComponent(errorDescription || errorParam)}`
     );
   }
 
@@ -28,11 +28,11 @@ export async function GET(request: Request) {
       console.error("Supabase OAuth exchange failed:", error);
       const errorMsg = error?.message || "oauth_exchange_failed";
       return NextResponse.redirect(
-        `${origin}/admin/login?error=oauth_exchange_failed&msg=${encodeURIComponent(errorMsg)}`
+        `${origin}/login?error=oauth_exchange_failed&msg=${encodeURIComponent(errorMsg)}`
       );
     }
   }
 
   // Return to login page with error
-  return NextResponse.redirect(`${origin}/admin/login?error=oauth_exchange_failed&msg=no_code_or_client`);
+  return NextResponse.redirect(`${origin}/login?error=oauth_exchange_failed&msg=no_code_or_client`);
 }

@@ -26,6 +26,8 @@ const SYSTEM_PATHS = new Set([
   "about",
   "privacy",
   "terms",
+  "workspace",
+  "login",
   "admin",
   "api",
   "auth",
@@ -109,9 +111,29 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(callbackUrl);
   }
 
-  // 3. Only protect /admin routes (exempting /admin/login)
-  // Public pages (/explore, /pricing, /) bypass middleware network checks completely!
-  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
+  // 3. Backward compatibility: Redirect legacy /admin routes to /workspace or /login
+  if (pathname === "/admin/login") {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(loginUrl, 308);
+  }
+
+  if (pathname === "/admin") {
+    const workspaceUrl = new URL("/workspace", request.url);
+    workspaceUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(workspaceUrl, 308);
+  }
+
+  if (pathname.startsWith("/admin/")) {
+    const newPath = pathname.replace(/^\/admin/, "/workspace");
+    const targetUrl = new URL(newPath, request.url);
+    targetUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(targetUrl, 308);
+  }
+
+  // 4. Protect /workspace routes
+  // Public pages (/explore, /pricing, /, /login) bypass middleware network checks completely!
+  if (pathname.startsWith("/workspace")) {
     const { supabaseResponse, user } = await updateSession(request);
     let isValid = Boolean(user);
 
@@ -132,7 +154,7 @@ export async function proxy(request: NextRequest) {
     }
 
     if (!isValid) {
-      const loginUrl = new URL("/admin/login", request.url);
+      const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
     }

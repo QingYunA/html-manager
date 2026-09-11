@@ -17,7 +17,7 @@ import { HomeHeader } from "@/components/home-header";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboardPage() {
+export default async function WorkspacePage() {
   const currentUser = await getCurrentUser();
 
   // Strict Privacy Enforcement:
@@ -62,7 +62,7 @@ export default async function AdminDashboardPage() {
             asChild
             className="h-8 text-xs gap-1.5 border-border hidden sm:inline-flex"
           >
-            <Link href="/admin/settings/tokens" prefetch={true}>
+            <Link href="/workspace/settings/tokens" prefetch={true}>
               <Key className="w-3.5 h-3.5" />
               <span>API 密钥</span>
             </Link>
@@ -84,7 +84,7 @@ export default async function AdminDashboardPage() {
             <CardContent className="p-4 pt-0">
               <div className="text-2xl font-bold font-mono tracking-tight">{projects.length}</div>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                {currentUser?.role === "admin" ? "平台公开单页与个人项目" : "你的个人项目总数"}
+                {currentUser?.role === "admin" && currentUser.id !== "selfhost-admin" ? "平台公开单页与个人项目" : "你的个人项目总数"}
               </p>
             </CardContent>
           </Card>
@@ -125,7 +125,7 @@ export default async function AdminDashboardPage() {
           <div className="flex items-center gap-2.5">
             <ShieldAlert className="w-4 h-4 text-emerald-500 shrink-0" />
             <span className="text-muted-foreground">
-              <strong>隐私安全承诺</strong>：管理员仅可监管公开内容，用户的私有项目（Private / E2EE）受物理权限隔离，管理员及第三方绝对无法接触。
+              <strong>隐私安全承诺</strong>：用户的私有项目（Private）受物理权限隔离，任何第三方绝对无法接触。
             </span>
           </div>
           <ApiTokenGuideModal />

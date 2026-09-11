@@ -52,27 +52,11 @@ export const sandboxPool = {
   },
 
   /**
-   * Pre-warm / pre-activate the first batch of visible items (up to MAX_ACTIVE_SANDBOXES).
-   * Staggers activations by ~70ms so the browser compiler doesn't freeze on initial load.
+   * @deprecated Sandboxes should strictly activate on deterministic user hover
+   * in accordance with AGENTS.md rules. Kept as no-op for backward compatibility.
    */
-  warmup(slugs: string[], staggerMs = 70) {
-    if (!slugs || slugs.length === 0) return;
-    clearWarmupTimeouts();
-
-    const targetSlugs = slugs.slice(0, MAX_ACTIVE_SANDBOXES);
-    const toActivate = targetSlugs.filter((s) => !activeSlugs.includes(s));
-    if (toActivate.length === 0) return;
-
-    toActivate.forEach((slug, idx) => {
-      if (idx === 0) {
-        this.activate(slug);
-      } else {
-        const timeout = setTimeout(() => {
-          this.activate(slug);
-        }, idx * staggerMs);
-        warmupTimeouts.push(timeout);
-      }
-    });
+  warmup(_slugs: string[], _staggerMs = 70) {
+    // No-op to enforce AGENTS.md rule: "严禁在列表/网格中直出全量 iframe"
   },
 
   clear() {
