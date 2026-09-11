@@ -2,18 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { updateSession } from "@/lib/supabase/middleware";
+import { getJwtSecret } from "@/lib/secret-policy";
 
 const COOKIE_NAME = "html_manager_session";
 
-function getJwtSecret(): Uint8Array {
-  const secret =
-    process.env.SESSION_SECRET ||
-    process.env.ADMIN_PASSWORD ||
-    "html-manager-default-secret-key-change-in-production-123456";
-  return new TextEncoder().encode(secret.padEnd(32, "0"));
-}
-
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // 1. Auto-catch Supabase OAuth redirects:

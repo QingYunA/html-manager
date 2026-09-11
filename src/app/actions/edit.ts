@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser, assertCanManageProject } from "@/lib/auth";
 import { updateProject, getProjectById } from "@/db";
 import { getStorage } from "@/lib/storage";
+import { updateProjectInputSchema } from "@/lib/validation";
 
 export async function updateProjectFullAction(
   id: string,
@@ -17,6 +18,16 @@ export async function updateProjectFullAction(
     htmlCode?: string;
   }
 ) {
+  if (typeof id !== "string" || !id) {
+    throw new Error("Invalid project id");
+  }
+
+  const parsed = updateProjectInputSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Invalid project data");
+  }
+  const validated = parsed.data;
+
   const user = await getCurrentUser();
   const project = await getProjectById(id);
   if (!project) throw new Error("Project not found");
@@ -24,19 +35,19 @@ export async function updateProjectFullAction(
   assertCanManageProject(user, project);
 
   // If HTML code is provided and it's single_html, update storage
-  if (data.htmlCode && project.assetType === "single_html") {
+  if (validated.htmlCode && project.assetType === "single_html") {
     const storage = getStorage();
     const filePath = `${project.storagePrefix}/${project.entryPath}`;
-    await storage.uploadFile(filePath, data.htmlCode, "text/html; charset=utf-8");
+    await storage.uploadFile(filePath, validated.htmlCode, "text/html; charset=utf-8");
   }
 
   const updated = await updateProject(id, {
-    title: data.title,
-    description: data.description,
-    category: data.category,
-    tags: data.tags,
-    visibility: data.visibility,
-    isPinned: data.isPinned,
+    title: validated.title,
+    description: validated.description,
+    category: validated.category,
+    tags: validated.tags,
+    visibility: validated.visibility,
+    isPinned: validated.isPinned,
   });
 
   revalidatePath("/");

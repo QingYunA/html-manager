@@ -6,9 +6,14 @@ import { verifyPassword, createAdminSessionToken, COOKIE_NAME } from "@/lib/auth
 import { createSupabaseServerClient, isCloudMode } from "@/lib/supabase/server";
 import { sanitizeRedirectPath } from "@/lib/safe-redirect";
 
+function formString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
+}
+
 export async function loginAdmin(prevState: { error?: string } | null, formData: FormData) {
-  const password = formData.get("password") as string;
-  const rawRedirectPath = (formData.get("from") as string) || "/admin";
+  const password = formString(formData, "password");
+  const rawRedirectPath = formString(formData, "from") || "/admin";
   const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/admin");
 
   if (!password) {
@@ -34,10 +39,10 @@ export async function loginAdmin(prevState: { error?: string } | null, formData:
 }
 
 export async function loginWithEmailAction(prevState: { error?: string } | null, formData: FormData) {
-  const email = (formData.get("email") as string)?.trim();
-  const password = (formData.get("password") as string)?.trim();
+  const email = formString(formData, "email").trim();
+  const password = formString(formData, "password").trim();
   const isSignUp = formData.get("isSignUp") === "true";
-  const rawRedirectPath = (formData.get("from") as string) || "/admin";
+  const rawRedirectPath = formString(formData, "from") || "/admin";
   const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/admin");
 
   if (!email || !password) {

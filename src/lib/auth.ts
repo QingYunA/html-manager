@@ -3,26 +3,34 @@ import { cookies, headers } from "next/headers";
 import { getSetting } from "@/db";
 import { createSupabaseServerClient, isCloudMode } from "@/lib/supabase/server";
 import { verifyAndConsumeToken } from "@/lib/tokens";
+import { getJwtSecret, timingSafeEqualStrings } from "@/lib/secret-policy";
 
 const COOKIE_NAME = "html_manager_session";
-
-function getJwtSecret(): Uint8Array {
-  const secret =
-    process.env.SESSION_SECRET ||
-    process.env.ADMIN_PASSWORD ||
-    "html-manager-default-secret-key-change-in-production-123456";
-  return new TextEncoder().encode(secret.padEnd(32, "0"));
-}
 
 export async function getExpectedAdminPassword(): Promise<string> {
   const dbPassword = await getSetting("admin_password");
   if (dbPassword) return dbPassword;
-  return process.env.ADMIN_PASSWORD || "admin888";
+
+  const envPwd = process.env.ADMIN_PASSWORD;
+  if (envPwd) return envPwd;
+
+  const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
+  if (isProduction) {
+    throw new Error(
+      "[FATAL] ADMIN_PASSWORD is missing in production. Refusing to start with default password."
+    );
+  }
+
+  return "admin888";
 }
 
 export async function verifyPassword(password: string): Promise<boolean> {
-  const expected = await getExpectedAdminPassword();
-  return password === expected;
+  try {
+    const expected = await getExpectedAdminPassword();
+    return timingSafeEqualStrings(password, expected);
+  } catch {
+    return false;
+  }
 }
 
 export async function createAdminSessionToken(): Promise<string> {
@@ -195,18 +203,24 @@ export async function verifyAdminTokenFromRequest(request: Request): Promise<boo
 export async function verifyApiToken(token: string): Promise<boolean> {
   if (!token) return false;
 
-  if (process.env.API_TOKEN && token === process.env.API_TOKEN) {
+  if (process.env.API_TOKEN && timingSafeEqualStrings(token, process.env.API_TOKEN)) {
     return true;
   }
 
   const customTokens = await getSetting("api_tokens", "");
   if (customTokens) {
     const list = customTokens.split(",").map((t) => t.trim());
-    if (list.includes(token)) return true;
+    if (list.some((configured) => timingSafeEqualStrings(token, configured))) {
+      return true;
+    }
   }
 
-  const adminPwd = await getExpectedAdminPassword();
-  if (token === adminPwd) return true;
+  try {
+    const adminPwd = await getExpectedAdminPassword();
+    if (timingSafeEqualStrings(token, adminPwd)) return true;
+  } catch {
+    // Expected error in production if admin password unset
+  }
 
   return await verifyAdminSessionToken(token);
 }
