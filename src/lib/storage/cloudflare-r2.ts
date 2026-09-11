@@ -8,6 +8,15 @@ import { getContentType } from "./mime";
  * module-graph / cold-start cost of @aws-sdk/client-s3 (~4MB of source). The SDK
  * is only loaded when an R2 operation actually executes.
  */
+function cleanEnv(val?: string): string {
+  if (!val) return "";
+  return val
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, "")
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\/+$/, "");
+}
+
 export class CloudflareR2StorageProvider implements StorageProvider {
   type = "cloudflare-r2" as const;
   private bucket: string;
@@ -16,10 +25,15 @@ export class CloudflareR2StorageProvider implements StorageProvider {
   private secretAccessKey: string;
 
   constructor() {
-    const accountId = process.env.R2_ACCOUNT_ID;
-    const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-    this.bucket = process.env.R2_BUCKET_NAME || "html-manager";
+    const rawAccountId = cleanEnv(process.env.R2_ACCOUNT_ID);
+    const accessKeyId = cleanEnv(process.env.R2_ACCESS_KEY_ID);
+    const secretAccessKey = cleanEnv(process.env.R2_SECRET_ACCESS_KEY);
+    this.bucket = cleanEnv(process.env.R2_BUCKET_NAME) || "html-manager";
+
+    // Strip https:// or http:// if user pasted the full endpoint into R2_ACCOUNT_ID
+    const accountId = rawAccountId
+      .replace(/^https?:\/\//i, "")
+      .replace(/\.r2\.cloudflarestorage\.com.*$/i, "");
 
     if (!accountId || !accessKeyId || !secretAccessKey) {
       throw new Error("Missing Cloudflare R2 credentials (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY)");
@@ -36,9 +50,11 @@ export class CloudflareR2StorageProvider implements StorageProvider {
         import("@aws-sdk/s3-request-presigner"),
       ]);
 
+    const endpoint = `https://${this.accountId}.r2.cloudflarestorage.com`;
+
     const client = new S3Client({
       region: "auto",
-      endpoint: `https://${this.accountId}.r2.cloudflarestorage.com`,
+      endpoint,
       credentials: {
         accessKeyId: this.accessKeyId,
         secretAccessKey: this.secretAccessKey,
