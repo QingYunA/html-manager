@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useLanguage } from "@/lib/i18n/context";
+import HoverSandboxPreview from "@/components/hover-sandbox-preview";
 
 interface ShowcaseGalleryProps {
   initialProjects: Project[];
@@ -249,31 +250,14 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                 key={p.id}
                 className="group relative flex flex-col overflow-hidden border-border bg-card/80 hover:border-neutral-600 transition-all duration-150"
               >
-                {/* Miniature Thumbnail Viewport */}
+                {/* Miniature Thumbnail Viewport with Hover-Activated Sandbox */}
                 <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
-                  <iframe
-                    src={`/raw/${p.slug}`}
+                  <HoverSandboxPreview
+                    slug={p.slug}
                     title={p.title}
-                    tabIndex={-1}
-                    sandbox="allow-scripts"
-                    loading="lazy"
-                    className="w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white opacity-95 group-hover:opacity-100 transition-opacity"
+                    category={p.category}
+                    openRunnerText={t.gallery.openRunner}
                   />
-                  {/* Clickable Overlay to enter Runner directly */}
-                  <Link
-                    href={`/p/${p.slug}`}
-                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px] z-10"
-                    title={t.gallery.openRunner}
-                  >
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="h-8 text-xs gap-1.5 shadow-lg pointer-events-none font-medium"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>{t.gallery.openRunner}</span>
-                    </Button>
-                  </Link>
 
                   {/* Badges on top of thumbnail */}
                   <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none z-20">
