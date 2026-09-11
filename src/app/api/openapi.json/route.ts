@@ -4,7 +4,7 @@ export const dynamic = "force-static";
 
 export async function GET() {
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
 
   const spec = {
     openapi: "3.1.0",
@@ -100,7 +100,7 @@ export async function GET() {
                           id: { type: "string" },
                           title: { type: "string" },
                           slug: { type: "string" },
-                          runnerUrl: { type: "string", example: "https://html-manager-five.vercel.app/p/particle-sandbox" },
+                          runnerUrl: { type: "string", example: "https://www.pagepod.dev/p/particle-sandbox" },
                         },
                       },
                     },

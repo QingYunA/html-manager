@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import PricingClient from "./pricing-client";
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
 
 export const metadata: Metadata = {
   title: "Pricing & Lifetime Deals - Free AI HTML Hosting & Pro Cloud",

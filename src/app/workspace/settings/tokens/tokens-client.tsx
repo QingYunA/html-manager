@@ -156,7 +156,7 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
         </p>
         <div className="relative group">
           <pre className="p-3 bg-neutral-950 text-neutral-200 rounded-md font-mono text-[11px] overflow-x-auto leading-relaxed border border-neutral-800">
-{`curl -X POST https://html-manager-five.vercel.app/api/upload \\
+{`curl -X POST https://www.pagepod.dev/api/upload \\
   -H "Authorization: Bearer YOUR_PERSONAL_ACCESS_TOKEN" \\
   -F "file=@./index.html" \\
   -F "title=My Interactive Tool" \\

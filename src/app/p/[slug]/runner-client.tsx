@@ -20,6 +20,10 @@ import {
   Code,
   Sparkles,
   Loader2,
+  ChevronRight,
+  ShieldCheck,
+  Terminal,
+  Play,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -109,10 +113,14 @@ export default function RunnerClient({
   return (
     <div
       ref={containerRef}
-      className="flex flex-col h-screen w-screen overflow-hidden bg-background text-foreground select-none"
+      className={
+        isFullscreen
+          ? "fixed inset-0 z-50 flex flex-col h-screen w-screen overflow-hidden bg-background text-foreground select-none"
+          : "min-h-screen w-full flex flex-col bg-background text-foreground overflow-x-hidden"
+      }
     >
       {/* Top Controls Bar */}
-      <header className="h-12 border-b border-border px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 bg-background/95 backdrop-blur-xs z-10">
+      <header className="h-12 border-b border-border px-3 sm:px-4 flex items-center justify-between gap-2 shrink-0 bg-background/95 backdrop-blur-xs sticky top-0 z-30">
         {/* Left: Back & Project Title */}
         <div className="flex items-center gap-2 min-w-0">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0" asChild>
@@ -306,9 +314,11 @@ export default function RunnerClient({
 
       {/* Viewport Canvas */}
       <div
-        className={`flex-1 bg-background flex items-center justify-center overflow-hidden relative ${
-          device === "desktop" ? "p-0" : "p-4 sm:p-6"
-        }`}
+        className={`bg-background flex items-center justify-center relative ${
+          isFullscreen
+            ? "flex-1 overflow-hidden"
+            : "h-[calc(100vh-48px)] min-h-[540px] w-full border-b border-border/80"
+        } ${device === "desktop" ? "p-0" : "p-4 sm:p-6"}`}
       >
         <div
           className={`transition-[width,max-width,height,border-radius,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] flex flex-col ${
@@ -382,6 +392,180 @@ export default function RunnerClient({
           </Link>
         </div>
       </div>
+
+      {/* Second-Screen SEO & Contextual Details Section (Boutique Tool Page V2.0) */}
+      {!isFullscreen && (
+        <section className="w-full bg-background/60 border-t border-border/40 py-12 px-4 sm:px-8">
+          <div className="max-w-5xl mx-auto space-y-10">
+            {/* Breadcrumb Navigation for SEO */}
+            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Link href="/" className="hover:text-foreground transition-colors">
+                Home
+              </Link>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
+              <Link href="/explore" className="hover:text-foreground transition-colors">
+                Explore
+              </Link>
+              {project.category && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
+                  <Link href={`/explore/${project.category}`} className="hover:text-foreground transition-colors capitalize">
+                    {project.category}
+                  </Link>
+                </>
+              )}
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
+              <span className="text-foreground font-medium truncate max-w-[200px]">{project.title}</span>
+            </nav>
+
+            {/* Main Details Card */}
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 pb-8 border-b border-border">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="text-xs uppercase font-mono">
+                    {project.category || "Tool"}
+                  </Badge>
+                  {project.assetType && (
+                    <Badge variant="secondary" className="text-xs font-mono">
+                      {project.assetType === "single_html" ? "Single File HTML" : "Bundle Zip"}
+                    </Badge>
+                  )}
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {project.viewCount} views
+                  </span>
+                </div>
+
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                  About {project.title}
+                </h2>
+
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {project.description ||
+                    `Interactive AI single-page application: ${project.title}. Created with Claude Artifacts, ChatGPT Canvas or modern web utilities, safely sandboxed and hosted on Pagepod.`}
+                </p>
+
+                {/* Tags */}
+                {project.tags && project.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-2">
+                    {project.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-xs font-mono"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions Card */}
+              <div className="flex flex-col gap-2.5 p-4 rounded-xl border border-border bg-card/60 sm:min-w-[220px] shrink-0 text-xs">
+                <div className="font-semibold text-foreground mb-1">Actions</div>
+                <Button size="sm" variant="outline" className="h-8 justify-start gap-2 text-xs" onClick={() => setShowCode(true)}>
+                  <Code2 className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>{t.runner.sourceCode}</span>
+                </Button>
+                {!isPrivate && (
+                  <Button size="sm" variant="outline" className="h-8 justify-start gap-2 text-xs" onClick={() => setShowEmbed(true)}>
+                    <Code className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>{t.runner.embed}</span>
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="h-8 justify-start gap-2 text-xs" onClick={handleCopyLink}>
+                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-muted-foreground" />}
+                  <span>{copiedLink ? t.runner.copied : t.runner.copyLink}</span>
+                </Button>
+                <Button size="sm" variant="outline" className="h-8 justify-start gap-2 text-xs" asChild>
+                  <a href={rawUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span>{t.runner.openNewTab}</span>
+                  </a>
+                </Button>
+              </div>
+            </div>
+
+            {/* Architecture Highlights */}
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl border border-border bg-card/40 space-y-1.5">
+                <div className="flex items-center gap-2 font-medium text-foreground text-xs">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span>Hardened Sandbox</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Runs inside an isolated iframe with strict CSP headers, preventing unauthorized access to host cookies or storage.
+                </p>
+              </div>
+              <div className="p-4 rounded-xl border border-border bg-card/40 space-y-1.5">
+                <div className="flex items-center gap-2 font-medium text-foreground text-xs">
+                  <Terminal className="w-4 h-4 text-sky-400" />
+                  <span>Zero Build Overhead</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Pure client execution without Node.js build bottlenecks. Fast startup with zero egress bandwidth overhead.
+                </p>
+              </div>
+              <div className="p-4 rounded-xl border border-border bg-card/40 space-y-1.5">
+                <div className="flex items-center gap-2 font-medium text-foreground text-xs">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Responsive Testbed</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Instant simulation across desktop, tablet, and mobile viewports with native resolution scaling.
+                </p>
+              </div>
+            </div>
+
+            {/* Related Artifacts Showcase (Internal Link Powerhouse) */}
+            {relatedProjects.length > 0 && (
+              <div className="space-y-4 pt-6 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <span>More in {project.category || "Collections"}</span>
+                  </h3>
+                  <Link
+                    href={project.category ? `/explore/${project.category}` : "/explore"}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                  >
+                    <span>View all</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </Link>
+                </div>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {relatedProjects.map((rel) => (
+                    <Link
+                      key={rel.slug}
+                      href={`/p/${rel.slug}`}
+                      className="group p-4 rounded-xl border border-border bg-card hover:border-foreground/30 transition-all flex flex-col justify-between shadow-xs"
+                    >
+                      <div>
+                        <Badge variant="outline" className="text-[10px] uppercase font-mono mb-2">
+                          {rel.category}
+                        </Badge>
+                        <h4 className="text-xs font-semibold text-foreground group-hover:text-foreground line-clamp-1 mb-1">
+                          {rel.title}
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
+                          {rel.description || "Interactive AI single-page artifact hosted on Pagepod."}
+                        </p>
+                      </div>
+                      <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                        <span className="truncate max-w-[100px]">/p/{rel.slug}</span>
+                        <span className="flex items-center gap-1 text-emerald-500 font-medium shrink-0">
+                          <Play className="w-2.5 h-2.5 fill-emerald-500" />
+                          Play
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Source Code Modal */}
       <Dialog open={showCode} onOpenChange={setShowCode}>

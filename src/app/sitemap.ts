@@ -6,7 +6,7 @@ export const revalidate = 60;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
 
   // Stable timestamp for static pillar routes: avoid advertising "changed now" on every crawl.
   const siteUpdatedAt = new Date();
@@ -76,11 +76,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    // Only query and expose public projects to search engines
+    // Quality Gate: Only expose public, non-test artifacts with descriptive metadata
+    // Prevents low-quality placeholder pages from diluting crawl budget or triggering search penalties.
     const projects = await getAllProjects({ includePrivate: false });
-    const publicProjects = projects.filter(
-      (p) => p.visibility === "public"
-    );
+    const isTestSlugOrTitle = (slug: string, title?: string | null) => {
+      const s = (slug || "").toLowerCase();
+      const t = (title || "").toLowerCase();
+      return /^(test-|ping-|auth-check)/.test(s) || /^(test|ping)\b/.test(t) || s.includes("api-test");
+    };
+
+    const publicProjects = projects.filter((p) => {
+      if (p.visibility !== "public") return false;
+      if (isTestSlugOrTitle(p.slug, p.title)) return false;
+      // Require meaningful title and description
+      const hasTitle = Boolean(p.title && p.title.trim().length >= 3);
+      const hasDesc = Boolean(p.description && p.description.trim().length >= 10);
+      return hasTitle && hasDesc;
+    });
 
     for (const p of publicProjects) {
       routes.push({
