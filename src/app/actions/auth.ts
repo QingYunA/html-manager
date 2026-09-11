@@ -83,18 +83,40 @@ export async function loginWithEmailAction(prevState: { error?: string } | null,
 }
 
 export async function logoutAdmin() {
+  const cookieStore = await cookies();
+
   if (isCloudMode()) {
     try {
       const supabase = await createSupabaseServerClient();
       if (supabase) {
-        await supabase.auth.signOut();
+        await Promise.race([
+          supabase.auth.signOut(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Supabase signOut timeout")), 2000)
+          ),
+        ]);
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.warn("Supabase server signOut warning or timeout:", err);
     }
   }
 
-  const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
-  redirect("/admin/login");
+  try {
+    const allCookies = cookieStore.getAll();
+    for (const c of allCookies) {
+      if (
+        c.name === COOKIE_NAME ||
+        c.name.startsWith("sb-") ||
+        c.name.includes("supabase") ||
+        c.name.includes("auth-token")
+      ) {
+        cookieStore.delete(c.name);
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to delete auth cookies:", err);
+  }
+
+  return { success: true };
 }
+

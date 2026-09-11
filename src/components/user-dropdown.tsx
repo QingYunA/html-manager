@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/context";
 import { logoutAdmin } from "@/app/actions/auth";
+import { createSupabaseClient } from "@/lib/supabase/client";
 import type { CurrentUser } from "@/lib/auth";
 import {
   LayoutDashboard,
@@ -22,6 +24,7 @@ import {
   Sparkles,
   ExternalLink,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 
 interface UserDropdownProps {
@@ -30,6 +33,61 @@ interface UserDropdownProps {
 
 export function UserDropdown({ currentUser }: UserDropdownProps) {
   const { t } = useLanguage();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+
+    try {
+      // 1. Client-side Supabase sign-out with timeout (scope: local clears tokens immediately without hanging)
+      try {
+        const supabase = createSupabaseClient();
+        if (supabase) {
+          await Promise.race([
+            supabase.auth.signOut({ scope: "local" }),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("SignOut timeout")), 1200)
+            ),
+          ]);
+        }
+      } catch (err) {
+        console.warn("Client Supabase signOut warning:", err);
+      }
+
+      // 2. Clear browser client storage
+      try {
+        if (typeof window !== "undefined") {
+          for (let i = window.localStorage.length - 1; i >= 0; i--) {
+            const key = window.localStorage.key(i);
+            if (key && (key.startsWith("sb-") || key.includes("supabase"))) {
+              window.localStorage.removeItem(key);
+            }
+          }
+          for (let i = window.sessionStorage.length - 1; i >= 0; i--) {
+            const key = window.sessionStorage.key(i);
+            if (key && (key.startsWith("sb-") || key.includes("supabase"))) {
+              window.sessionStorage.removeItem(key);
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      // 3. Server-side session teardown (clears SSR cookies and admin session)
+      try {
+        await logoutAdmin();
+      } catch (err) {
+        console.warn("Server logout warning:", err);
+      }
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      // 4. Hard navigate to login page to completely purge all in-memory client state
+      window.location.href = "/admin/login";
+    }
+  };
 
   const displayName =
     currentUser.fullName ||
@@ -133,18 +191,32 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
 
         <DropdownMenuSeparator />
 
-        {/* Sign Out Action: DropdownMenuItem renders as the button to keep menu semantics intact */}
-        <form action={logoutAdmin} className="w-full">
-          <DropdownMenuItem
-            asChild
-            className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 w-full"
+        {/* Sign Out Action */}
+        <DropdownMenuItem
+          asChild
+          className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 gap-2 w-full"
+        >
+          <button
+            type="button"
+            disabled={isLoggingOut}
+            onClick={(e) => {
+              e.preventDefault();
+              handleLogout();
+            }}
+            onSelect={(e) => {
+              e.preventDefault();
+              handleLogout();
+            }}
+            className="flex items-center gap-2 w-full text-left"
           >
-            <button type="submit" className="w-full">
-              <LogOut className="w-3.5 h-3.5" />
-              <span>{t.nav.logout}</span>
-            </button>
-          </DropdownMenuItem>
-        </form>
+            {isLoggingOut ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+            ) : (
+              <LogOut className="w-3.5 h-3.5 shrink-0" />
+            )}
+            <span>{isLoggingOut ? "..." : t.nav.logout}</span>
+          </button>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
