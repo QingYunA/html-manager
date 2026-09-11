@@ -248,7 +248,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
                     key={previewKey}
                     src={`/raw/${project.slug}/`}
                     title="Live Preview"
-                    sandbox="allow-scripts allow-forms allow-downloads allow-popups"
+                    sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals"
                     className="w-full h-full rounded-md bg-white border border-border"
                   />
                 </div>
