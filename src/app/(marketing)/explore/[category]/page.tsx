@@ -52,7 +52,9 @@ const CATEGORY_MAP: Record<
   },
 };
 
-export const dynamic = "force-dynamic";
+export function generateStaticParams() {
+  return Object.keys(CATEGORY_MAP).map((category) => ({ category }));
+}
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { category } = await params;

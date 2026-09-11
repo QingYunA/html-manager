@@ -1,4 +1,3 @@
-import { put, del, list } from "@vercel/blob";
 import type { StorageProvider, StorageFile } from "./types";
 import { getContentType } from "./mime";
 
@@ -13,7 +12,12 @@ export class VercelBlobStorageProvider implements StorageProvider {
     }
   }
 
+  private async getModules() {
+    return import("@vercel/blob");
+  }
+
   async uploadFile(filePath: string, content: Buffer | Uint8Array | string, contentType?: string): Promise<string> {
+    const { put } = await this.getModules();
     const cType = contentType || getContentType(filePath);
     const buf = typeof content === "string" ? Buffer.from(content, "utf-8") : Buffer.from(content);
     const blob = await put(filePath, buf, {
@@ -34,6 +38,7 @@ export class VercelBlobStorageProvider implements StorageProvider {
 
   async getFile(filePath: string): Promise<{ data: Buffer; contentType: string } | null> {
     try {
+      const { list } = await this.getModules();
       const { blobs } = await list({ prefix: filePath, token: this.token, limit: 1 });
       const matched = blobs.find((b) => b.pathname === filePath) || blobs[0];
       if (!matched) return null;
@@ -50,6 +55,7 @@ export class VercelBlobStorageProvider implements StorageProvider {
 
   async deleteDirectory(prefix: string): Promise<void> {
     try {
+      const { list, del } = await this.getModules();
       const { blobs } = await list({ prefix, token: this.token });
       const urls = blobs.map((b) => b.url);
       if (urls.length > 0) {
