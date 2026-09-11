@@ -52,11 +52,11 @@ export const sandboxPool = {
   },
 
   /**
-   * @deprecated Sandboxes should strictly activate on deterministic user hover
-   * in accordance with AGENTS.md rules. Kept as no-op for backward compatibility.
+   * Sandboxes are activated on-demand via the dual-action floating capsule toolbar
+   * (preview click or hover-charge) and maintained within the MAX_ACTIVE_SANDBOXES LRU pool.
    */
-  warmup(_slugs: string[], _staggerMs = 70) {
-    // No-op to enforce AGENTS.md rule: "严禁在列表/网格中直出全量 iframe"
+  warmup(_slugs: string[]) {
+    // Kept as safe no-op for backward compatibility
   },
 
   clear() {
