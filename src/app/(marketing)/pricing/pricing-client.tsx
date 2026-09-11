@@ -21,15 +21,15 @@ export default function PricingClient() {
         </p>
       </div>
 
-      {/* Pricing Cards Grid */}
-      <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-20 items-stretch">
+      {/* Pricing Cards Grid (3 Columns) */}
+      <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-20 items-stretch">
         {/* Free Starter Plan */}
-        <div className="relative flex flex-col p-6 sm:p-8 rounded-xl border border-border bg-card text-card-foreground shadow-xs">
+        <div className="relative flex flex-col p-6 rounded-xl border border-border bg-card text-card-foreground shadow-xs">
           <div className="mb-6">
-            <h3 className="text-lg font-semibold tracking-tight text-foreground">
+            <h3 className="text-base font-semibold tracking-tight text-foreground">
               {t.pricing.freePlan.name}
             </h3>
-            <p className="text-xs text-muted-foreground mt-1 min-h-[32px]">
+            <p className="text-xs text-muted-foreground mt-1 min-h-[32px] leading-relaxed">
               {t.pricing.freePlan.desc}
             </p>
             <div className="mt-4 flex items-baseline gap-1">
@@ -42,28 +42,74 @@ export default function PricingClient() {
             </div>
           </div>
 
-          <div className="border-t border-border pt-6 mb-8 flex-1">
+          <div className="border-t border-border pt-5 mb-6 flex-1">
             <ul className="space-y-3 text-xs text-muted-foreground">
               {t.pricing.freePlan.features.map((feat, idx) => (
                 <li key={idx} className="flex items-start gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <Check className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
                   <span>{feat}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <Button variant="outline" asChild className="w-full h-10 text-xs font-medium border-border hover:bg-muted">
+          <Button variant="outline" asChild className="w-full h-9 text-xs font-medium border-border hover:bg-muted">
             <Link href="/workspace/upload">
               {t.pricing.freePlan.cta}
             </Link>
           </Button>
         </div>
 
-        {/* Pro Cloud Plan */}
-        <div className="relative flex flex-col p-6 sm:p-8 rounded-xl border border-foreground bg-card text-card-foreground shadow-md">
-          <div className="absolute -top-3 right-6">
-            <Badge className="bg-foreground text-background hover:bg-foreground px-2.5 py-0.5 text-[11px] font-medium tracking-wide">
+        {/* Lite Lifetime Plan */}
+        <div className="relative flex flex-col p-6 rounded-xl border border-border bg-card text-card-foreground shadow-xs">
+          <div className="absolute -top-3 right-5">
+            <Badge variant="secondary" className="px-2 py-0.5 text-[10px] font-mono border border-border text-foreground">
+              {t.pricing.litePlan.badge}
+            </Badge>
+          </div>
+
+          <div className="mb-6">
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-foreground" />
+              <h3 className="text-base font-semibold tracking-tight text-foreground">
+                {t.pricing.litePlan.name}
+              </h3>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 min-h-[32px] leading-relaxed">
+              {t.pricing.litePlan.desc}
+            </p>
+            <div className="mt-4 flex items-baseline gap-1">
+              <span className="text-3xl font-bold font-mono tracking-tight text-foreground">
+                {t.pricing.litePlan.price}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t.pricing.litePlan.period}
+              </span>
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-5 mb-6 flex-1">
+            <ul className="space-y-3 text-xs text-muted-foreground">
+              {t.pricing.litePlan.features.map((feat, idx) => (
+                <li key={idx} className="flex items-start gap-2.5">
+                  <Check className="w-3.5 h-3.5 text-foreground shrink-0 mt-0.5" />
+                  <span className="text-foreground/90">{feat}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <Button variant="outline" asChild className="w-full h-9 text-xs font-medium border-border hover:bg-muted hover:border-foreground/30">
+            <Link href="/workspace/upload">
+              {t.pricing.litePlan.cta}
+            </Link>
+          </Button>
+        </div>
+
+        {/* Pro Lifetime Plan */}
+        <div className="relative flex flex-col p-6 rounded-xl border-2 border-foreground bg-card text-card-foreground shadow-md">
+          <div className="absolute -top-3 right-5">
+            <Badge className="bg-foreground text-background hover:bg-foreground px-2.5 py-0.5 text-[10px] font-medium tracking-wide">
               {t.pricing.proPlan.badge}
             </Badge>
           </div>
@@ -71,11 +117,11 @@ export default function PricingClient() {
           <div className="mb-6">
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <h3 className="text-lg font-semibold tracking-tight text-foreground">
+              <h3 className="text-base font-semibold tracking-tight text-foreground">
                 {t.pricing.proPlan.name}
               </h3>
             </div>
-            <p className="text-xs text-muted-foreground mt-1 min-h-[32px]">
+            <p className="text-xs text-muted-foreground mt-1 min-h-[32px] leading-relaxed">
               {t.pricing.proPlan.desc}
             </p>
             <div className="mt-4 flex items-baseline gap-1">
@@ -88,18 +134,18 @@ export default function PricingClient() {
             </div>
           </div>
 
-          <div className="border-t border-border pt-6 mb-8 flex-1">
+          <div className="border-t border-border pt-5 mb-6 flex-1">
             <ul className="space-y-3 text-xs text-muted-foreground">
               {t.pricing.proPlan.features.map((feat, idx) => (
                 <li key={idx} className="flex items-start gap-2.5">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <span className="text-foreground/90 font-medium">{feat}</span>
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                  <span className="text-foreground font-medium">{feat}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <Button asChild className="w-full h-10 text-xs font-medium gap-1.5 shadow-sm">
+          <Button asChild className="w-full h-9 text-xs font-medium gap-1.5 shadow-sm">
             <Link href="/workspace/upload">
               <span>{t.pricing.proPlan.cta}</span>
               <ArrowRight className="w-3.5 h-3.5" />

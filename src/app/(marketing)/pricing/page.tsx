@@ -5,24 +5,24 @@ const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
 
 export const metadata: Metadata = {
-  title: "Pricing & Plans - Free AI HTML Hosting & Pro Cloud",
+  title: "Pricing & Lifetime Deals - Free AI HTML Hosting & Pro Cloud",
   description:
-    "Explore transparent pricing for Pagepod. Free tier for hosting Claude Artifacts & AI single-page apps. Pro tier with E2EE private vaults & custom domains.",
+    "Explore transparent lifetime pricing for Pagepod. Free tier for hosting AI artifacts, Lite Lifetime for 10GB storage, and Pro Lifetime with 50GB storage, white-label, and custom subdomains.",
   alternates: {
     canonical: "/pricing",
   },
   openGraph: {
-    title: "Pricing & Plans | Pagepod",
+    title: "Pricing & Lifetime Plans | Pagepod",
     description:
-      "Simple, transparent pricing for AI creators. Free hosting for public HTML artifacts, Pro vaults with zero-knowledge encryption.",
+      "Simple, transparent lifetime pricing for AI creators. Free hosting with private protection, Lite & Pro lifetime deals with generous storage and custom subdomains.",
     url: `${siteUrl}/pricing`,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pricing & Plans | Pagepod",
+    title: "Pricing & Lifetime Plans | Pagepod",
     description:
-      "Simple, transparent pricing for AI creators. Free hosting for public HTML artifacts, Pro vaults with zero-knowledge encryption.",
+      "Simple, transparent lifetime pricing for AI creators. Free hosting with private protection, Lite & Pro lifetime deals with generous storage and custom subdomains.",
   },
 };
 
@@ -35,6 +35,30 @@ export default function PricingPage() {
     mainEntity: [
       {
         "@type": "Question",
+        name: "What does Lifetime Deal mean? Will I ever be charged again?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Pay once, own forever! When you purchase Lite or Pro Lifetime, you lock in your storage quota and feature perks permanently with zero recurring monthly or annual fees.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "How does private project protection work for Free users?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Privacy is a core standard for all users. When you mark an artifact as Private, our backend strictly enforces account-level access control. Unauthenticated visitors are blocked with 403 Forbidden.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "How does the Pro Custom Subdomain feature work?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Every project has a unique slug. Pro users can share clean URLs like https://your-project.pagepod.dev. Our edge proxy routes directly to your artifact with the subdomain intact in the browser address bar.",
+        },
+      },
+      {
+        "@type": "Question",
         name: "How does Pagepod differ from traditional Vercel or GitHub Pages?",
         acceptedAnswer: {
           "@type": "Answer",
@@ -43,26 +67,10 @@ export default function PricingPage() {
       },
       {
         "@type": "Question",
-        name: "Are my private artifacts truly invisible to platform admins?",
+        name: "What file formats and upload sizes are supported?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Yes! With End-to-End Encrypted Private Vaults, files are encrypted directly in the user browser using Web Crypto AES-GCM-256 before storage. Admin accounts are physically blocked from viewing, listing, or decrypting your private artifacts.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Can I self-host Pagepod on my own servers for free?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Absolutely! Pagepod is 100% open-source. You can clone the repository and deploy to Vercel and Supabase with zero infrastructure fees.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "What file formats are supported?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Single .html files, raw pasted HTML code, and .zip archives containing CSS, JS, and image assets. Relative references are automatically resolved.",
+          text: "Single .html files, raw pasted HTML code, and .zip archives containing CSS, JS, and image assets up to 50MB per upload. Relative references are automatically resolved.",
         },
       },
     ],
