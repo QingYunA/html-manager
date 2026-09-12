@@ -33,6 +33,18 @@
   - **全局活跃池与持久预览**：全局通过 LRU 队列（`sandboxPool`）将并发活跃沙箱数上限硬限制为 **最多 6 个**；超出上限时自动淘汰最久未交互的沙箱并恢复静态底图态，并支持用户随时手动点击微型 `×` 释放资源；
   - 必须完整支持深色（Dark）与浅色（Light）双主题无缝切换与系统偏好联动。
 
+### 3. 动态交互与加载动效规范 (Motion & Loading Standards)
+- **Tailwind v4 旋转动画防死锁准则**：
+  - Tailwind v4 默认 `@keyframes spin` 仅声明 `to { transform: rotate(360deg); }`，在 Chromium/WebKit 内核下会因矩阵等价分解导致动画冻结（出现加载图标静止不转的圆圈 Bug）。
+  - 全局样式 `globals.css` 必须显式声明包含 `from { transform: rotate(0deg); }` 与 `to { transform: rotate(360deg); }` 的完整关键帧，并为 `.animate-spin` 设置 `transform-origin: center;`。
+- **Radix UI / shadcn 进出场平滑过渡**：
+  - 必须启用 `@plugin "tailwindcss-animate";`，严禁让 `Dialog`、`Toast`、`DropdownMenu` 失去进出场过渡；
+  - 弹窗必须具备微缩放（`zoom-in-95`）与淡入（`fade-in-0`），Toast 反馈必须具备平滑滑入（`slide-in-from-bottom-3`）与淡入，禁止生硬弹跳。
+- **异步操作按钮统一 Loading 反馈**：
+  - 任何触发异步请求或 Server Action 的确认/提交按钮（删除、生成、撤销、登录等），在 `isPending` 时必须统一渲染精致的 `<Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />`，提供明确的视觉反馈，不可仅改变静态文本。
+- **列表删除项过渡态**：
+  - 在卡片或表格列表执行删除时，被操作项在执行期间必须即时呈现半透明过渡态（如 `opacity-40 scale-[0.98] pointer-events-none transition-all duration-200`），避免直接生硬截断移除。
+
 ---
 
 ## 🏗️ 二、核心架构与安全规范
