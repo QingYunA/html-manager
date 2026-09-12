@@ -82,6 +82,7 @@ function LoginForm() {
   const [countdown, setCountdown] = useState(0);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
+  const [otpToken, setOtpToken] = useState("");
 
   // OAuth states
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
@@ -466,11 +467,16 @@ function LoginForm() {
               name="token"
               type="text"
               inputMode="numeric"
-              maxLength={8}
+              maxLength={10}
+              value={otpToken}
+              onChange={(e) => {
+                const sanitized = e.target.value.replace(/[\s-]+/g, "").slice(0, 10);
+                setOtpToken(sanitized);
+              }}
               required
               autoFocus
               placeholder={t.auth.otpCodePlaceholder}
-              className="h-10 text-center tracking-[0.35em] font-mono text-sm uppercase"
+              className="h-10 text-center tracking-[0.25em] font-mono text-sm uppercase"
             />
           </div>
 

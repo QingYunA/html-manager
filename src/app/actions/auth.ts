@@ -211,7 +211,7 @@ export async function verifyEmailOtpAction(
   formData: FormData
 ) {
   const email = formString(formData, "email").trim();
-  const token = formString(formData, "token").trim();
+  const token = formString(formData, "token").replace(/[\s-]+/g, "").trim();
   const rawRedirectPath = formString(formData, "from") || "/admin";
   const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/admin");
 
