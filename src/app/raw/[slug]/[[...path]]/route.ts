@@ -63,6 +63,17 @@ export async function GET(request: Request, context: RouteParams) {
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("Cross-Origin-Resource-Policy", "cross-origin");
 
+  // Conditional requests / ETag for zero-bandwidth 304 Not Modified caching
+  const isImageOrMedia = file.contentType.startsWith("image/") || file.contentType.startsWith("font/");
+  const fileLen = Buffer.isBuffer(file.data) ? file.data.length : Buffer.byteLength(String(file.data));
+  const etag = `W/"${project.id}-${project.updatedAt.getTime()}-${fileLen}"`;
+  headers.set("ETag", etag);
+
+  const ifNoneMatch = request.headers.get("if-none-match");
+  if (ifNoneMatch && ifNoneMatch === etag) {
+    return new NextResponse(null, { status: 304, headers });
+  }
+
   // Private resources must never be cached by shared proxies/CDNs
   if (isProtected) {
     headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate");
@@ -70,8 +81,12 @@ export async function GET(request: Request, context: RouteParams) {
     headers.set("Expires", "0");
     headers.set("Vary", "Cookie, Authorization");
     headers.set("X-Robots-Tag", "noindex, nofollow");
+  } else if (isImageOrMedia) {
+    // Static media & screenshots: 1 day in browser, 30 days on CDN edge
+    headers.set("Cache-Control", "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=86400");
   } else {
-    headers.set("Cache-Control", "public, max-age=60, s-maxage=300");
+    // Dynamic HTML documents
+    headers.set("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
   }
 
   // Mandatory hardened sandbox CSP for ALL active document types (HTML, SVG, XML)

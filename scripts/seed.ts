@@ -241,6 +241,21 @@ async function seed() {
     isPinned: false,
   });
 
+  console.log("📸 Generating static screenshots for demo projects...");
+  try {
+    const { captureScreenshotForProject } = await import("./capture-screenshots");
+    for (const s of ["particle-simulator", "typing-speed-test"]) {
+      try {
+        await captureScreenshotForProject(s);
+        console.log(`  ✓ Screenshot generated for ${s}`);
+      } catch (e) {
+        console.warn(`  ⚠ Could not generate screenshot for ${s}:`, e);
+      }
+    }
+  } catch (err) {
+    console.warn("Screenshot generation skipped:", err);
+  }
+
   console.log("🎉 Seed finished successfully!");
 }
 

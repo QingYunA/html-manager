@@ -13,6 +13,7 @@ export interface CreateProjectInput {
   tags?: string[];
   visibility?: "public" | "unlisted" | "private";
   isPinned?: boolean;
+  screenshotUrl?: string;
   // Payload: either htmlContent, or fileBuffer with filename
   htmlContent?: string;
   fileBuffer?: Buffer;
@@ -120,6 +121,7 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
     visibility: input.visibility || "public",
     isPinned: Boolean(input.isPinned),
     viewCount: 0,
+    screenshotUrl: input.screenshotUrl || null,
     isEncrypted: false,
     encryptionIv: null,
     fileSize: input.fileSize || 0,
