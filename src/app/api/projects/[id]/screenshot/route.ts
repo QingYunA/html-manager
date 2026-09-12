@@ -38,6 +38,14 @@ export async function POST(request: Request, context: RouteParams) {
         return NextResponse.json({ success: false, error: "Missing image file" }, { status: 400 });
       }
 
+      if (file.size > 5 * 1024 * 1024) {
+        return NextResponse.json({ success: false, error: "Screenshot file exceeds 5MB limit" }, { status: 400 });
+      }
+
+      if (file.type && !file.type.startsWith("image/")) {
+        return NextResponse.json({ success: false, error: "Invalid file type: file must be an image" }, { status: 400 });
+      }
+
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const newUrl = await saveCustomScreenshot(project.slug, buffer);

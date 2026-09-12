@@ -66,7 +66,8 @@ export async function GET(request: Request, context: RouteParams) {
   // Conditional requests / ETag for zero-bandwidth 304 Not Modified caching
   const isImageOrMedia = file.contentType.startsWith("image/") || file.contentType.startsWith("font/");
   const fileLen = Buffer.isBuffer(file.data) ? file.data.length : Buffer.byteLength(String(file.data));
-  const etag = `W/"${project.id}-${project.updatedAt.getTime()}-${fileLen}"`;
+  const updatedAtMs = new Date(project.updatedAt).getTime() || 0;
+  const etag = `W/"${project.id}-${updatedAtMs}-${fileLen}"`;
   headers.set("ETag", etag);
 
   const ifNoneMatch = request.headers.get("if-none-match");
