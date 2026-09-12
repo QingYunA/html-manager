@@ -1,0 +1,124 @@
+/**
+ * Static Standards & Anti-Slop Linter
+ * Enforces engineering and aesthetic rules defined in AGENTS.md.
+ * Run with: bun run scripts/check-standards.ts
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+
+interface Violation {
+  file: string;
+  line: number;
+  rule: string;
+  match: string;
+  message: string;
+}
+
+const violations: Violation[] = [];
+
+const SRC_DIR = path.resolve(process.cwd(), "src");
+
+// 1. Anti-Slop banned keywords (AGENTS.md Section 1.4)
+const FORBIDDEN_SLOP_WORDS = [
+  { word: "尊享", message: "Banned casino/VIP slop word: '尊享'. Use '权益' or '功能' instead." },
+  { word: "特权", message: "Banned casino/VIP slop word: '特权'. Use '权益' or '功能' instead." },
+  { word: "自由扩容", message: "Banned exaggerated claim: '自由扩容'. Use specific quota numbers." },
+  { word: "神级", message: "Banned exaggerated slang: '神级'." },
+  { word: "无敌", message: "Banned exaggerated slang: '无敌'." },
+];
+
+// 2. Anti-Pattern banned Tailwind aesthetic classes (AGENTS.md Section 1.1)
+const FORBIDDEN_TAILWIND_PATTERNS = [
+  {
+    regex: /\bblur-3xl\s+bg-[a-z]+-[0-9]+\/[0-9]+\b/,
+    message: "Banned diffuse glow/blob (AGENTS.md 1.1: 严禁弥散光斑与背景光晕).",
+  },
+  {
+    regex: /\bbg-gradient-to-r\s+from-(amber|sky|indigo|emerald|rose|purple)-[0-9]+/,
+    message: "Banned chromatic background gradient in UI components (AGENTS.md 1.1/1.4). Use Zinc monochrome.",
+  },
+  {
+    regex: /\bshadow-2xl\s+rounded-3xl\b/,
+    message: "Banned heavy shadow and oversized radius (AGENTS.md 1.1: 严禁臃肿大圆角与厚重阴影).",
+  },
+];
+
+function scanFile(filePath: string) {
+  const relPath = path.relative(process.cwd(), filePath);
+  const content = fs.readFileSync(filePath, "utf-8");
+  const lines = content.split("\n");
+
+  lines.forEach((lineText, idx) => {
+    const lineNum = idx + 1;
+
+    // Check anti-slop vocabulary
+    for (const slop of FORBIDDEN_SLOP_WORDS) {
+      if (lineText.includes(slop.word)) {
+        violations.push({
+          file: relPath,
+          line: lineNum,
+          rule: "AGENTS.md 1.4 (Anti-Slop & Editorial Voice)",
+          match: slop.word,
+          message: slop.message,
+        });
+      }
+    }
+
+    // Check banned tailwind anti-patterns in TSX/JSX
+    if (filePath.endsWith(".tsx") || filePath.endsWith(".jsx")) {
+      for (const pattern of FORBIDDEN_TAILWIND_PATTERNS) {
+        const match = lineText.match(pattern.regex);
+        if (match) {
+          violations.push({
+            file: relPath,
+            line: lineNum,
+            rule: "AGENTS.md 1.1 (Anti-Patterns / Monochrome Zinc)",
+            match: match[0],
+            message: pattern.message,
+          });
+        }
+      }
+
+      // Check hardcoded Chinese admin fallback
+      if (lineText.includes('|| "管理员"') || lineText.includes("|| '管理员'")) {
+        violations.push({
+          file: relPath,
+          line: lineNum,
+          rule: "AGENTS.md 1.4 (Bilingual Internationalization)",
+          match: lineText.trim(),
+          message: "Hardcoded Chinese fallback '管理员' detected. Must dynamically support 'Admin' in English mode.",
+        });
+      }
+    }
+  });
+}
+
+function walkDir(dir: string) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkDir(fullPath);
+    } else if (/\.(ts|tsx|js|jsx)$/.test(entry.name)) {
+      scanFile(fullPath);
+    }
+  }
+}
+
+console.log("Running AGENTS.md Standards & Anti-Slop Check on src/...");
+walkDir(SRC_DIR);
+
+if (violations.length === 0) {
+  console.log("✓ All standards checks passed! Codebase fully adheres to AGENTS.md.\n");
+  process.exit(0);
+} else {
+  console.error(`\n✗ Found ${violations.length} violations of AGENTS.md:\n`);
+  for (const v of violations) {
+    console.error(`  ${v.file}:${v.line}`);
+    console.error(`    Rule:    ${v.rule}`);
+    console.error(`    Match:   "${v.match}"`);
+    console.error(`    Message: ${v.message}\n`);
+  }
+  process.exit(1);
+}
