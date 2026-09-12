@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { createProject, getProjectBySlug, updateProject } from "@/db";
 import { getStorage, getStorageType } from "@/lib/storage";
 import { extractMetadataFromHtml, unpackZipBundle } from "@/lib/parser";
+import { captureProjectScreenshot } from "@/lib/services/screenshot-service";
 import type { Project } from "@/db/schema";
 
 export interface CreateProjectInput {
@@ -128,6 +129,18 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
     planTier: "free",
   });
 
+  // Automatically capture initial screenshot if not already provided
+  if (!project.screenshotUrl) {
+    try {
+      const capturedUrl = await captureProjectScreenshot(project.slug);
+      if (capturedUrl) {
+        project.screenshotUrl = capturedUrl;
+      }
+    } catch (screenshotErr) {
+      console.warn(`[ProjectService] Auto screenshot capture skipped for ${project.slug}:`, screenshotErr);
+    }
+  }
+
   return project;
 }
 
@@ -156,6 +169,19 @@ export async function updateProjectHtml(
   const filePath = `${project.storagePrefix}/${project.entryPath}`;
   await storage.uploadFile(filePath, newHtml, "text/html; charset=utf-8");
 
-  const updated = await updateProject(id, {});
+  // Re-capture screenshot because HTML content has been updated
+  let updatedScreenshotUrl: string | undefined = undefined;
+  try {
+    const captured = await captureProjectScreenshot(project.slug);
+    if (captured) {
+      updatedScreenshotUrl = captured;
+    }
+  } catch (screenshotErr) {
+    console.warn(`[ProjectService] Re-capture on HTML update skipped for ${project.slug}:`, screenshotErr);
+  }
+
+  const updated = await updateProject(id, {
+    ...(updatedScreenshotUrl ? { screenshotUrl: updatedScreenshotUrl } : {}),
+  });
   return updated || project;
 }

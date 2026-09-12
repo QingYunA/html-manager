@@ -5,6 +5,7 @@ import { getCurrentUser, assertCanManageProject } from "@/lib/auth";
 import { updateProject, getProjectById } from "@/db";
 import { getStorage } from "@/lib/storage";
 import { updateProjectInputSchema } from "@/lib/validation";
+import { captureProjectScreenshot } from "@/lib/services/screenshot-service";
 
 export async function updateProjectFullAction(
   id: string,
@@ -34,11 +35,22 @@ export async function updateProjectFullAction(
 
   assertCanManageProject(user, project);
 
-  // If HTML code is provided and it's single_html, update storage
+  let newScreenshotUrl: string | undefined = undefined;
+
+  // If HTML code is provided and it's single_html, update storage and re-capture screenshot
   if (validated.htmlCode && project.assetType === "single_html") {
     const storage = getStorage();
     const filePath = `${project.storagePrefix}/${project.entryPath}`;
     await storage.uploadFile(filePath, validated.htmlCode, "text/html; charset=utf-8");
+
+    try {
+      const captured = await captureProjectScreenshot(project.slug);
+      if (captured) {
+        newScreenshotUrl = captured;
+      }
+    } catch (screenshotErr) {
+      console.warn(`[EditAction] Re-capture screenshot skipped for ${project.slug}:`, screenshotErr);
+    }
   }
 
   const updated = await updateProject(id, {
@@ -48,6 +60,7 @@ export async function updateProjectFullAction(
     tags: validated.tags,
     visibility: validated.visibility,
     isPinned: validated.isPinned,
+    ...(newScreenshotUrl ? { screenshotUrl: newScreenshotUrl } : {}),
   });
 
   revalidatePath("/");
