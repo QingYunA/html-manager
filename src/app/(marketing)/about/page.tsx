@@ -5,16 +5,16 @@ const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
 
 export const metadata: Metadata = {
-  title: "About Pagepod - Mission & Architecture for AI Artifacts",
+  title: "About Pagepod - Mission & Architecture",
   description:
-    "Learn about Pagepod, an open-source, self-hostable showcase and hosting platform tailored for AI-generated HTML single-page apps, interactive tools, and games.",
+    "Learn about Pagepod, an open-source, self-hostable showcase and hosting platform tailored for HTML web applications, interactive tools, and games.",
   alternates: {
     canonical: "/about",
   },
   openGraph: {
     title: "About Pagepod | Mission & Architecture",
     description:
-      "Instant hosting platform tailored for Claude Artifacts, ChatGPT Canvas & AI-generated HTML single-page apps.",
+      "Instant hosting platform tailored for HTML web applications, tools, and prototypes.",
     url: `${siteUrl}/about`,
     type: "website",
   },

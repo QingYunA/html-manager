@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // If private without public access, disallow search engine indexing
   if (project.visibility === "private") {
     return {
-      title: "Private Artifact",
+      title: "Private Project",
       description: "Private project on Pagepod.",
       robots: { index: false, follow: false },
     };
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const projectTitle = project.title || slug;
   const projectDesc =
     project.description ||
-    `Interactive AI artifact: ${projectTitle}. Hosted and safely sandboxed on Pagepod. Run, preview and explore source code online.`;
+    `Interactive HTML project: ${projectTitle}. Hosted and safely sandboxed on Pagepod. Run, preview and explore source code online.`;
   const canonicalUrl = `/p/${slug}`;
 
   return {
@@ -48,9 +48,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     keywords: [
       projectTitle,
       project.category || "tool",
-      "AI HTML Artifact",
-      "Claude Artifacts runner",
-      "ChatGPT Canvas preview",
+      "HTML web app",
+      "HTML runner",
       "online runner",
       "Pagepod",
     ],
@@ -95,7 +94,7 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
   );
 
   // Record the view only after the response is sent, and never for unauthorized
-  // requests to a private artifact. This keeps a non-critical write off the render path.
+  // requests to a private project. This keeps a non-critical write off the render path.
   after(() => {
     if (project.visibility !== "private" || isExactCreator) {
       incrementViewCount(slug).catch(() => {});
@@ -147,7 +146,7 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
           headline: project.title || slug,
           description:
             project.description ||
-            `Interactive AI artifact ${project.title || slug} online on Pagepod`,
+            `Interactive HTML project ${project.title || slug} online on Pagepod`,
           applicationCategory: project.category || "UtilitiesApplication",
           operatingSystem: "All",
           url: `${siteUrl}/p/${slug}`,

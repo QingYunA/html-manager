@@ -288,7 +288,7 @@ export default function RunnerClient({
             </Button>
           </div>
 
-          {/* Related Artifacts Showcase */}
+          {/* Related Projects Showcase */}
           {relatedProjects.length > 0 && (
             <div className="pt-2 border-t border-border/50">
               <div className="flex items-center gap-1.5 text-[11px] font-medium text-foreground mb-2">
@@ -384,7 +384,7 @@ export default function RunnerClient({
           <Link
             href="/"
             target="_blank"
-            title="Hosted on Pagepod - Free AI HTML Artifact Sandbox"
+            title="Hosted on Pagepod - Free HTML Sandbox"
             className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/80 backdrop-blur-md border border-border text-[10px] font-mono text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all shadow-xs"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-hover:animate-pulse" />
@@ -427,7 +427,7 @@ export default function RunnerClient({
                   </Badge>
                   {project.assetType && (
                     <Badge variant="secondary" className="text-xs font-mono">
-                      {project.assetType === "single_html" ? "Single File HTML" : "Bundle Zip"}
+                      {project.assetType === "single_html" ? "HTML" : "Zip Bundle"}
                     </Badge>
                   )}
                   <span className="text-xs text-muted-foreground font-mono">
@@ -441,7 +441,7 @@ export default function RunnerClient({
 
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {project.description ||
-                    `Interactive AI single-page application: ${project.title}. Created with Claude Artifacts, ChatGPT Canvas or modern web utilities, safely sandboxed and hosted on Pagepod.`}
+                    `Interactive web application: ${project.title}. Safely sandboxed and hosted on Pagepod.`}
                 </p>
 
                 {/* Tags */}
@@ -516,7 +516,7 @@ export default function RunnerClient({
               </div>
             </div>
 
-            {/* Related Artifacts Showcase (Internal Link Powerhouse) */}
+            {/* Related Projects Showcase (Internal Link Powerhouse) */}
             {relatedProjects.length > 0 && (
               <div className="space-y-4 pt-6 border-t border-border">
                 <div className="flex items-center justify-between">
@@ -548,7 +548,7 @@ export default function RunnerClient({
                           {rel.title}
                         </h4>
                         <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">
-                          {rel.description || "Interactive AI single-page artifact hosted on Pagepod."}
+                          {rel.description || "Interactive HTML project hosted on Pagepod."}
                         </p>
                       </div>
                       <div className="pt-3 mt-3 border-t border-border/60 flex items-center justify-between text-[10px] font-mono text-muted-foreground">

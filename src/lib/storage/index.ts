@@ -66,7 +66,7 @@ export function getStorage(): StorageProvider {
     console.error(
       "[STORAGE] No cloud storage configured (BLOB_READ_WRITE_TOKEN or R2_*). " +
         "Falling back to the local filesystem, which is EPHEMERAL on this platform — " +
-        "uploaded artifacts may be lost after a redeploy or instance recycle."
+        "uploaded files may be lost after a redeploy or instance recycle."
     );
   }
 

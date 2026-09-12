@@ -76,7 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    // Quality Gate: Only expose public, non-test artifacts with descriptive metadata
+    // Quality Gate: Only expose public, non-test projects with descriptive metadata
     // Prevents low-quality placeholder pages from diluting crawl budget or triggering search penalties.
     const projects = await getAllProjects({ includePrivate: false });
     const isTestSlugOrTitle = (slug: string, title?: string | null) => {

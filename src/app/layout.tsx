@@ -16,18 +16,18 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Pagepod - Host & Run AI HTML Artifacts, Web Apps & Tools",
+    default: "Pagepod - Host & Run HTML Apps, Web Tools & Prototypes",
     template: "%s | Pagepod",
   },
   description:
-    "Instant zero-config hosting and discovery platform for Claude Artifacts, ChatGPT Canvas and AI-generated single-page HTML apps. Safe sandbox isolation with 0 egress bandwidth cost.",
+    "Instant zero-config hosting and discovery platform for HTML applications, interactive web tools, games, and prototypes. Safe sandbox isolation with 0 egress bandwidth cost.",
   keywords: [
-    "Claude Artifacts hosting",
-    "ChatGPT Canvas HTML runner",
-    "AI HTML showcase",
-    "run HTML artifacts online",
-    "single page app hosting",
-    "HTML tool runner",
+    "HTML hosting",
+    "HTML runner",
+    "web app showcase",
+    "HTML sandbox",
+    "run HTML online",
+    "web tools",
     "Pagepod",
   ],
   authors: [{ name: "Pagepod Team" }],
@@ -57,15 +57,15 @@ export const metadata: Metadata = {
     alternateLocale: ["zh_CN"],
     url: siteUrl,
     siteName: "Pagepod",
-    title: "Pagepod - Host & Run AI HTML Artifacts Online",
+    title: "Pagepod - Host & Run HTML Apps Online",
     description:
-      "Instant zero-config hosting and discovery platform for Claude Artifacts, ChatGPT Canvas and AI-generated single-page apps.",
+      "Instant zero-config hosting and discovery platform for HTML applications, interactive web tools, games, and prototypes.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Pagepod - Host & Run AI HTML Artifacts Online",
+    title: "Pagepod - Host & Run HTML Apps Online",
     description:
-      "Instant zero-config hosting and discovery platform for Claude Artifacts, ChatGPT Canvas and AI-generated single-page apps.",
+      "Instant zero-config hosting and discovery platform for HTML applications, interactive web tools, games, and prototypes.",
   },
   robots: {
     index: true,
@@ -88,7 +88,7 @@ const rootJsonLd = {
   applicationCategory: "DeveloperApplication",
   operatingSystem: "All",
   description:
-    "Instant zero-config hosting and discovery platform for Claude Artifacts, ChatGPT Canvas and AI-generated single-page HTML apps.",
+    "Instant zero-config hosting and discovery platform for HTML applications, interactive web tools, games, and prototypes.",
   offers: {
     "@type": "Offer",
     price: "0",

@@ -326,7 +326,7 @@ export default function WorkspaceUploadPage() {
             发布与托管 HTML
           </h1>
           <p className="text-xs text-muted-foreground">
-            支持单文件 HTML 拖拽上传、静态资源 Zip 压缩包自动平铺解压，或直接粘贴 AI 产出的源代码。
+            支持 HTML 拖拽上传、静态资源 Zip 压缩包自动解压平铺，或直接粘贴源代码。
           </p>
         </div>
 

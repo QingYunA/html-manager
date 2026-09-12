@@ -1,6 +1,6 @@
 /**
  * Static Analysis Scanner for Sensitive Credentials & Tokens
- * Scans HTML, CSS, and JS source code before making an artifact public.
+ * Scans HTML, CSS, and JS source code before making a project public.
  */
 
 export interface SensitiveRiskMatch {

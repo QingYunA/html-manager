@@ -17,8 +17,8 @@ export default function ApiTokenGuideModal({ configuredTokens: _configuredTokens
 
   const curlExample = `curl -X POST https://your-domain.com/api/upload \\
   -H "Authorization: Bearer YOUR_API_TOKEN" \\
-  -F "file=@artifact.html" \\
-  -F "title=My AI Tool" \\
+  -F "file=@my-tool.html" \\
+  -F "title=My Web Tool" \\
   -F "category=tools"`;
 
   const jsonExample = `curl -X POST https://your-domain.com/api/upload \\

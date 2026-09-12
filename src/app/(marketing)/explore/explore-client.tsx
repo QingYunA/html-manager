@@ -184,7 +184,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
           <div className="text-center py-16 border border-dashed border-border rounded-xl">
             <Compass className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
             <p className="text-xs text-muted-foreground mb-4">
-              {locale === "zh" ? "该专题下暂无公开项目" : "No public artifacts under this topic yet"}
+              {locale === "zh" ? "该专题下暂无公开项目" : "No public projects under this topic yet"}
             </p>
             <Button size="sm" asChild className="h-8 text-xs">
               <Link href="/workspace/upload">

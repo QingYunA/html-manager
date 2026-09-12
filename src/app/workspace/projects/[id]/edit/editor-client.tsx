@@ -295,7 +295,7 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
               </div>
               <h3 className="text-sm font-semibold text-foreground">此项目为 Zip 多资源包</h3>
               <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                包含独立引用的相对路径图片与脚本资源，不支持单文件行内编辑。如需更新静态资源，请在发布页重新上传新的压缩包。
+                包含独立引用的相对路径图片与脚本资源，暂不支持在线直接编辑。如需更新静态资源，请重新上传新的压缩包。
               </p>
               <Button
                 variant="outline"

@@ -5,16 +5,16 @@ const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
 
 export const metadata: Metadata = {
-  title: "Pricing & Lifetime Deals - Free AI HTML Hosting & Pro Cloud",
+  title: "Pricing & Lifetime Deals - Free HTML Hosting & Pro Cloud",
   description:
-    "Explore transparent lifetime pricing for Pagepod. Free tier for hosting AI artifacts, Lite Lifetime for 10GB storage, and Pro Lifetime with 50GB storage, white-label, and custom subdomains.",
+    "Explore transparent lifetime pricing for Pagepod. Free tier for hosting HTML projects, Lite Lifetime for 10GB storage, and Pro Lifetime with 50GB storage, white-label, and custom subdomains.",
   alternates: {
     canonical: "/pricing",
   },
   openGraph: {
     title: "Pricing & Lifetime Plans | Pagepod",
     description:
-      "Simple, transparent lifetime pricing for AI creators. Free hosting with private protection, Lite & Pro lifetime deals with generous storage and custom subdomains.",
+      "Simple, transparent lifetime pricing for developers and creators. Free hosting with private protection, Lite & Pro lifetime deals with generous storage and custom subdomains.",
     url: `${siteUrl}/pricing`,
     type: "website",
   },
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Pricing & Lifetime Plans | Pagepod",
     description:
-      "Simple, transparent lifetime pricing for AI creators. Free hosting with private protection, Lite & Pro lifetime deals with generous storage and custom subdomains.",
+      "Simple, transparent lifetime pricing for developers and creators. Free hosting with private protection, Lite & Pro lifetime deals with generous storage and custom subdomains.",
   },
 };
 
@@ -46,7 +46,7 @@ export default function PricingPage() {
         name: "How does private project protection work for Free users?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Privacy is a core standard for all users. When you mark an artifact as Private, our backend strictly enforces account-level access control. Unauthenticated visitors are blocked with 403 Forbidden.",
+          text: "Privacy is a core standard for all users. When you mark a project as Private, our backend strictly enforces account-level access control. Unauthenticated visitors are blocked with 403 Forbidden.",
         },
       },
       {
@@ -54,7 +54,7 @@ export default function PricingPage() {
         name: "How does the Pro Custom Subdomain feature work?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Every project has a unique slug. Pro users can share clean URLs like https://your-project.pagepod.dev. Our edge proxy routes directly to your artifact with the subdomain intact in the browser address bar.",
+          text: "Every project has a unique slug. Pro users can share clean URLs like https://your-project.pagepod.dev. Our edge proxy routes directly to your project with the subdomain intact in the browser address bar.",
         },
       },
       {
@@ -62,7 +62,7 @@ export default function PricingPage() {
         name: "How does Pagepod differ from traditional Vercel or GitHub Pages?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Pagepod is purpose-built for AI-generated single-page HTML artifacts (Claude Artifacts, ChatGPT Canvas, v0). No git repositories or npm install required. Drag, drop or paste code for instant sandboxed execution with live gallery discovery.",
+          text: "Pagepod is purpose-built for HTML files, tools, and web applications. No git repositories or npm install required. Drag, drop or paste code for instant sandboxed execution with live gallery discovery.",
         },
       },
       {
@@ -70,7 +70,7 @@ export default function PricingPage() {
         name: "What file formats and upload sizes are supported?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Single .html files, raw pasted HTML code, and .zip archives containing CSS, JS, and image assets up to 50MB per upload. Relative references are automatically resolved.",
+          text: "Pasted HTML code, .html files, and .zip archives containing CSS, JS, and image assets up to 50MB per upload. Relative references are automatically resolved.",
         },
       },
     ],

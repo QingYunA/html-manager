@@ -284,11 +284,11 @@ export const translations = {
         },
         {
           q: "Pagepod 和传统的 Vercel / GitHub Pages 有什么区别？",
-          a: "Pagepod 专为 AI 代码产物与前端原型打造。无需配置 Git 仓库、npm install 或运行复杂的构建流水线，直接拖拽或粘贴 HTML 代码即可秒级在线运行，并自带响应式调试沙箱与画廊展示。",
+          a: "Pagepod 专为 HTML 页面与前端原型打造。无需配置 Git 仓库、npm install 或运行复杂的构建流水线，直接拖拽或粘贴 HTML 代码即可秒级在线运行，并自带响应式调试沙箱与画廊展示。",
         },
         {
           q: "支持哪些类型的文件上传？",
-          a: "支持直接粘贴 HTML 代码、上传单文件 `.html`，以及包含 CSS、JS、图片等完整静态资源的 `.zip` 压缩包。系统会自动解析入口文件并安全加载所有相对路径资源，单文件最大支持 50MB。",
+          a: "支持直接粘贴 HTML 代码、上传 `.html` 文件，以及包含 CSS、JS、图片等完整静态资源的 `.zip` 压缩包。系统会自动解析入口文件并安全加载所有相对路径资源，单个文件最大支持 50MB。",
         },
       ],
     },
@@ -305,11 +305,11 @@ export const translations = {
     aboutPage: {
       badge: "设计初衷 · Rationale",
       title: "为什么构建 Pagepod",
-      subtitle: "大语言模型让交互式代码的诞生前所未有的迅捷。无数令人惊叹的计算器、生成艺术与微型工具在对话框中诞生，却往往在短暂的对话后被遗忘。Pagepod 为这些散落的代码提供持久的容器、纯净的沙箱与优雅的展示空间。",
+      subtitle: "无论是日常编写的互动小工具、网页轻游戏，还是前端界面原型与实验，Pagepod 为这些 HTML 代码提供持久的容器、纯净的沙箱与优雅的展示空间。",
       pillars: [
         {
           title: "瞬时就绪 (Instant Runtime)",
-          desc: "零仓库依赖，零构建流水线。单文件 HTML 或 Zip 资源即传即开，毫秒级响应。",
+          desc: "零仓库依赖，零构建流水线。HTML 文件或 Zip 资源包即传即开，毫秒级响应。",
         },
         {
           title: "严格账号级权限隔离与私有保护",
@@ -484,7 +484,7 @@ export const translations = {
       embedTitle: "Embed into your site or blog",
       embedDesc: "Copy the standard iframe code below to embed into Notion, blogs, or websites:",
       copyEmbed: "Copy Embed Code",
-      relatedTitle: "Related Artifacts",
+      relatedTitle: "Related Projects",
       initializingSandbox: "Initializing secure sandbox...",
       reloading: "Reloading...",
     },
@@ -547,7 +547,7 @@ export const translations = {
       loginTitle: "Log in to your account",
       signupTitle: "Create an account",
       loginSubtitle: "Choose your preferred sign-in method to access Pagepod",
-      signupSubtitle: "Enter your email and password to start hosting AI artifacts",
+      signupSubtitle: "Enter your email and password to start hosting HTML projects",
       selfhostTitle: "Self-hosted Admin Access",
       selfhostSubtitle: "Enter the ADMIN_PASSWORD environment variable configured on your server",
       githubBtn: "Continue with GitHub",
@@ -659,19 +659,19 @@ export const translations = {
         },
         {
           q: "How does private project protection work for Free users?",
-          a: "Privacy is a core right for all users. When you mark an artifact as Private, our backend strictly enforces account-level access control. Unauthenticated visitors are blocked with 403 Forbidden, and only you can view and run it when signed in.",
+          a: "Privacy is a core right for all users. When you mark a project as Private, our backend strictly enforces account-level access control. Unauthenticated visitors are blocked with 403 Forbidden, and only you can view and run it when signed in.",
         },
         {
           q: "How does the Pro Custom Subdomain feature work?",
-          a: "Every project has a unique slug. Pro users can share clean URLs like https://your-project.pagepod.dev. Our edge proxy routes directly to your artifact with the subdomain intact in the browser address bar.",
+          a: "Every project has a unique slug. Pro users can share clean URLs like https://your-project.pagepod.dev. Our edge proxy routes directly to your project with the subdomain intact in the browser address bar.",
         },
         {
           q: "How does Pagepod differ from traditional Vercel or GitHub Pages?",
-          a: "Pagepod is made for single-file HTML and AI artifacts (Claude Artifacts, ChatGPT Canvas, v0). You don't need Git repos, Node setup, or build pipelines. Just drop files or paste code to get a live shareable URL and a responsive sandbox.",
+          a: "Pagepod is made for HTML and web applications. You don't need Git repos, Node setup, or build pipelines. Just drop files or paste code to get a live shareable URL and a responsive sandbox.",
         },
         {
           q: "What file formats and upload sizes are supported?",
-          a: "Single `.html` files, pasted HTML code, and `.zip` archives containing CSS, JS, and image assets up to 50MB per upload. Pagepod automatically resolves index entrypoints and relative paths.",
+          a: "Pasted HTML code, `.html` files, and `.zip` archives containing CSS, JS, and image assets up to 50MB per upload. Pagepod automatically resolves index entrypoints and relative paths.",
         },
       ],
     },
@@ -683,12 +683,12 @@ export const translations = {
       openInRunner: "Run in sandbox",
       popularTags: "Explore by ecosystem",
       filterCategory: "Browse by topic",
-      itemsCount: "artifacts",
+      itemsCount: "projects",
     },
     aboutPage: {
       badge: "Design Rationale",
       title: "Why we built Pagepod",
-      subtitle: "Large language models generate functional web applications in seconds. Countless interactive tools, visual experiments, and prototypes are born in chats, only to be lost when the conversation ends. Pagepod gives them a permanent container, a hardened sandbox, and a curated stage.",
+      subtitle: "Whether it is an interactive utility, a canvas mini-game, or a frontend prototype, Pagepod gives standalone HTML files a permanent home, a hardened sandbox, and an elegant showcase.",
       pillars: [
         {
           title: "Instant Runtime",
@@ -696,7 +696,7 @@ export const translations = {
         },
         {
           title: "Strict Account-Level Privacy Protection",
-          desc: "All users can mark artifacts Private with one click. Our platform enforces strict account-level access control, blocking unauthorized visitors and crawlers completely.",
+          desc: "All users can mark projects Private with one click. Our platform enforces strict account-level access control, blocking unauthorized visitors and crawlers completely.",
         },
         {
           title: "Hardened Isolation",
@@ -718,16 +718,16 @@ export const translations = {
       subtitle: "Pagepod is committed to strict data ownership, security sandboxing, and account-level privacy isolation. This policy outlines how your data is handled across our platform.",
       sections: [
         {
-          title: "1. Account-Level Private Artifact Protection",
-          content: "When you mark an artifact as Private, our backend strictly enforces account-level access control. Unauthenticated visitors and search engine crawlers are blocked with 403 Forbidden. Only you can access, preview, or run your private projects when signed into your account.",
+          title: "1. Account-Level Private Project Protection",
+          content: "When you mark a project as Private, our backend strictly enforces account-level access control. Unauthenticated visitors and search engine crawlers are blocked with 403 Forbidden. Only you can access, preview, or run your private projects when signed into your account.",
         },
         {
-          title: "2. Public Artifacts & Sandbox Execution",
-          content: "Artifacts published as Public are intentionally accessible for discovery in our showcase gallery. All standalone executions run under strict HTML5 sandbox isolation to physically isolate third-party scripts from host cookies and authentication tokens.",
+          title: "2. Public Projects & Sandbox Execution",
+          content: "Projects published as Public are intentionally accessible for discovery in our showcase gallery. All standalone executions run under strict HTML5 sandbox isolation to physically isolate third-party scripts from host cookies and authentication tokens.",
         },
         {
           title: "3. Information We Collect",
-          content: "In Cloud SaaS mode, we collect minimal account data (email) via GitHub or Google OAuth through Supabase Auth, along with titles, descriptions, and tags you explicitly attach to artifacts.",
+          content: "In Cloud SaaS mode, we collect minimal account data (email) via GitHub or Google OAuth through Supabase Auth, along with titles, descriptions, and tags you explicitly attach to projects.",
         },
         {
           title: "4. Third-Party Infrastructure",
@@ -742,7 +742,7 @@ export const translations = {
     termsPage: {
       badge: "Last Updated: September 2026",
       title: "Terms of Service",
-      subtitle: "Please read these terms carefully before deploying or publishing artifacts on Pagepod.",
+      subtitle: "Please read these terms carefully before deploying or publishing projects on Pagepod.",
       sections: [
         {
           title: "1. Acceptance of Terms",
@@ -750,11 +750,11 @@ export const translations = {
         },
         {
           title: "2. User Content & Ownership",
-          content: "You retain all intellectual property rights to the HTML files, JavaScript code, and assets you publish or host on Pagepod. By marking a project as Public, you grant visitors a non-exclusive license to inspect, execute, and interact with the artifact in accordance with the open web.",
+          content: "You retain all intellectual property rights to the HTML files, JavaScript code, and assets you publish or host on Pagepod. By marking a project as Public, you grant visitors a non-exclusive license to inspect, execute, and interact with the project in accordance with the open web.",
         },
         {
           title: "3. Acceptable Use Policy",
-          content: "You agree not to host or distribute artifacts designed for phishing, malware distribution, cryptocurrency mining, or illegal content. Artifacts detected performing malicious activities will be immediately taken down.",
+          content: "You agree not to host or distribute projects designed for phishing, malware distribution, cryptocurrency mining, or illegal content. Content detected performing malicious activities will be immediately taken down.",
         },
         {
           title: "4. Sandboxing & Security Disclaimer",
