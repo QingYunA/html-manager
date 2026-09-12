@@ -183,7 +183,7 @@ export const translations = {
       updatePasswordBtn: "确认修改并登录",
       updatingPassword: "正在更新...",
       passwordUpdatedSuccess: "密码修改成功，正在为你登录...",
-      emailAlreadyRegistered: "该邮箱已注册，请直接切换到【登录】Tab 登录，或使用新邮箱测试",
+      emailAlreadyRegistered: "该邮箱已被注册，请直接登录或使用忘记密码找回",
     },
     pricing: {
       badge: "终身买断 · 透明方案",
@@ -535,7 +535,7 @@ export const translations = {
       updatePasswordBtn: "Update Password & Sign In",
       updatingPassword: "Updating...",
       passwordUpdatedSuccess: "Password updated! Redirecting to workspace...",
-      emailAlreadyRegistered: "This email is already registered. Please sign in or use a different email.",
+      emailAlreadyRegistered: "This email is already registered. Please sign in or reset your password.",
     },
     pricing: {
       badge: "Lifetime Deals · Transparent",
