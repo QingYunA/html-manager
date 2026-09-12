@@ -1,4 +1,20 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+/* Explicit keyframes with both 0% and 100% to fix matrix decomposition deadlock in Chrome/Safari */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+  transform-origin: center;
+}
 
 @custom-variant dark (&:where(.dark, .dark *));
 

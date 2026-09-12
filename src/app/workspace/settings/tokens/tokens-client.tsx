@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Key, Plus, Trash2, Copy, Check, Terminal, ShieldCheck, AlertCircle } from "lucide-react";
+import { Key, Plus, Trash2, Copy, Check, Terminal, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
 import type { ApiToken } from "@/db/schema";
 import { createTokenAction, deleteTokenAction } from "@/app/actions/tokens";
 import { Button } from "@/components/ui/button";
@@ -207,7 +207,14 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
                 取消
               </Button>
               <Button type="submit" size="sm" disabled={loading} className="h-8 text-xs font-medium cursor-pointer">
-                {loading ? "正在生成..." : "立即生成"}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    <span>正在生成...</span>
+                  </>
+                ) : (
+                  "立即生成"
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -255,7 +262,14 @@ export default function TokensClient({ initialTokens }: TokensClientProps) {
               onClick={handleConfirmDelete}
               className="h-8 text-xs font-medium cursor-pointer"
             >
-              {deleting ? "正在撤销..." : "确认撤销"}
+              {deleting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                  <span>正在撤销...</span>
+                </>
+              ) : (
+                "确认撤销"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

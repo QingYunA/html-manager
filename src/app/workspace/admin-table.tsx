@@ -294,7 +294,10 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                 return (
                   <Card
                     key={item.id}
-                    className="group relative flex flex-col overflow-hidden border-border bg-card/80 hover:border-neutral-500 transition-all duration-150 shadow-xs"
+                    className={cn(
+                      "group relative flex flex-col overflow-hidden border-border bg-card/80 hover:border-neutral-500 transition-all duration-200 shadow-xs",
+                      deletingId === item.id && "opacity-40 scale-[0.98] pointer-events-none"
+                    )}
                   >
                     {/* Miniature 16:9 Sandbox Viewport with Hover-Activated Sandbox */}
                     <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
@@ -475,7 +478,13 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                   const CategoryIcon = cat?.icon || Layers;
 
                   return (
-                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                    <tr
+                      key={item.id}
+                      className={cn(
+                        "hover:bg-muted/30 transition-all duration-200",
+                        deletingId === item.id && "opacity-40 pointer-events-none"
+                      )}
+                    >
                       {/* Pin toggle */}
                       <td className="py-3 px-3 text-center">
                         <Button

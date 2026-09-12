@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { loginAdmin, loginWithEmailAction } from "@/app/actions/auth";
 import { createSupabaseClient, isClientCloudMode } from "@/lib/supabase/client";
 import Link from "next/link";
-import { ArrowLeft, Key } from "lucide-react";
+import { ArrowLeft, Key, Loader2 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,7 +169,16 @@ function LoginForm() {
             disabled={isEmailPending}
             className="w-full h-9 text-xs font-medium cursor-pointer"
           >
-            {isEmailPending ? t.auth.loading : isSignUp ? t.auth.signupBtn : t.auth.loginBtn}
+            {isEmailPending ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                <span>{t.auth.loading}</span>
+              </>
+            ) : isSignUp ? (
+              t.auth.signupBtn
+            ) : (
+              t.auth.loginBtn
+            )}
           </Button>
         </form>
 
@@ -229,7 +238,14 @@ function LoginForm() {
           disabled={isAdminPending}
           className="w-full h-9 text-xs font-medium cursor-pointer"
         >
-          {isAdminPending ? t.auth.loading : t.auth.selfhostBtn}
+          {isAdminPending ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+              <span>{t.auth.loading}</span>
+            </>
+          ) : (
+            t.auth.selfhostBtn
+          )}
         </Button>
       </form>
     </div>
