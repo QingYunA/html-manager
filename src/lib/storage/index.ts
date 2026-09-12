@@ -5,6 +5,7 @@ import { CloudflareR2StorageProvider } from "./cloudflare-r2";
 
 export * from "./types";
 export * from "./mime";
+export * from "./project-storage";
 
 let storageInstance: StorageProvider | null = null;
 

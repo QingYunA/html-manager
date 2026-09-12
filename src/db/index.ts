@@ -339,6 +339,11 @@ export async function getAllProjects(options?: {
   return list;
 }
 
+export async function getUserProjectsCount(userId: string): Promise<number> {
+  const projects = await getAllProjects({ userId, includePrivate: true });
+  return projects.length;
+}
+
 export async function getProjectBySlug(slug: string): Promise<Project | null> {
   const db = getDatabase();
   if (db) {
