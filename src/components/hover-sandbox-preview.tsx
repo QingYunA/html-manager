@@ -27,6 +27,7 @@ interface HoverSandboxPreviewProps {
   title: string;
   category?: string;
   fileSize?: number;
+  screenshotUrl?: string | null;
   openRunnerText?: string;
   variant?: "card" | "table-cell";
   icon?: React.ComponentType<{ className?: string }>;
@@ -62,6 +63,7 @@ export default function HoverSandboxPreview({
   title,
   category = "tools",
   fileSize = 0,
+  screenshotUrl,
   openRunnerText,
   variant = "card",
   icon: CustomIcon,
@@ -240,7 +242,16 @@ export default function HoverSandboxPreview({
         }}
         className="w-14 aspect-video rounded overflow-hidden bg-neutral-900/90 border border-border/80 shrink-0 relative flex items-center justify-center cursor-pointer select-none group/cell shadow-2xs hover:border-neutral-500 transition-colors"
       >
-        <div className="absolute inset-0 bg-neutral-950/40" />
+        {screenshotUrl ? (
+          <img
+            src={screenshotUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover object-top opacity-50 group-hover/cell:opacity-80 transition-opacity"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-neutral-950/40" />
+        )}
 
         {/* Mini Progress Circle */}
         <svg
@@ -300,6 +311,14 @@ export default function HoverSandboxPreview({
             style={{ top: popoverPos.top, left: popoverPos.left }}
             className="fixed z-[9999] w-72 aspect-video bg-neutral-950 border border-neutral-700 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
           >
+            {screenshotUrl && !iframeLoaded && (
+              <img
+                src={screenshotUrl}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover object-top opacity-50 pointer-events-none"
+              />
+            )}
             <iframe
               key={iframeKey}
               src={`/raw/${slug}`}
@@ -365,6 +384,14 @@ export default function HoverSandboxPreview({
       {/* 1. Active Sandboxed iframe Layer */}
       {isCardActive && (
         <>
+          {screenshotUrl && !iframeLoaded && !hasTimedOut && !hasScriptError && (
+            <img
+              src={screenshotUrl}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover object-top opacity-50 pointer-events-none"
+            />
+          )}
           <iframe
             key={iframeKey}
             src={`/raw/${slug}`}
@@ -491,44 +518,60 @@ export default function HoverSandboxPreview({
         </>
       )}
 
-      {/* 2. Idle State: High-End Static Blueprint Poster (Zero iframe Overhead) */}
+      {/* 2. Idle State: High-End Static Screenshot Poster or Blueprint Poster (Zero iframe Overhead) */}
       {!isCardActive && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#070709] transition-colors">
-          {/* A. Blueprint Dot Matrix Grid Background */}
-          <div
-            className="absolute inset-0 opacity-20 pointer-events-none"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, #71717a 1px, transparent 0)",
-              backgroundSize: "16px 16px",
-            }}
-          />
+          {screenshotUrl ? (
+            <div className="absolute inset-0 overflow-hidden bg-neutral-950">
+              <img
+                src={screenshotUrl}
+                alt={title}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover object-top transition-transform duration-500 ease-out group-hover/sandbox:scale-[1.03]"
+              />
+              {/* Subtle gradient vignette at bottom so pills & actions remain legible */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent pointer-events-none" />
+            </div>
+          ) : (
+            <>
+              {/* A. Blueprint Dot Matrix Grid Background */}
+              <div
+                className="absolute inset-0 opacity-20 pointer-events-none"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(circle at 1px 1px, #71717a 1px, transparent 0)",
+                  backgroundSize: "16px 16px",
+                }}
+              />
 
-          {/* B. Subtle Category Watermark & Code Wireframe Decoration */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none select-none">
-            <BackgroundIcon className="w-32 h-32 stroke-[1]" />
-          </div>
-
-          {/* Decorative Wireframe Window Skeleton */}
-          <div className="absolute inset-3 rounded border border-neutral-800/60 bg-neutral-950/40 p-3 flex flex-col justify-between pointer-events-none">
-            <div className="flex items-center justify-between opacity-30">
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-neutral-600" />
-                <span className="w-1.5 h-1.5 rounded-full bg-neutral-700" />
-                <span className="w-1.5 h-1.5 rounded-full bg-neutral-700" />
+              {/* B. Subtle Category Watermark & Code Wireframe Decoration */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none select-none">
+                <BackgroundIcon className="w-32 h-32 stroke-[1]" />
               </div>
-              <span className="text-[9px] font-mono text-neutral-500 tracking-wider">
-                {category.toUpperCase()}
-              </span>
-            </div>
 
-            {/* Abstract Wireframe Skeleton Lines */}
-            <div className="space-y-1.5 opacity-20 my-auto">
-              <div className="h-1 bg-neutral-700 rounded-full w-2/3" />
-              <div className="h-1 bg-neutral-800 rounded-full w-4/5" />
-              <div className="h-1 bg-neutral-800 rounded-full w-1/2" />
-            </div>
-          </div>
+              {/* Decorative Wireframe Window Skeleton */}
+              <div className="absolute inset-3 rounded border border-neutral-800/60 bg-neutral-950/40 p-3 flex flex-col justify-between pointer-events-none">
+                <div className="flex items-center justify-between opacity-30">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-600" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-700" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-700" />
+                  </div>
+                  <span className="text-[9px] font-mono text-neutral-500 tracking-wider">
+                    {category.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Abstract Wireframe Skeleton Lines */}
+                <div className="space-y-1.5 opacity-20 my-auto">
+                  <div className="h-1 bg-neutral-700 rounded-full w-2/3" />
+                  <div className="h-1 bg-neutral-800 rounded-full w-4/5" />
+                  <div className="h-1 bg-neutral-800 rounded-full w-1/2" />
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Large File Warning Badge in top-right of the viewport */}
           {isLargeFile && (

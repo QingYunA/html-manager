@@ -68,6 +68,7 @@ export const translations = {
       privacy: "隐私政策",
       terms: "服务条款",
       status: "系统状态",
+      contact: "联系我们",
     },
     runner: {
       back: "返回画廊",
@@ -333,6 +334,11 @@ export const translations = {
       communityDesc: "Pagepod 基于 MIT 协议开源。欢迎在 GitHub 上提交 Issue、贡献代码或分享你的 HTML 作品。",
       viewGitHub: "在 GitHub 上查看源码",
       startDeploy: "开始上传 HTML",
+      contactTitle: "联系与支持",
+      contactDesc: "有任何问题、定制部署或反馈？欢迎随时向我们发送邮件。",
+      contactButton: "发送邮件",
+      copyEmail: "复制邮箱",
+      copied: "已复制",
     },
     privacyPage: {
       badge: "更新日期：2026 年 9 月",
@@ -456,6 +462,7 @@ export const translations = {
       privacy: "Privacy Policy",
       terms: "Terms of Service",
       status: "System Status",
+      contact: "Contact Us",
     },
     runner: {
       back: "Back to Gallery",
@@ -721,6 +728,11 @@ export const translations = {
       communityDesc: "Pagepod is released under the permissive MIT license. Feel free to open issues, submit pull requests, or share your creations.",
       viewGitHub: "View on GitHub",
       startDeploy: "Upload your first HTML",
+      contactTitle: "Contact & Support",
+      contactDesc: "Questions, enterprise deployment, or feedback? Feel free to reach out anytime.",
+      contactButton: "Send Email",
+      copyEmail: "Copy Email",
+      copied: "Copied",
     },
     privacyPage: {
       badge: "Last Updated: September 2026",

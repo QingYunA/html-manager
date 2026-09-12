@@ -15,6 +15,7 @@ export const projects = pgTable("projects", {
   visibility: text("visibility").notNull().default("public"), // 'public' | 'unlisted' | 'private'
   isPinned: boolean("is_pinned").notNull().default(false),
   viewCount: integer("view_count").notNull().default(0),
+  screenshotUrl: text("screenshot_url"),
   
   // End-to-End Encryption fields (zero-knowledge)
   isEncrypted: boolean("is_encrypted").notNull().default(false),

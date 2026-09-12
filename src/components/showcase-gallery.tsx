@@ -45,6 +45,8 @@ const CATEGORY_ICONS = {
   others: Layers,
 };
 
+const PAGE_SIZE = 24;
+
 export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProps) {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
@@ -52,6 +54,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const categories = [
     { id: "all", label: t.categories.all, icon: CATEGORY_ICONS.all },
@@ -93,6 +96,11 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
     });
   }, [initialProjects, selectedCategory, selectedTag, search]);
 
+  // Sliced projects for DOM virtualization / high scalability (10k+ items)
+  const displayedProjects = useMemo(() => {
+    return filteredProjects.slice(0, visibleCount);
+  }, [filteredProjects, visibleCount]);
+
 
   const handleShare = (slug: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -118,6 +126,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                 onClick={() => {
                   setSelectedCategory(cat.id);
                   setSelectedTag(null);
+                  setVisibleCount(PAGE_SIZE);
                 }}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
                   isSelected
@@ -166,14 +175,20 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
           <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setVisibleCount(PAGE_SIZE);
+            }}
             placeholder={t.gallery.searchPlaceholder}
             aria-label={t.gallery.searchPlaceholder}
             className="pl-8 text-xs bg-muted/20 border-border"
           />
           {search && (
             <button
-              onClick={() => setSearch("")}
+              onClick={() => {
+                setSearch("");
+                setVisibleCount(PAGE_SIZE);
+              }}
               aria-label="清除搜索"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
@@ -188,7 +203,10 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
             <Badge variant="secondary" className="gap-1 px-2 py-0.5">
               <span>#{selectedTag}</span>
               <button
-                onClick={() => setSelectedTag(null)}
+                onClick={() => {
+                  setSelectedTag(null);
+                  setVisibleCount(PAGE_SIZE);
+                }}
                 aria-label="移除标签筛选"
                 className="hover:text-foreground ml-1 cursor-pointer"
               >
@@ -204,11 +222,15 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                 tabIndex={0}
                 aria-pressed={selectedTag === tag}
                 className="cursor-pointer hover:bg-muted/60 transition-colors text-muted-foreground"
-                onClick={() => setSelectedTag(tag)}
+                onClick={() => {
+                  setSelectedTag(tag);
+                  setVisibleCount(PAGE_SIZE);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     setSelectedTag(tag);
+                    setVisibleCount(PAGE_SIZE);
                   }
                 }}
               >
@@ -240,7 +262,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
       ) : viewMode === "grid" ? (
         /* GRID VIEW: High-end card with live sandboxed miniature thumbnail */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProjects.map((p) => {
+          {displayedProjects.map((p) => {
             const cat = categoryMap[p.category] || categoryMap["tools"];
             const CategoryIcon = cat.icon;
 
@@ -256,6 +278,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     title={p.title}
                     category={p.category}
                     fileSize={p.fileSize || 0}
+                    screenshotUrl={p.screenshotUrl}
                     openRunnerText={t.gallery.openRunner}
                   />
 
@@ -370,7 +393,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
       ) : (
         /* LIST VIEW: Clean tabular rows */
         <div className="rounded-lg border border-border bg-card divide-y divide-border">
-          {filteredProjects.map((p) => {
+          {displayedProjects.map((p) => {
             const cat = categoryMap[p.category] || categoryMap["tools"];
             const CategoryIcon = cat.icon;
             return (
@@ -426,6 +449,23 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* High-Scale Pagination / Load More (Seamlessly scales to 10,000+ items) */}
+      {filteredProjects.length > visibleCount && (
+        <div className="flex flex-col items-center justify-center pt-8 pb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+            className="h-9 px-6 text-xs font-mono border-border/80 hover:bg-muted/50 transition-all cursor-pointer shadow-2xs"
+          >
+            <span>加载更多项目 · Load More</span>
+            <span className="text-[11px] text-muted-foreground ml-1.5 font-sans">
+              ({displayedProjects.length} / {filteredProjects.length})
+            </span>
+          </Button>
         </div>
       )}
     </div>

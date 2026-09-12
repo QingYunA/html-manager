@@ -62,6 +62,7 @@ function readLocalData(): LocalData {
     const data = JSON.parse(raw) as LocalData;
     data.projects = (data.projects || []).map((p) => ({
       ...p,
+      screenshotUrl: p.screenshotUrl ?? null,
       keyMode: p.keyMode ?? "legacy-server",
       kdfSalt: p.kdfSalt ?? null,
       kdfIterations: p.kdfIterations ?? null,
@@ -319,6 +320,7 @@ export async function createProject(data: NewProject): Promise<Project> {
     visibility: data.visibility ?? "public",
     isPinned: data.isPinned ?? false,
     viewCount: data.viewCount ?? 0,
+    screenshotUrl: data.screenshotUrl ?? null,
     isEncrypted: data.isEncrypted ?? false,
     encryptionIv: data.encryptionIv ?? null,
     keyMode: data.keyMode ?? "legacy-server",
