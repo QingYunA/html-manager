@@ -45,7 +45,16 @@ export async function loginAdmin(prevState: { error?: string } | null, formData:
   redirect(redirectPath);
 }
 
-export async function loginWithEmailAction(prevState: { error?: string } | null, formData: FormData) {
+export interface EmailAuthState {
+  error?: string;
+  needsVerification?: boolean;
+  email?: string;
+}
+
+export async function loginWithEmailAction(
+  prevState: EmailAuthState | null | undefined,
+  formData: FormData
+): Promise<EmailAuthState | undefined> {
   const email = formString(formData, "email").trim();
   const password = formString(formData, "password").trim();
   const isSignUp = formData.get("isSignUp") === "true";
@@ -62,12 +71,19 @@ export async function loginWithEmailAction(prevState: { error?: string } | null,
   }
 
   if (isSignUp) {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
     if (error) {
       return { error: error.message };
+    }
+    // If email confirmation is required, session is not immediately returned
+    if (!data.session) {
+      return {
+        needsVerification: true,
+        email,
+      };
     }
   } else {
     const { error } = await supabase.auth.signInWithPassword({
@@ -80,6 +96,67 @@ export async function loginWithEmailAction(prevState: { error?: string } | null,
   }
 
   redirect(redirectPath);
+}
+
+export async function verifyEmailOtpAction(
+  prevState: { error?: string } | null | undefined,
+  formData: FormData
+) {
+  const email = formString(formData, "email").trim();
+  const token = formString(formData, "token").trim();
+  const rawRedirectPath = formString(formData, "from") || "/admin";
+  const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/admin");
+
+  if (!email || !token) {
+    return { error: "请输入完整验证码" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "当前未配置 Supabase 认证环境变量" };
+  }
+
+  // First try signup type OTP
+  const { error: signupErr } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "signup",
+  });
+
+  if (signupErr) {
+    // Fallback to email / magiclink type OTP
+    const { error: emailErr } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "email",
+    });
+
+    if (emailErr) {
+      return { error: signupErr.message || emailErr.message };
+    }
+  }
+
+  redirect(redirectPath);
+}
+
+export async function resendVerificationOtpAction(email: string) {
+  if (!email) {
+    return { error: "邮箱不能为空" };
+  }
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "当前未配置 Supabase 认证环境变量" };
+  }
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+  return { success: true };
 }
 
 export async function logoutAdmin() {
