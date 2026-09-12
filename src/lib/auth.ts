@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies, headers } from "next/headers";
-import { getSetting } from "@/db";
+import { getSetting, getUserPlanTier } from "@/db";
 import { createSupabaseServerClient, isCloudMode } from "@/lib/supabase/server";
 import { verifyAndConsumeToken } from "@/lib/tokens";
 import { getJwtSecret, timingSafeEqualStrings } from "@/lib/secret-policy";
@@ -66,6 +66,7 @@ export interface CurrentUser {
   avatarUrl?: string;
   tokenId?: string;
   tokenName?: string;
+  planTier?: "free" | "lite" | "pro";
 }
 
 /**
@@ -100,6 +101,7 @@ export async function getCurrentUser(request?: Request): Promise<CurrentUser | n
     if (rawToken && rawToken.startsWith("pp_live_")) {
       const tokenMatch = await verifyAndConsumeToken(rawToken);
       if (tokenMatch) {
+        const planTier = await getUserPlanTier(tokenMatch.userId);
         return {
           id: tokenMatch.userId,
           email: tokenMatch.userId === "selfhost-admin" ? "owner@workspace.local" : undefined,
@@ -107,6 +109,7 @@ export async function getCurrentUser(request?: Request): Promise<CurrentUser | n
           role: tokenMatch.userId === "selfhost-admin" ? "admin" : "user",
           tokenId: tokenMatch.tokenId,
           tokenName: tokenMatch.name,
+          planTier,
         };
       }
     }
@@ -126,6 +129,7 @@ export async function getCurrentUser(request?: Request): Promise<CurrentUser | n
           const metadata = user.user_metadata || {};
           const fullName = metadata.full_name || metadata.name || metadata.user_name;
           const avatarUrl = metadata.avatar_url || metadata.picture;
+          const planTier = await getUserPlanTier(user.id);
 
           return {
             id: user.id,
@@ -133,6 +137,7 @@ export async function getCurrentUser(request?: Request): Promise<CurrentUser | n
             role: "user",
             fullName: typeof fullName === "string" ? fullName : undefined,
             avatarUrl: typeof avatarUrl === "string" ? avatarUrl : undefined,
+            planTier,
           };
         }
       }
@@ -147,11 +152,13 @@ export async function getCurrentUser(request?: Request): Promise<CurrentUser | n
   if (token) {
     const isValid = await verifyAdminSessionToken(token);
     if (isValid) {
+      const planTier = await getUserPlanTier("selfhost-admin");
       return {
         id: "selfhost-admin",
         email: "owner@workspace.local",
         fullName: "Workspace Owner",
         role: "admin",
+        planTier,
       };
     }
   }

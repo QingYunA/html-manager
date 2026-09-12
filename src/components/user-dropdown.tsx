@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/lib/i18n/context";
 import { logoutAdmin } from "@/app/actions/auth";
 import { createSupabaseClient } from "@/lib/supabase/client";
@@ -22,6 +23,7 @@ import {
   Plus,
   LogOut,
   Sparkles,
+  Zap,
   ExternalLink,
   ChevronDown,
   Loader2,
@@ -123,18 +125,33 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
           <span className="text-xs font-medium max-w-[120px] truncate hidden sm:inline-block">
             {displayName}
           </span>
+
+          {/* Plan Tier Badge */}
+          {currentUser.planTier === "pro" && (
+            <Badge variant="outline" className="px-1.5 py-0 text-[9px] font-mono font-bold tracking-wider gap-0.5 shrink-0">
+              <Sparkles className="w-2.5 h-2.5" />
+              <span>PRO</span>
+            </Badge>
+          )}
+          {currentUser.planTier === "lite" && (
+            <Badge variant="outline" className="px-1.5 py-0 text-[9px] font-mono font-bold tracking-wider gap-0.5 shrink-0">
+              <Zap className="w-2.5 h-2.5" />
+              <span>LITE</span>
+            </Badge>
+          )}
+
           <ChevronDown className="w-3 h-3 text-muted-foreground opacity-70 ml-0.5" />
         </Button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="w-56"
+        className="w-60"
         align="end"
         sideOffset={6}
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         {/* User Identity Header */}
-        <DropdownMenuLabel className="font-normal p-2">
+        <DropdownMenuLabel className="font-normal p-2 pb-1.5">
           <div className="flex flex-col space-y-1">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-semibold text-foreground truncate">
@@ -151,6 +168,50 @@ export function UserDropdown({ currentUser }: UserDropdownProps) {
             )}
           </div>
         </DropdownMenuLabel>
+
+        {/* Membership Perks Showcase */}
+        {currentUser.planTier === "pro" ? (
+          <div className="mx-2 my-1.5 p-2.5 rounded-lg border border-border bg-muted/40 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-foreground flex items-center gap-1 tracking-wide">
+                <Sparkles className="w-3 h-3" />
+                {t.nav.proLifetime}
+              </span>
+              <Badge variant="outline" className="text-[8px] font-mono uppercase px-1 py-0 h-4">
+                {t.nav.lifetimeBadge}
+              </Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              {t.nav.proLifetimePerks}
+            </p>
+          </div>
+        ) : currentUser.planTier === "lite" ? (
+          <div className="mx-2 my-1.5 p-2.5 rounded-lg border border-border bg-muted/40 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-foreground flex items-center gap-1 tracking-wide">
+                <Zap className="w-3 h-3" />
+                {t.nav.liteLifetime}
+              </span>
+              <Badge variant="outline" className="text-[8px] font-mono uppercase px-1 py-0 h-4">
+                {t.nav.lifetimeBadge}
+              </Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              {t.nav.liteLifetimePerks}
+            </p>
+          </div>
+        ) : (
+          <div className="mx-2 my-1.5 p-2 rounded-lg border border-border bg-muted/40 flex items-center justify-between">
+            <span className="text-[11px] text-muted-foreground">{t.nav.starterPlan}</span>
+            <Link
+              href="/pricing"
+              className="text-[10px] font-medium text-foreground hover:underline flex items-center gap-0.5"
+            >
+              <span>{t.nav.upgradePlan}</span>
+              <Sparkles className="w-2.5 h-2.5" />
+            </Link>
+          </div>
+        )}
 
         <DropdownMenuSeparator />
 

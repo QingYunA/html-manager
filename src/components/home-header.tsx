@@ -40,37 +40,46 @@ export function HomeHeader({ currentUser, extraActions }: HomeHeaderProps) {
   const [user, setUser] = React.useState<CurrentUser | null>(currentUser ?? null);
 
   React.useEffect(() => {
-    if (currentUser !== undefined) {
+    if (currentUser !== undefined && currentUser !== null) {
       setUser(currentUser);
+      if (!currentUser.planTier) {
+        fetch("/api/user/me")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.authenticated && data?.user) {
+              setUser(data.user);
+            }
+          })
+          .catch(() => {});
+      }
       return;
     }
 
-    // Client-side authentication resolution (0ms server overhead, 100% static layout)
+    // Unified client-side session resolution
+    fetch("/api/user/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.authenticated && data?.user) {
+          setUser(data.user);
+        }
+      })
+      .catch(() => {});
+
+    // Listen to Supabase auth events if configured
     const supabase = createSupabaseClient();
     if (supabase) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
-          const metadata = session.user.user_metadata || {};
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            role: "user",
-            fullName: metadata.full_name || metadata.name || metadata.user_name,
-            avatarUrl: metadata.avatar_url || metadata.picture,
-          });
-        }
-      });
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          const metadata = session.user.user_metadata || {};
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            role: "user",
-            fullName: metadata.full_name || metadata.name || metadata.user_name,
-            avatarUrl: metadata.avatar_url || metadata.picture,
-          });
+          fetch("/api/user/me")
+            .then((res) => res.json())
+            .then((data) => {
+              if (data?.authenticated && data?.user) {
+                setUser(data.user);
+              }
+            })
+            .catch(() => {});
         } else {
           setUser(null);
         }

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import PricingClient from "./pricing-client";
 
@@ -82,7 +83,9 @@ export default function PricingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <PricingClient />
+      <Suspense fallback={null}>
+        <PricingClient />
+      </Suspense>
     </main>
   );
 }

@@ -65,6 +65,11 @@ export default async function SettingsPage() {
           <Badge variant="outline" className="text-[10px] font-mono shrink-0">
             {user.role === "admin" ? "admin" : "user"}
           </Badge>
+          {user.planTier && user.planTier !== "free" && (
+            <Badge variant="default" className="text-[10px] font-mono uppercase shrink-0">
+              {user.planTier}
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
