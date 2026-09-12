@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  pagepod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pagepod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - ADMIN_PASSWORD=change_me_to_a_secure_password
+      - NODE_ENV=production
+      # Optional: External PostgreSQL (Neon, Supabase, etc.). If omitted, Pagepod falls back to local data.
+      # - DATABASE_URL=postgresql://user:password@localhost:5432/pagepod
+      # Optional: Cloudflare R2 for zero-egress cloud object storage
+      # - R2_ACCOUNT_ID=
+      # - R2_ACCESS_KEY_ID=
+      # - R2_SECRET_ACCESS_KEY=
+      # - R2_BUCKET_NAME=html-manager
+    volumes:
+      - ./data:/app/.data
+      - ./storage:/app/.storage
