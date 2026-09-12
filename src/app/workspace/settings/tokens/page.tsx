@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Key, BookOpen, ExternalLink } from "lucide-react";
+import { ArrowLeft, Key, BookOpen, ExternalLink, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { listUserApiTokens } from "@/lib/tokens";
@@ -56,6 +56,29 @@ export default async function ApiTokensPage() {
             Personal Access Tokens 具备与你的账号同等的权限，可用于在自动化脚本、CI/CD、命令行 CLI 或 Cursor 中代替你上传和管理 HTML。
             密钥采用 SHA-256 加密存储，仅在创建时显示一次。
           </p>
+        </div>
+
+        {/* Sub-Navigation Tabs */}
+        <div className="flex items-center gap-2 border-b border-border pb-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="h-8 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+          >
+            <Link href="/workspace/settings">
+              <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
+              <span>账号安全与认证</span>
+            </Link>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-8 text-xs font-medium cursor-default"
+          >
+            <Key className="w-3.5 h-3.5 mr-1.5 text-foreground" />
+            <span>API 密钥</span>
+          </Button>
         </div>
 
         <TokensClient initialTokens={tokens} />
