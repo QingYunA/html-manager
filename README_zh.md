@@ -8,8 +8,8 @@
 
 # Pagepod
 
-<p><strong>专为 AI Artifacts 与单页 HTML 应用打造的开源自建展示、沙箱与托管平台。</strong><br>
-在你自己的私有服务器或云平台上托管并安全运行来自 Claude Artifacts、ChatGPT Canvas、v0、Bolt 与 Cursor 的交互作品 —— 零构建流水线、物理级沙箱隔离与零下行流量费用。</p>
+<p><strong>简单、纯粹的 HTML 开源自托管平台与安全沙箱。</strong><br>
+在你自己的私有服务器上轻松托管、安全运行并分享任何 HTML 文件、互动小工具、网页游戏与前端原型 —— 零构建步骤、物理级沙箱隔离与零公网流量费用。</p>
 
 <p>
   <a href="https://github.com/QingYunA/html-manager/releases"><img src="https://img.shields.io/badge/version-1.0.0-18181b?style=flat" alt="Version"></a>
@@ -35,19 +35,19 @@
 
 ## 关于项目
 
-Pagepod 是专为 AI 时代设计的 **CodePen / JSFiddle / 静态对象存储托管** 开源自托管替代方案。
+Pagepod 是专为 HTML 与单页 Web 应用打造的开源自建托管与展示平台。
 
-大语言模型（Claude、ChatGPT、v0、Bolt、Cursor）能够在数秒内生成极具实用价值的交互式 Web 网页、Canvas 小游戏、数据看板与原型工具。然而在实际使用与沉淀过程中，开发者普遍面临三大痛点：
+无论是日常编写的互动小工具、Canvas 网页游戏、数据可视化图表、前端界面原型，还是各类导出的单页 Web 应用 —— 想要快速分享或托管一个静态 HTML，往往伴随着许多不必要的摩擦：
 
-1. **淹没在对话历史中**：会话归档或删除后，生成的精美 Artifacts 难以再次找回与长期复用。
-2. **裸跑外部代码的安全隐患**：直接在自己主站域名下运行未知的 AI 生成 JavaScript，存在 Cookie 泄露、管理员凭证窃取与 XSS 越权的严重风险。
-3. **平台厂商锁定与高昂成本**：传统代码分享平台限制多文件静态资源上传，或按月强制收取会员费；自建对象存储又面临高昂的公网下行流量（Egress）账单。
+1. **繁琐的建站开销**：仅仅为了托管几个 HTML 页面，就要手动配置 Nginx/Caddy 配置文件、申请 SSL 证书与设置反向代理。
+2. **主域名裸跑的安全隐患**：直接在自己主站域名下运行未知的外部 JavaScript 代码，存在 Cookie 泄露、管理员会话被盗与 XSS 攻击的严重风险。
+3. **平台限制与高昂费用**：传统代码分享平台限制多文件静态素材上传，或按月强制收取会员费；自建对象存储又面临高昂的公网下行流量（Egress）账单。
 
-**Pagepod 为此提供主权在己的自建沙箱解决方案：**
-- **拒绝厂商绑定（No Vendor Lock-in）**：所有上传的 HTML 源码、静态素材与数据库记录，均完全存放在你自己的服务器或你掌控的 S3/R2 存储桶中。
-- **物理隔绝沙箱**：运行端点通过严格的 CSP 策略物理隔绝，第三方脚本无法读取主站 Cookie 或管理员会话。
-- **零构建流水线**：单文件 `.html` 或多资源 `.zip` 即传即开，无需配置 Webpack / Vite 或设置 npm 构建命令。
-- **自由基础设施**：可以在 4 美元/月的 VPS（Hetzner、DigitalOcean）、Docker / Coolify / Portainer 容器环境、软路由/树莓派，或免费托管在 Vercel。
+**Pagepod 为此提供简单、纯粹且主权在己的自建托管空间：**
+- **零构建流水线**：单文件 `.html` 或带素材的 `.zip` 压缩包拖入即开，秒级生成带多端视口模拟的永久运行链接。
+- **物理级安全沙箱**：运行端点（`/raw/[slug]/`）通过严格 CSP 物理隔绝，运行未知代码也不会危害主站 Cookie 或管理员凭证。
+- **拒绝厂商绑定（No Vendor Lock-in）**：所有静态文件与数据库记录完全存储在你自己的服务器或 S3/R2 存储桶中。
+- **随处自由部署**：支持 Docker Compose、Coolify、VPS、本地裸机或 Vercel。
 
 ---
 
@@ -66,9 +66,9 @@ Pagepod 是专为 AI 时代设计的 **CodePen / JSFiddle / 静态对象存储�
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                       AI Artifact Ingestion Pipeline                        │
+│                 HTML Ingestion & Sandboxed Hosting Pipeline                 │
 │                                                                             │
-│  Claude Artifacts / ChatGPT Canvas / v0 / Cursor 生成 HTML 产物              │
+│  单文件 .html / 资源包 .zip / 网页小工具 / 原型演示                         │
 │         │                                        │                          │
 │         ▼                                        ▼                          │
 │   Web 控制台 (拖拽 / Zip / 代码粘贴)       POST /api/upload (CLI / PAT 鉴权)  │
@@ -105,7 +105,7 @@ Pagepod 是专为 AI 时代设计的 **CodePen / JSFiddle / 静态对象存储�
 | **物理隔离 CSP 沙箱** | **支持 (`/raw/` 独立端点)** | 部分隔离 | 部分隔离 | 无 (与存储桶同域风险) |
 | **Zip 压缩包与多静态资源解压** | **支持 (自动相对路径映射)** | 仅付费版支持 | 限制支持 | 需手动上传维护 |
 | **多端响应式模拟 (桌面/平板/手机)** | **支持 (一键切换)** | 需手动拖拽 | 支持 | 无 |
-| **自动化 CLI 与 Agent API (`/api/upload`)** | **支持 (OpenAPI + PAT)** | 不支持 | 不支持 | 仅限云厂商 S3 CLI |
+| **自动化 CLI 与 API 推送 (`/api/upload`)** | **支持 (OpenAPI + PAT)** | 不支持 | 不支持 | 仅限云厂商 S3 CLI |
 | **首屏性能守护 (无 GPU 内存尖峰)** | **支持 (点阵海报 + LRU 限 6)** | 无 (并发多 iframe 卡顿) | 并发大量 iframe | 不适用 |
 | **客户端端到端零知识加密 (E2EE)** | **支持 (AES-GCM Web Crypto)**| 不支持 | 不支持 | 不支持 |
 | **公网下行流量费用 (Egress)** | **0 元 (R2 免费额度或本地硬盘)**| 订阅年费制 | 订阅年费制 | 产生公网流量账单 |
@@ -119,7 +119,7 @@ Pagepod 是专为 AI 时代设计的 **CodePen / JSFiddle / 静态对象存储�
 - **体积预警与超时守护防护体系：** 文件体积超过 2MB 时在卡片标注微型胶囊预警；内置 6.5 秒加载超时自动阻断机制，隔离异常死循环脚本，保障主站性能不受拖累。
 - **多形态极速入库：** 原生支持单文件 `.html` 拖拽或选择上传、包含多层相对静态资源的 `.zip` 压缩包自动解压平铺、直接粘贴源码并智能提取 `<title>` 与 `<meta description>`，以及内置 CodeMirror 在线代码编辑器。
 - **多端交互式运行台 (`/p/[slug]`)：** 提供一键切换**桌面端 (100%)**、**平板端 (768px)**、**手机端 (375px)** 响应式视口模拟、浏览器原生全屏、格式化源码查看与一键复制，以及独立的 `/raw/[slug]/` 纯净外链引用端点。
-- **OpenAPI 3.1 规范与 Agent 自动化流：** 原生提供基于 Personal Access Token (`pp_live_...`) 鉴权的 `POST /api/upload` 开放端点，在 Cursor、Claude Code 或终端流水线中通过一行命令直接完成上传与发布；内置 Scalar 交互式文档中心 (`/api/docs`)。
+- **OpenAPI 3.1 规范与开发流：** 原生提供基于 Personal Access Token (`pp_live_...`) 鉴权的 `POST /api/upload` 开放端点，在终端命令行或自动化脚本中一行命令即可上传；内置 Scalar 交互式文档中心 (`/api/docs`)。
 - **零厂商锁定存储与数据库：** 抽象 `getStorage()` 存储接口，自动按顺序探测本地持久化目录 (`.storage/`)、Cloudflare R2（S3 兼容协议，零公网流量费）与 Vercel Blob；Drizzle ORM 支持 PostgreSQL（Vercel Postgres、Neon、Supabase），并在本地无外部数据库配置时自动降级到 `.data/db.json`。
 - **账号级隐私隔离与端到端加密：** 项目支持公开（收录进社区发现画廊）与私密（仅限项目创建者登录后访问）；底层预留 Web Crypto API AES-GCM 客户端零知识端到端加密通道。
 
@@ -194,9 +194,9 @@ bun run start
 
 ---
 
-## API 与 Agent 自动化推送
+## API 与自动化推送
 
-Pagepod 原生提供开放 REST API 与轻量 CLI 脚本，专供 Cursor、Claude Code 与自动化脚本调用：
+Pagepod 原生提供开放 REST API 与轻量 CLI 脚本，专供自动化工作流与脚本调用：
 
 - **交互式 API 文档中心：** 访问 `/api/docs`（由 Scalar 驱动渲染）。
 - **OpenAPI 3.1 原始 Schema：** 访问 `/api/openapi.json`。

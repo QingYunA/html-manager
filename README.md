@@ -8,8 +8,8 @@
 
 # Pagepod
 
-<p><strong>An open-source & self-hostable showcase, hardened sandbox, and hosting platform for AI artifacts & single-page HTML apps.</strong><br>
-Host, run, and showcase your Claude Artifacts, ChatGPT Canvas, v0, Bolt, and Cursor web apps on your own infrastructure — with zero build step, physical sandbox isolation, and zero egress cost.</p>
+<p><strong>An open-source & self-hostable showcase, hardened sandbox, and hosting platform for HTML.</strong><br>
+Host, run, and share your interactive HTML files, web tools, games, and prototypes on your own infrastructure — with zero build steps, physical sandbox isolation, and zero egress fees.</p>
 
 <p>
   <a href="https://github.com/QingYunA/html-manager/releases"><img src="https://img.shields.io/badge/version-1.0.0-18181b?style=flat" alt="Version"></a>
@@ -35,18 +35,18 @@ Host, run, and showcase your Claude Artifacts, ChatGPT Canvas, v0, Bolt, and Cur
 
 ## About the Project
 
-Pagepod is an open-source, self-hostable alternative to CodePen, JSFiddle, and cloud artifact viewers — engineered specifically for the AI era.
+Pagepod is an open-source, self-hostable platform designed to host, run, and share HTML files and single-page web applications.
 
-Large language models (Claude, ChatGPT, v0, Bolt, Cursor) produce high-fidelity interactive web applications, mini-games, visual dashboards, and utility tools in seconds. However, hosting and showcasing them poses three practical challenges:
+Whether it is a standalone HTML utility, an interactive Canvas game, a data visualization dashboard, a frontend UI prototype, or an exported web experiment — self-hosting and sharing a static HTML project usually involves unnecessary friction:
 
-1. **Lost in chat histories:** Generative artifacts disappear once a conversation is archived or deleted.
-2. **Security hazards of raw hosting:** Running untrusted, AI-generated JavaScript on your primary domain risks exposing sensitive cookies, local storage, and session tokens.
-3. **Vendor lock-in and storage fees:** Public pastebins and playground platforms enforce monthly subscriptions for multi-file assets or charge bandwidth egress.
+1. **Hosting overhead:** Setting up web server configs (Nginx/Caddy), configuring reverse proxies, and managing DNS and SSL certificates just to host a few HTML pages.
+2. **Security hazards on your main domain:** Running untrusted or third-party JavaScript on your primary domain risks exposing sensitive cookies, local storage, and administrator session tokens.
+3. **Platform limits and storage costs:** Pastebins and playgrounds restrict multi-file assets or charge monthly subscriptions; cloud object storage accumulates bandwidth egress fees.
 
-**Pagepod solves this by giving you a sovereign, self-hosted platform:**
+**Pagepod gives you a simple, sovereign home to host and run any HTML:**
+- **No build steps:** Drop a `.html` file or a multi-asset `.zip` archive, and get an instant permanent link with responsive preview.
+- **Hardened iframe sandbox:** Untrusted scripts execute strictly within dedicated sandboxed endpoints (`/raw/[slug]/`) with zero access to your host cookies, local storage, or admin sessions.
 - **No vendor lock-in:** All HTML files, assets, and database records remain on your own server or your own S3/R2 bucket.
-- **Hardened iframe sandbox:** Untrusted scripts execute strictly within dedicated sandboxed endpoints with zero access to parent cookies or administrator sessions.
-- **Zero build pipelines:** Drop a single `.html` file or multi-file `.zip` archive, and it runs immediately.
 - **Hardware freedom:** Deploy on a $4/month VPS (Hetzner, DigitalOcean), in a Docker container via Coolify/Portainer, on a home lab / Raspberry Pi, or for free on Vercel.
 
 ---
@@ -66,9 +66,9 @@ Large language models (Claude, ChatGPT, v0, Bolt, Cursor) produce high-fidelity 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                       AI Artifact Ingestion Pipeline                        │
+│                 HTML Ingestion & Sandboxed Hosting Pipeline                 │
 │                                                                             │
-│  Claude Artifacts / ChatGPT Canvas / v0 / Cursor HTML Output                │
+│  Standalone .html / Multi-asset .zip / Web Demos / Tool Exports             │
 │         │                                        │                          │
 │         ▼                                        ▼                          │
 │   Web Console (Drag / Zip / Paste)       POST /api/upload (CLI / PAT Auth)  │
@@ -119,9 +119,9 @@ Large language models (Claude, ChatGPT, v0, Bolt, Cursor) produce high-fidelity 
 - **Resilience shield & size guard:** Micro-badges warn visitors for files exceeding 2MB, while a 6.5-second execution timeout guard automatically halts unresponsive scripts to keep host browsing responsive.
 - **Multi-format ingestion pipeline:** Ingests standalone `.html` files, multi-file `.zip` packages (with automatic relative asset extraction for images, stylesheets, and scripts), direct code pastes with intelligent `<title>`/`<meta>` extraction, and a built-in CodeMirror editor.
 - **Multi-device responsive runner (`/p/[slug]`):** Real-time viewport toggling between Desktop (100%), Tablet (768px), and Mobile (375px), native browser full-screen mode, formatted source inspector with 1-click copying, and permanent shareable links.
-- **OpenAPI 3.1 & Agent CLI automation:** Ship directly from Cursor, Claude Code, or terminal pipelines via `POST /api/upload` using Personal Access Tokens (`pp_live_...`). Interactive Scalar API documentation is served at `/api/docs`.
+- **OpenAPI 3.1 & Developer CLI automation:** Deploy directly from terminal pipelines, scripts, or coding assistants via `POST /api/upload` using Personal Access Tokens (`pp_live_...`). Interactive Scalar API documentation is served at `/api/docs`.
 - **Zero-lock-in storage & database adapters:** Pluggable `getStorage()` layer detects local disk storage (`.storage/`), Cloudflare R2 (S3-compatible, zero egress), or Vercel Blob. Drizzle ORM supports PostgreSQL (Neon, Supabase, Vercel Postgres) with zero-config local fallback (`.data/db.json`).
-- **Account-level privacy & E2EE:** Granular access control allowing artifacts to be marked Public for showcase discovery or Private for authenticated owners only. Supports client-side AES-GCM zero-knowledge encryption for sensitive tools.
+- **Account-level privacy & E2EE:** Granular access control allowing projects to be marked Public for showcase discovery or Private for authenticated owners only. Supports client-side AES-GCM zero-knowledge encryption for sensitive tools.
 
 ---
 
@@ -195,16 +195,16 @@ bun run start
 
 ---
 
-## Agent & CLI Automation
+## API & CLI Automation
 
-Pagepod includes a RESTful API and a lightweight CLI tool so that AI coding tools (Cursor, Claude Code) and terminal scripts can deploy HTML artifacts automatically.
+Pagepod includes a RESTful API and a lightweight CLI tool so that terminal scripts, build tools, and automated pipelines can deploy HTML files directly.
 
 - **Interactive API Documentation:** Available at `/api/docs` (rendered with Scalar).
 - **OpenAPI 3.1 Spec:** Available at `/api/openapi.json`.
 
 ### CLI Uploader Script
 
-Upload an HTML artifact directly from your terminal:
+Upload an HTML file directly from your terminal:
 
 ```bash
 node scripts/upload-cli.js ./matrix-rain.html \
