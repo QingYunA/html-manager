@@ -45,7 +45,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/context";
 import HoverSandboxPreview from "@/components/hover-sandbox-preview";
-import { sandboxPool } from "@/lib/sandbox-pool";
 
 interface AdminTableProps {
   initialProjects: Project[];
@@ -137,15 +136,6 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
     });
   }, [projects, categoryFilter, search]);
 
-  // Auto-warmup the first batch of visible projects into the sandbox pool when in grid view
-  useEffect(() => {
-    if (viewMode === "grid") {
-      const visibleSlugs = filtered.slice(0, 6).map((p) => p.slug);
-      if (visibleSlugs.length > 0) {
-        sandboxPool.warmup(visibleSlugs);
-      }
-    }
-  }, [filtered, viewMode]);
 
   const handleTogglePin = (id: string, current: boolean) => {
     startTransition(async () => {
@@ -315,7 +305,8 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                         slug={item.slug}
                         title={item.title}
                         category={item.category}
-                        openRunnerText="运行单页"
+                        fileSize={item.fileSize || 0}
+                        openRunnerText="在线运行"
                       />
 
                       {/* Badges on top of miniature viewport */}
@@ -413,7 +404,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                             onClick={() => handleTogglePin(item.id, item.isPinned)}
                             className={`h-7 w-7 rounded-sm ${
                               item.isPinned
-                                ? "text-amber-400 hover:text-amber-300"
+                                ? "text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300"
                                 : "text-muted-foreground hover:text-foreground"
                             }`}
                             title={item.isPinned ? "取消置顶" : "置顶推荐"}
@@ -427,7 +418,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                             className="h-7 w-7 text-muted-foreground hover:text-foreground"
                             asChild
                           >
-                            <Link href={`/admin/projects/${item.id}/edit`} title="在线编辑代码">
+                            <Link href={`/workspace/projects/${item.id}/edit`} title="在线编辑代码">
                               <Edit3 className="w-3.5 h-3.5" />
                             </Link>
                           </Button>
@@ -503,7 +494,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           onClick={() => handleTogglePin(item.id, item.isPinned)}
                           className={`h-7 w-7 rounded-sm ${
                             item.isPinned
-                              ? "text-amber-400 hover:text-amber-300"
+                              ? "text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300"
                               : "text-muted-foreground hover:text-foreground"
                           }`}
                           title={item.isPinned ? "取消置顶" : "置顶推荐"}
@@ -518,9 +509,10 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           slug={item.slug}
                           title={item.title}
                           category={item.category}
+                          fileSize={item.fileSize || 0}
                           variant="table-cell"
                           icon={CategoryIcon}
-                          openRunnerText="运行单页"
+                          openRunnerText="在线运行"
                         />
                       </td>
 
@@ -549,9 +541,9 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           </Badge>
                           <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                             {item.assetType === "single_html" ? (
-                              <FileCode2 className="w-3 h-3 text-sky-400" />
+                              <FileCode2 className="w-3 h-3 text-sky-600 dark:text-sky-400" />
                             ) : (
-                              <FolderArchive className="w-3 h-3 text-amber-400" />
+                              <FolderArchive className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                             )}
                           </span>
                         </div>
@@ -601,7 +593,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           </Button>
 
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" asChild>
-                            <Link href={`/admin/projects/${item.id}/edit`} title="在线编辑代码">
+                            <Link href={`/workspace/projects/${item.id}/edit`} title="在线编辑代码">
                               <Edit3 className="w-3.5 h-3.5" />
                             </Link>
                           </Button>
@@ -669,7 +661,7 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                 </span>
               )}
               <span className="block text-[11px] text-destructive/85 font-normal">
-                {t.workspace?.deleteWarningNote || "请谨慎操作：删除后该路由对应的单页应用将立刻失效下线，外部访问链接将失效不可用。"}
+                {t.workspace?.deleteWarningNote || "请谨慎操作：删除后该路由对应的页面将立刻下线，外部访问链接将无法访问。"}
               </span>
             </DialogDescription>
           </DialogHeader>

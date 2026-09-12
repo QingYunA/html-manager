@@ -5,7 +5,7 @@ import { LanguageProvider } from "@/lib/i18n/context";
 import { TopLoader } from "@/components/top-loader";
 import { Analytics } from "@vercel/analytics/next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -96,6 +96,13 @@ const rootJsonLd = {
   },
 };
 
+const umamiScriptUrl =
+  process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL ||
+  "https://umami-kappa-silk.vercel.app/script.js";
+const umamiWebsiteId =
+  process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID ||
+  "c7ee55df-938f-4800-b6cb-18622970fe64";
+
 export default function RootLayout({
   children,
 }: {
@@ -108,6 +115,13 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(rootJsonLd) }}
         />
+        {umamiWebsiteId && (
+          <script
+            defer
+            src={umamiScriptUrl}
+            data-website-id={umamiWebsiteId}
+          />
+        )}
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans overflow-x-hidden w-full max-w-full">
         <ThemeProvider

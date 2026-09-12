@@ -3,56 +3,142 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Play, Sparkles, Loader2, ExternalLink, X } from "lucide-react";
+import {
+  Play,
+  Loader2,
+  ExternalLink,
+  X,
+  AlertTriangle,
+  RotateCcw,
+  Wrench,
+  Gamepad2,
+  BarChart3,
+  Smartphone,
+  Sparkles,
+  Layers,
+  FileCode2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsSandboxActive, sandboxPool } from "@/lib/sandbox-pool";
+import { useLanguage } from "@/lib/i18n/context";
 
 interface HoverSandboxPreviewProps {
   slug: string;
   title: string;
   category?: string;
+  fileSize?: number;
   openRunnerText?: string;
   variant?: "card" | "table-cell";
   icon?: React.ComponentType<{ className?: string }>;
 }
 
-const CHARGE_DURATION_MS = 650;
-const CARD_RADIUS = 16;
-const CARD_CIRCUMFERENCE = 2 * Math.PI * CARD_RADIUS; // ~100.53
+const CHARGE_DURATION_MS = 600;
+const TIMEOUT_DURATION_MS = 6500; // 6.5s timeout guard
+
+const CARD_RADIUS = 12;
+const CARD_CIRCUMFERENCE = 2 * Math.PI * CARD_RADIUS; // ~75.4
 
 const CELL_RADIUS = 9;
 const CELL_CIRCUMFERENCE = 2 * Math.PI * CELL_RADIUS; // ~56.55
 
+const CATEGORY_BACKGROUND_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  tools: Wrench,
+  games: Gamepad2,
+  visualization: BarChart3,
+  prototypes: Smartphone,
+  animations: Sparkles,
+  others: Layers,
+};
+
+function formatSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function HoverSandboxPreview({
   slug,
   title,
-  openRunnerText = "在线运行",
+  category = "tools",
+  fileSize = 0,
+  openRunnerText,
   variant = "card",
   icon: CustomIcon,
 }: HoverSandboxPreviewProps) {
+  const { t } = useLanguage();
   const isPoolActive = useIsSandboxActive(slug);
   const [isCharging, setIsCharging] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [hasTimedOut, setHasTimedOut] = useState(false);
+  const [hasScriptError, setHasScriptError] = useState(false);
+  const [showLargeFileConfirm, setShowLargeFileConfirm] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [popoverPos, setPopoverPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   // For table-cell floating popover: tracks active popover locally so it doesn't overlap forever
   const [isCellActive, setIsCellActive] = useState(false);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const chargeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutTimerRef = useRef<NodeJS.Timeout | null>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
   const isOverPopoverRef = useRef(false);
+
+  // Large file threshold: > 2.0 MB
+  const isLargeFile = fileSize > 2 * 1024 * 1024;
+  const formattedFileSize = formatSize(fileSize);
+
+  const defaultOpenText = openRunnerText || t.gallery.openDirect || "打开";
+  const previewText = t.gallery.preview || "预览";
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const clearChargeTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+    if (chargeTimerRef.current) {
+      clearTimeout(chargeTimerRef.current);
+      chargeTimerRef.current = null;
     }
   }, []);
+
+  const clearTimeoutTimer = useCallback(() => {
+    if (timeoutTimerRef.current) {
+      clearTimeout(timeoutTimerRef.current);
+      timeoutTimerRef.current = null;
+    }
+  }, []);
+
+  // Reset states whenever sandbox is evicted or closed
+  useEffect(() => {
+    if (!isPoolActive) {
+      setIframeLoaded(false);
+      setHasTimedOut(false);
+      setHasScriptError(false);
+      setShowLargeFileConfirm(false);
+      clearTimeoutTimer();
+    }
+  }, [isPoolActive, clearTimeoutTimer]);
+
+  // Launch timeout guard when sandbox becomes active
+  useEffect(() => {
+    if (isPoolActive && !iframeLoaded) {
+      clearTimeoutTimer();
+      timeoutTimerRef.current = setTimeout(() => {
+        setHasTimedOut(true);
+      }, TIMEOUT_DURATION_MS);
+    }
+    return () => clearTimeoutTimer();
+  }, [isPoolActive, iframeLoaded, clearTimeoutTimer, iframeKey]);
+
+  // Clean up all timers on unmount
+  useEffect(() => {
+    return () => {
+      clearChargeTimer();
+      clearTimeoutTimer();
+    };
+  }, [clearChargeTimer, clearTimeoutTimer]);
 
   const updatePopoverPosition = () => {
     if (!triggerRef.current) return;
@@ -65,65 +151,65 @@ export default function HoverSandboxPreview({
     setPopoverPos({ top, left });
   };
 
-  const handleMouseEnter = () => {
-    if (variant === "card") {
-      if (isPoolActive) return;
-    } else {
-      if (isCellActive) return;
+  // Perform activation into pool
+  const triggerActivation = () => {
+    if (isLargeFile && !showLargeFileConfirm) {
+      setShowLargeFileConfirm(true);
+      return;
     }
+    setHasTimedOut(false);
+    setHasScriptError(false);
+    setShowLargeFileConfirm(false);
+    sandboxPool.activate(slug);
+  };
 
-    updatePopoverPosition();
+  // Button hover: charge to activate
+  const handlePreviewHoverStart = () => {
+    if (isPoolActive) return;
     setIsCharging(true);
     clearChargeTimer();
 
-    timerRef.current = setTimeout(() => {
+    chargeTimerRef.current = setTimeout(() => {
       setIsCharging(false);
-      if (variant === "card") {
-        // Enqueue into persistent global pool (max 6)
-        sandboxPool.activate(slug);
-      } else {
-        setIsCellActive(true);
-      }
+      triggerActivation();
     }, CHARGE_DURATION_MS);
   };
 
-  const handleMouseLeave = () => {
+  const handlePreviewHoverEnd = () => {
     clearChargeTimer();
     setIsCharging(false);
-
-    if (variant === "table-cell") {
-      setTimeout(() => {
-        if (!isOverPopoverRef.current) {
-          setIsCellActive(false);
-          setIframeLoaded(false);
-        }
-      }, 50);
-    }
-    // In "card" mode: do NOT deactivate! The card remains active in the pool.
   };
 
   const handleManualClose = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    clearChargeTimer();
+    clearTimeoutTimer();
     if (variant === "card") {
       sandboxPool.deactivate(slug);
     } else {
       setIsCellActive(false);
     }
     setIframeLoaded(false);
+    setHasTimedOut(false);
+    setHasScriptError(false);
+    setShowLargeFileConfirm(false);
   };
 
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      clearChargeTimer();
-    };
-  }, [clearChargeTimer]);
+  const handleRetry = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setHasTimedOut(false);
+    setHasScriptError(false);
+    setIframeLoaded(false);
+    setIframeKey((prev) => prev + 1);
+  };
 
   const isCardActive = variant === "card" && isPoolActive;
+  const BackgroundIcon = CATEGORY_BACKGROUND_ICONS[category] || FileCode2;
 
   /* ----------------------------------------------------
-   * VARIANT 1: TABLE CELL (For Admin Table Row Previews)
+   * VARIANT 1: TABLE CELL (Compact Miniature Row Preview)
    * ---------------------------------------------------- */
   if (variant === "table-cell") {
     const DisplayIcon = CustomIcon || Play;
@@ -131,11 +217,29 @@ export default function HoverSandboxPreview({
     return (
       <div
         ref={triggerRef}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onMouseEnter={() => {
+          if (!isCellActive) {
+            updatePopoverPosition();
+            setIsCharging(true);
+            clearChargeTimer();
+            chargeTimerRef.current = setTimeout(() => {
+              setIsCharging(false);
+              setIsCellActive(true);
+            }, CHARGE_DURATION_MS);
+          }
+        }}
+        onMouseLeave={() => {
+          clearChargeTimer();
+          setIsCharging(false);
+          setTimeout(() => {
+            if (!isOverPopoverRef.current) {
+              setIsCellActive(false);
+              setIframeLoaded(false);
+            }
+          }, 50);
+        }}
         className="w-14 aspect-video rounded overflow-hidden bg-neutral-900/90 border border-border/80 shrink-0 relative flex items-center justify-center cursor-pointer select-none group/cell shadow-2xs hover:border-neutral-500 transition-colors"
       >
-        {/* Subtle Background */}
         <div className="absolute inset-0 bg-neutral-950/40" />
 
         {/* Mini Progress Circle */}
@@ -171,12 +275,10 @@ export default function HoverSandboxPreview({
           />
         </svg>
 
-        {/* Center Icon */}
         <div className="relative z-10 text-neutral-400 group-hover/cell:text-neutral-200 transition-colors">
           <DisplayIcon className="w-3.5 h-3.5" />
         </div>
 
-        {/* Direct Click -> Open Runner */}
         <Link
           href={`/p/${slug}`}
           target="_blank"
@@ -199,19 +301,20 @@ export default function HoverSandboxPreview({
             className="fixed z-[9999] w-72 aspect-video bg-neutral-950 border border-neutral-700 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
           >
             <iframe
+              key={iframeKey}
               src={`/raw/${slug}`}
               title={title}
               tabIndex={-1}
               sandbox="allow-scripts"
               onLoad={() => setIframeLoaded(true)}
+              onError={() => setHasScriptError(true)}
               className={`w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white transition-opacity duration-300 ${
                 iframeLoaded ? "opacity-100" : "opacity-0"
               }`}
             />
 
-            {!iframeLoaded && (
+            {!iframeLoaded && !hasTimedOut && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-neutral-950/90 text-neutral-400">
-                {/* 2px hairline indeterminate loader across the top */}
                 <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden bg-neutral-900 z-30 pointer-events-none">
                   <div className="h-full bg-neutral-200/90 animate-pulse w-full" />
                 </div>
@@ -224,7 +327,7 @@ export default function HoverSandboxPreview({
             <div className="absolute top-2 left-2 pointer-events-none z-20">
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-medium bg-black/80 text-emerald-400 border border-emerald-500/30 shadow-xs">
                 <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                <span>沙箱运行中</span>
+                <span>{t.gallery.sandboxActive}</span>
               </span>
             </div>
 
@@ -243,7 +346,7 @@ export default function HoverSandboxPreview({
               target="_blank"
               className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded bg-black/80 hover:bg-neutral-900 text-neutral-200 hover:text-white text-[10px] font-medium border border-neutral-700 backdrop-blur-md transition-colors z-20"
             >
-              <span>{openRunnerText}</span>
+              <span>{defaultOpenText}</span>
               <ExternalLink className="w-3 h-3" />
             </Link>
           </div>,
@@ -254,66 +357,146 @@ export default function HoverSandboxPreview({
   }
 
   /* ----------------------------------------------------
-   * VARIANT 2: FULL CARD (For Showcase & Workspace Grid)
-   * Stays active in global LRU pool (up to 6 concurrent).
+   * VARIANT 2: FULL CARD (Gallery & Workspace Showcase)
+   * High-end Static Blueprint Poster + Floating Capsule
    * ---------------------------------------------------- */
   return (
-    <div
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      className="relative aspect-video w-full bg-neutral-950 dark:bg-[#09090b] border-b border-border/60 overflow-hidden select-none group/sandbox"
-    >
-      {/* 1. Active Sandboxed iframe (Persisted in pool across mouse movements) */}
+    <div className="relative aspect-video w-full bg-[#09090b] border-b border-border/60 overflow-hidden select-none group/sandbox">
+      {/* 1. Active Sandboxed iframe Layer */}
       {isCardActive && (
         <>
           <iframe
+            key={iframeKey}
             src={`/raw/${slug}`}
             title={title}
             tabIndex={-1}
             sandbox="allow-scripts"
-            onLoad={() => setIframeLoaded(true)}
-            className={`w-[200%] h-[200%] origin-top-left scale-50 border-0 pointer-events-none select-none bg-white transition-opacity duration-300 ${
-              iframeLoaded ? "opacity-100" : "opacity-0"
+            onLoad={() => {
+              setIframeLoaded(true);
+              setHasTimedOut(false);
+            }}
+            onError={() => {
+              setHasScriptError(true);
+            }}
+            className={`w-[200%] h-[200%] origin-top-left scale-50 border-0 select-none bg-white transition-opacity duration-300 ${
+              iframeLoaded && !hasTimedOut && !hasScriptError ? "opacity-100 pointer-events-none" : "opacity-0 pointer-events-none"
             }`}
           />
 
-          {/* Loading indicator while active iframe is compiling */}
-          {!iframeLoaded && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-neutral-950/80 backdrop-blur-xs text-neutral-400">
-              {/* 2px hairline indeterminate loader across the top */}
+          {/* Loading Indicator while iframe compiles */}
+          {!iframeLoaded && !hasTimedOut && !hasScriptError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-neutral-950/85 backdrop-blur-xs text-neutral-400 z-10">
               <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden bg-neutral-900 z-30 pointer-events-none">
                 <div className="h-full bg-neutral-200/90 animate-pulse w-full" />
               </div>
               <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
-              <span className="text-[11px] font-mono tracking-tight">启动沙箱环境中...</span>
+              <span className="text-[11px] font-mono tracking-tight text-neutral-300">
+                {t.gallery.loadingPreview}
+              </span>
+            </div>
+          )}
+
+          {/* Timeout Guard Layer */}
+          {hasTimedOut && !iframeLoaded && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-neutral-950/95 border border-amber-500/30 text-center gap-2 z-25 animate-in fade-in duration-200">
+              <div className="w-7 h-7 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <p className="text-[11px] text-neutral-300 font-medium max-w-[220px] leading-tight">
+                {t.gallery.loadTimeout}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRetry}
+                  className="h-6 px-2 text-[10px] gap-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border-neutral-700"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                  <span>{t.gallery.retry}</span>
+                </Button>
+                <Button
+                  size="sm"
+                  asChild
+                  className="h-6 px-2 text-[10px] gap-1 bg-neutral-100 hover:bg-white text-neutral-950 font-medium"
+                >
+                  <Link href={`/p/${slug}`} target="_blank">
+                    <span>{t.gallery.openAnyway}</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Script Error Guard Layer */}
+          {hasScriptError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-neutral-950/95 border border-red-500/30 text-center gap-2 z-25 animate-in fade-in duration-200">
+              <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center text-red-400">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <p className="text-[11px] text-neutral-300 font-medium max-w-[220px] leading-tight">
+                {t.gallery.scriptError}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRetry}
+                  className="h-6 px-2 text-[10px] gap-1 bg-neutral-900 text-neutral-200 border-neutral-700"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                  <span>{t.gallery.retry}</span>
+                </Button>
+                <Button
+                  size="sm"
+                  asChild
+                  className="h-6 px-2 text-[10px] gap-1 bg-neutral-100 text-neutral-950 font-medium"
+                >
+                  <Link href={`/p/${slug}`} target="_blank">
+                    <span>{t.gallery.openAnyway}</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </Link>
+                </Button>
+              </div>
             </div>
           )}
 
           {/* Live Indicator Pill & Close Button */}
           <div className="absolute bottom-2 left-2 flex items-center gap-1.5 z-20">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-black/75 text-emerald-400 border border-emerald-500/30 backdrop-blur-md shadow-xs">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-black/80 text-emerald-400 border border-emerald-500/30 backdrop-blur-md shadow-xs">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>沙箱运行中</span>
+              <span>{t.gallery.sandboxActive}</span>
             </span>
 
-            {/* Optional Manual Close / Release Button */}
             <button
               onClick={handleManualClose}
-              title="暂停沙箱以释放资源"
-              className="p-1 rounded-full bg-black/75 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-700/80 backdrop-blur-md transition-colors cursor-pointer"
+              title={t.gallery.pause}
+              className="p-1 rounded-full bg-black/80 hover:bg-neutral-800 text-neutral-400 hover:text-white border border-neutral-700/80 backdrop-blur-md transition-colors cursor-pointer"
             >
               <X className="w-2.5 h-2.5" />
             </button>
           </div>
+
+          {/* Bottom Right Fullscreen Action */}
+          <Link
+            href={`/p/${slug}`}
+            target="_blank"
+            className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 hover:bg-neutral-900 text-neutral-200 hover:text-white text-[10px] font-medium border border-neutral-700/80 backdrop-blur-md transition-colors z-20 shadow-xs cursor-pointer"
+            title={defaultOpenText}
+          >
+            <span>{defaultOpenText}</span>
+            <ExternalLink className="w-3 h-3" />
+          </Link>
         </>
       )}
 
-      {/* 2. Idle & Charging Technical Poster */}
+      {/* 2. Idle State: High-End Static Blueprint Poster (Zero iframe Overhead) */}
       {!isCardActive && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 bg-neutral-950 dark:bg-[#070709] transition-colors">
-          {/* Subtle Hairline Blueprint Grid Background */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#070709] transition-colors">
+          {/* A. Blueprint Dot Matrix Grid Background */}
           <div
-            className="absolute inset-0 opacity-15 pointer-events-none"
+            className="absolute inset-0 opacity-20 pointer-events-none"
             style={{
               backgroundImage:
                 "radial-gradient(circle at 1px 1px, #71717a 1px, transparent 0)",
@@ -321,79 +504,158 @@ export default function HoverSandboxPreview({
             }}
           />
 
-          {/* Circular Progress Ring with Play Indicator */}
-          <div className="relative w-11 h-11 flex items-center justify-center">
-            <svg
-              className="w-11 h-11 -rotate-90 transform"
-              viewBox="0 0 40 40"
-              aria-hidden="true"
-            >
-              {/* Background Track Circle */}
-              <circle
-                cx="20"
-                cy="20"
-                r={CARD_RADIUS}
-                fill="transparent"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className="text-neutral-800"
-              />
-              {/* Animated Progress Circle */}
-              <circle
-                cx="20"
-                cy="20"
-                r={CARD_RADIUS}
-                fill="transparent"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeDasharray={CARD_CIRCUMFERENCE}
-                strokeDashoffset={isCharging ? 0 : CARD_CIRCUMFERENCE}
-                strokeLinecap="round"
-                className="text-neutral-200 transition-all"
-                style={{
-                  transitionDuration: isCharging ? `${CHARGE_DURATION_MS}ms` : "150ms",
-                  transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
-                }}
-              />
-            </svg>
+          {/* B. Subtle Category Watermark & Code Wireframe Decoration */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-[0.07] pointer-events-none select-none">
+            <BackgroundIcon className="w-32 h-32 stroke-[1]" />
+          </div>
 
-            {/* Inner Play/Preview Icon */}
-            <div className="absolute inset-0 flex items-center justify-center text-neutral-400 group-hover/sandbox:text-neutral-100 transition-colors">
-              <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+          {/* Decorative Wireframe Window Skeleton */}
+          <div className="absolute inset-3 rounded border border-neutral-800/60 bg-neutral-950/40 p-3 flex flex-col justify-between pointer-events-none">
+            <div className="flex items-center justify-between opacity-30">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral-600" />
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral-700" />
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral-700" />
+              </div>
+              <span className="text-[9px] font-mono text-neutral-500 tracking-wider">
+                {category.toUpperCase()}
+              </span>
+            </div>
+
+            {/* Abstract Wireframe Skeleton Lines */}
+            <div className="space-y-1.5 opacity-20 my-auto">
+              <div className="h-1 bg-neutral-700 rounded-full w-2/3" />
+              <div className="h-1 bg-neutral-800 rounded-full w-4/5" />
+              <div className="h-1 bg-neutral-800 rounded-full w-1/2" />
             </div>
           </div>
 
-          {/* Text Instruction */}
-          <div className="flex items-center gap-1 text-[11px] font-mono text-neutral-400 tracking-tight z-10">
-            {isCharging ? (
-              <span className="text-neutral-200 flex items-center gap-1 font-medium">
-                <Sparkles className="w-3 h-3 text-neutral-400 animate-pulse" />
-                正在载入沙箱...
+          {/* Large File Warning Badge in top-right of the viewport */}
+          {isLargeFile && (
+            <div className="absolute top-2 right-2 z-15 pointer-events-none">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30 backdrop-blur-md shadow-xs">
+                <AlertTriangle className="w-2.5 h-2.5" />
+                <span>{formattedFileSize}</span>
               </span>
-            ) : (
-              <span className="text-neutral-500 group-hover/sandbox:text-neutral-300 transition-colors">
-                悬停以激活预览
-              </span>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* C. Large File Confirmation Warning Overlay */}
+          {showLargeFileConfirm && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-4 bg-neutral-950/95 border border-amber-500/40 backdrop-blur-xs text-center gap-2 animate-in fade-in zoom-in-95 duration-150">
+              <div className="w-7 h-7 rounded-full bg-amber-500/15 flex items-center justify-center text-amber-400">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-[11px] font-semibold text-neutral-200">
+                  {t.gallery.largeFileBadge} ({formattedFileSize})
+                </p>
+                <p className="text-[10px] text-neutral-400 max-w-[210px] leading-relaxed">
+                  {t.gallery.largeFileNotice}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setShowLargeFileConfirm(false);
+                    sandboxPool.activate(slug);
+                  }}
+                  className="h-6 px-2.5 text-[10px] bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border-neutral-700"
+                >
+                  <span>继续预览</span>
+                </Button>
+                <Button
+                  size="sm"
+                  asChild
+                  className="h-6 px-2.5 text-[10px] gap-1 bg-neutral-100 hover:bg-white text-neutral-950 font-medium"
+                >
+                  <Link href={`/p/${slug}`} target="_blank">
+                    <span>{defaultOpenText}</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </Link>
+                </Button>
+              </div>
+              <button
+                onClick={() => setShowLargeFileConfirm(false)}
+                className="absolute top-2 right-2 text-neutral-500 hover:text-neutral-300 p-1 cursor-pointer"
+                title="关闭提示"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
+          {/* D. Dual-Action Floating Capsule Toolbar */}
+          {!showLargeFileConfirm && (
+            <div className="relative z-20 flex items-center bg-neutral-900/90 hover:bg-neutral-900 text-neutral-200 border border-neutral-700/90 rounded-full p-1 shadow-2xl backdrop-blur-md transition-all duration-200 group-hover/sandbox:scale-105 group-hover/sandbox:border-neutral-500">
+              {/* Left Action: Preview / Hover Preview Button */}
+              <button
+                type="button"
+                onClick={triggerActivation}
+                onMouseEnter={handlePreviewHoverStart}
+                onMouseLeave={handlePreviewHoverEnd}
+                className="relative flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full text-xs font-medium text-neutral-200 hover:text-white hover:bg-neutral-800/80 transition-all cursor-pointer overflow-hidden select-none"
+                title="点击立即运行沙箱，或悬停蓄力预览"
+              >
+                {/* Mini SVG Progress Ring for Hover Charge */}
+                <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
+                  <svg
+                    className="w-4 h-4 -rotate-90 transform"
+                    viewBox="0 0 28 28"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="14"
+                      cy="14"
+                      r={CARD_RADIUS}
+                      fill="transparent"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      className="text-neutral-700"
+                    />
+                    <circle
+                      cx="14"
+                      cy="14"
+                      r={CARD_RADIUS}
+                      fill="transparent"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeDasharray={CARD_CIRCUMFERENCE}
+                      strokeDashoffset={isCharging ? 0 : CARD_CIRCUMFERENCE}
+                      strokeLinecap="round"
+                      className="text-emerald-400 transition-[stroke-dashoffset]"
+                      style={{
+                        transitionDuration: isCharging ? `${CHARGE_DURATION_MS}ms` : "120ms",
+                        transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
+                      }}
+                    />
+                  </svg>
+                  <Play className="w-2.5 h-2.5 fill-current ml-0.5 absolute text-neutral-300" />
+                </div>
+                <span className="font-mono text-[11px] tracking-tight">
+                  {isCharging ? "载入中..." : previewText}
+                </span>
+              </button>
+
+              {/* Center Divider Hairline */}
+              <div className="w-[1px] h-3.5 bg-neutral-700 shrink-0" />
+
+              {/* Right Action: Open Directly Runner Button */}
+              <Link
+                href={`/p/${slug}`}
+                target="_blank"
+                className="flex items-center gap-1 pl-2.5 pr-3 py-1 rounded-full text-xs font-medium text-neutral-300 hover:text-white hover:bg-neutral-800/80 transition-all cursor-pointer select-none"
+                title={`在新标签页打开 ${title}`}
+              >
+                <span className="font-mono text-[11px] tracking-tight">{defaultOpenText}</span>
+                <ExternalLink className="w-3 h-3 text-neutral-400" />
+              </Link>
+            </div>
+          )}
         </div>
       )}
-
-      {/* 3. Direct Click Overlay -> Jump straight into full Runner */}
-      <Link
-        href={`/p/${slug}`}
-        className="absolute inset-0 bg-black/40 opacity-0 group-hover/sandbox:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[1px] z-10"
-        title={openRunnerText}
-      >
-        <Button
-          size="sm"
-          variant="secondary"
-          className="h-7.5 px-3 text-xs gap-1.5 shadow-md pointer-events-none font-medium bg-neutral-900/90 text-neutral-100 border border-neutral-700 hover:bg-neutral-800"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-          <span>{openRunnerText}</span>
-        </Button>
-      </Link>
     </div>
   );
 }

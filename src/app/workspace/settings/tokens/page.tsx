@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function ApiTokensPage() {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/admin/login?from=/admin/settings/tokens");
+    redirect("/login?from=/workspace/settings/tokens");
   }
 
   const tokens = await listUserApiTokens(user.id);
@@ -23,7 +23,7 @@ export default async function ApiTokensPage() {
       <header className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur-xs px-3 sm:px-8 h-12 flex items-center justify-between">
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Button variant="ghost" size="icon" asChild className="h-7 w-7 text-muted-foreground hover:text-foreground">
-            <Link href="/admin" prefetch={true}>
+            <Link href="/workspace" prefetch={true}>
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>
@@ -53,7 +53,7 @@ export default async function ApiTokensPage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">API 访问密钥与令牌 (Tokens)</h1>
           <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
-            Personal Access Tokens 具备与你的账号同等的权限，可用于在自动化脚本、CI/CD、命令行 CLI 或 Cursor 中代替你上传和管理单页 HTML。
+            Personal Access Tokens 具备与你的账号同等的权限，可用于在自动化脚本、CI/CD、命令行 CLI 或 Cursor 中代替你上传和管理 HTML。
             密钥采用 SHA-256 加密存储，仅在创建时显示一次。
           </p>
         </div>

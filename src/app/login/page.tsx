@@ -16,7 +16,7 @@ import { useLanguage } from "@/lib/i18n/context";
 function LoginForm() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/admin";
+  const from = searchParams.get("from") || "/workspace";
   const errorParam = searchParams.get("error");
   const errorMsg = searchParams.get("msg");
   const initialTab = searchParams.get("tab") === "signup";
@@ -252,7 +252,7 @@ function LoginForm() {
   );
 }
 
-export default function AdminLoginPage() {
+export default function LoginPage() {
   const { t } = useLanguage();
 
   return (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import TermsClient from "./terms-client";
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
 
 export const metadata: Metadata = {
   title: "Terms of Service - Pagepod",

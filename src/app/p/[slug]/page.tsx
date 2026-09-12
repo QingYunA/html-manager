@@ -117,7 +117,7 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
           该 HTML 项目已被所有者设置为完全私有保护。管理员及外部访客无权查阅内容。
         </p>
         <a
-          href="/admin/login"
+          href={`/login?from=/p/${project.slug}`}
           className="text-xs text-foreground underline underline-offset-4 hover:opacity-80"
         >
           登录拥有者账号
@@ -137,7 +137,7 @@ export default async function ProjectRunnerPage({ params }: PageProps) {
     }
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
   const jsonLd =
     project.visibility === "public"
       ? {

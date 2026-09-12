@@ -49,7 +49,7 @@ const CATEGORIES = [
 
 const SUGGESTED_TAGS = ["Canvas", "SVG", "Three.js", "Tailwind", "Vue", "React", "WebAudio", "ECharts"];
 
-export default function AdminUploadPage() {
+export default function WorkspaceUploadPage() {
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<"file" | "paste">("file");
   const [file, setFile] = useState<File | null>(null);
@@ -311,7 +311,7 @@ export default function AdminUploadPage() {
         {/* Top Header */}
         <div className="flex items-center justify-between pb-4 border-b border-border">
           <Button variant="ghost" size="sm" asChild className="text-xs text-muted-foreground hover:text-foreground">
-            <Link href="/admin" prefetch={true}>
+            <Link href="/workspace" prefetch={true}>
               <ArrowLeft className="w-3.5 h-3.5 mr-1" /> 返回项目列表
             </Link>
           </Button>
@@ -565,7 +565,7 @@ export default function AdminUploadPage() {
                     id="upload-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="简要概括单页的功能或操作指南"
+                    placeholder="简要概括项目的功能或操作指南"
                   />
                 </div>
 

@@ -135,13 +135,13 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
       <header className="h-12 border-b border-border bg-background/95 backdrop-blur-xs px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
-            <Link href="/admin" prefetch={true}>
+            <Link href="/workspace" prefetch={true}>
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-foreground max-w-xs truncate">
-              {title || "编辑单页"}
+              {title || "编辑项目"}
             </span>
             <span className="text-[11px] font-mono text-muted-foreground">/p/{project.slug}</span>
           </div>

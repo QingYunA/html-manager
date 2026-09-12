@@ -13,7 +13,7 @@ interface ExploreClientProps {
 }
 
 export default function ExploreClient({ projects }: ExploreClientProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const categoryCards = [
@@ -22,28 +22,40 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
       label: t.categories.tools,
       icon: Wrench,
       count: projects.filter((p) => p.category === "tools").length,
-      desc: "Calculators, converters, formatters, and utilities",
+      desc:
+        locale === "zh"
+          ? "计算器、文本转换、正则与日常开发小工具"
+          : "Calculators, text converters, formatters, and utilities",
     },
     {
       id: "games",
       label: t.categories.games,
       icon: Gamepad2,
       count: projects.filter((p) => p.category === "games").length,
-      desc: "Arcade, puzzle, canvas mini games, and interactive play",
+      desc:
+        locale === "zh"
+          ? "2048、街机、益智解谜与各种微型网页游戏"
+          : "2048, arcade, puzzles, and interactive web games",
     },
     {
       id: "visualization",
       label: t.categories.visualization,
       icon: BarChart2,
       count: projects.filter((p) => p.category === "visualization").length,
-      desc: "Interactive charts, financial dashboards, and statistics",
+      desc:
+        locale === "zh"
+          ? "动态图表、数据看板与 WebGL / SVG 动效"
+          : "Interactive charts, live dashboards, and WebGL experiments",
     },
     {
       id: "prototypes",
       label: t.categories.prototypes,
       icon: Layers,
       count: projects.filter((p) => p.category === "prototypes").length,
-      desc: "App mockups, landing pages, and UI interaction designs",
+      desc:
+        locale === "zh"
+          ? "临时搭建的落地页、交互原型与设计稿"
+          : "Landing page mockups, interactive UI demos, and prototypes",
     },
   ];
 
@@ -65,9 +77,6 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-12 md:py-16">
       {/* Hero Intro */}
       <div className="text-center max-w-2xl mx-auto mb-12 space-y-3">
-        <Badge variant="outline" className="px-3 py-0.5 text-xs font-mono tracking-wide">
-          {t.explore.badge}
-        </Badge>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
           {t.explore.title}
         </h1>
@@ -166,7 +175,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
               onClick={() => setSelectedCategory("all")}
               className="h-7 text-xs text-muted-foreground hover:text-foreground"
             >
-              重置筛选 (Clear)
+              {locale === "zh" ? "显示全部专题" : "View all topics"}
             </Button>
           )}
         </div>
@@ -175,11 +184,11 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
           <div className="text-center py-16 border border-dashed border-border rounded-xl">
             <Compass className="w-8 h-8 text-muted-foreground/50 mx-auto mb-3" />
             <p className="text-xs text-muted-foreground mb-4">
-              该分类下暂无已发布的公开单页
+              {locale === "zh" ? "该专题下暂无公开项目" : "No public artifacts under this topic yet"}
             </p>
             <Button size="sm" asChild className="h-8 text-xs">
-              <Link href="/admin/upload">
-                发布第一个 {categoryCards.find((c) => c.id === selectedCategory)?.label || "作品"}
+              <Link href="/workspace/upload">
+                {locale === "zh" ? "+ 上传首个作品至该专题" : "+ Publish first work here"}
               </Link>
             </Button>
           </div>
@@ -207,7 +216,7 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
                   </h3>
 
                   <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-4 min-h-[32px]">
-                    {project.description || "Interactive AI single-page application hosted on Pagepod."}
+                    {project.description || "Interactive web application hosted on Pagepod."}
                   </p>
                 </div>
 
@@ -229,6 +238,24 @@ export default function ExploreClient({ projects }: ExploreClientProps) {
             ))}
           </div>
         )}
+
+        {/* Link back to Showcase Gallery */}
+        <div className="mt-14 p-6 rounded-xl border border-border bg-card/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">
+              {locale === "zh" ? "想看全部作品？" : "Looking for all works?"}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {locale === "zh" ? "前往画廊浏览全部列表，支持快速搜索与鼠标悬停即时试玩。" : "Visit the showcase to browse everything with instant search and hover previews."}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" asChild className="shrink-0 h-8 text-xs">
+            <Link href="/" className="gap-1.5">
+              <span>{t.explore.viewAll}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

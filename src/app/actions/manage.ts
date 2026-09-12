@@ -14,6 +14,7 @@ export async function togglePinAction(id: string, currentPinned: boolean) {
 
   await updateProject(id, { isPinned: !currentPinned });
   revalidatePath("/");
+  revalidatePath("/workspace");
   revalidatePath("/admin");
 }
 
@@ -26,6 +27,7 @@ export async function updateVisibilityAction(id: string, visibility: "public" | 
 
   await updateProject(id, { visibility });
   revalidatePath("/");
+  revalidatePath("/workspace");
   revalidatePath("/admin");
 }
 
@@ -45,6 +47,7 @@ export async function deleteProjectAction(id: string) {
 
   await deleteProject(id);
   revalidatePath("/");
+  revalidatePath("/workspace");
   revalidatePath("/admin");
 }
 
@@ -58,5 +61,6 @@ export async function saveProjectHtmlAction(id: string, newHtml: string) {
   const { updateProjectHtml } = await import("@/lib/services/project-service");
   await updateProjectHtml(id, newHtml, user);
   revalidatePath(`/p/${project.slug}`);
+  revalidatePath("/workspace");
   revalidatePath("/admin");
 }

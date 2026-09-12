@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/lib/i18n/context";
 
 export function HeroSection() {
@@ -8,12 +7,7 @@ export function HeroSection() {
 
   return (
     <section className="border-b border-border/60 py-10 px-4 sm:px-8">
-      <div className="max-w-7xl mx-auto space-y-3">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-[11px] font-mono font-normal">
-            {t.hero.badge}
-          </Badge>
-        </div>
+      <div className="max-w-7xl mx-auto space-y-2.5">
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
           {t.hero.title}
         </h1>

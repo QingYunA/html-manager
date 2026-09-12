@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -30,7 +30,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useLanguage } from "@/lib/i18n/context";
 import HoverSandboxPreview from "@/components/hover-sandbox-preview";
-import { sandboxPool } from "@/lib/sandbox-pool";
 
 interface ShowcaseGalleryProps {
   initialProjects: Project[];
@@ -94,15 +93,6 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
     });
   }, [initialProjects, selectedCategory, selectedTag, search]);
 
-  // Auto-warmup the first batch of visible projects into the sandbox pool
-  useEffect(() => {
-    if (viewMode === "grid") {
-      const visibleSlugs = filteredProjects.slice(0, 6).map((p) => p.slug);
-      if (visibleSlugs.length > 0) {
-        sandboxPool.warmup(visibleSlugs);
-      }
-    }
-  }, [filteredProjects, viewMode]);
 
   const handleShare = (slug: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -243,7 +233,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
               </p>
             </div>
             <Button asChild size="sm" variant="outline" className="mt-2">
-              <Link href="/admin/upload">{t.gallery.uploadNow}</Link>
+              <Link href="/workspace/upload">{t.gallery.uploadNow}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -257,7 +247,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
             return (
               <Card
                 key={p.id}
-                className="group relative flex flex-col overflow-hidden border-border bg-card/80 hover:border-neutral-600 transition-all duration-150"
+                className="group relative flex flex-col overflow-hidden border-border bg-card/80 hover:border-neutral-400 dark:hover:border-neutral-600 transition-[border-color,box-shadow,transform] duration-200 ease-out"
               >
                 {/* Miniature Thumbnail Viewport with Hover-Activated Sandbox */}
                 <div className="relative aspect-video w-full bg-neutral-950 border-b border-border/60 overflow-hidden">
@@ -265,6 +255,7 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     slug={p.slug}
                     title={p.title}
                     category={p.category}
+                    fileSize={p.fileSize || 0}
                     openRunnerText={t.gallery.openRunner}
                   />
 
@@ -356,11 +347,11 @@ export default function ShowcaseGallery({ initialProjects }: ShowcaseGalleryProp
                     <span className="inline-flex items-center gap-1">
                       {p.assetType === "single_html" ? (
                         <>
-                          <FileCode2 className="w-3 h-3 text-sky-400" /> {t.gallery.singleHtml}
+                          <FileCode2 className="w-3 h-3 text-sky-600 dark:text-sky-400" /> {t.gallery.singleHtml}
                         </>
                       ) : (
                         <>
-                          <FolderArchive className="w-3 h-3 text-amber-400" /> {t.gallery.zipBundle}
+                          <FolderArchive className="w-3 h-3 text-amber-600 dark:text-amber-400" /> {t.gallery.zipBundle}
                         </>
                       )}
                     </span>

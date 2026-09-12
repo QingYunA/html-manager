@@ -22,6 +22,7 @@ export async function createTokenAction(name: string) {
 
   try {
     const result = await generatePersonalAccessToken(user.id, parsedName.data);
+    revalidatePath("/workspace/settings/tokens");
     revalidatePath("/admin/settings/tokens");
     return {
       success: true,
@@ -47,6 +48,7 @@ export async function deleteTokenAction(tokenId: string) {
 
   try {
     const success = await revokeApiToken(tokenId, user.id);
+    revalidatePath("/workspace/settings/tokens");
     revalidatePath("/admin/settings/tokens");
     return { success };
   } catch (err: unknown) {

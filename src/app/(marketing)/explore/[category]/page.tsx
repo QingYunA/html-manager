@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://html-manager-five.vercel.app";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
   const title = `${catInfo.nameEn} - Online AI Sandbox`;
 
   return {
@@ -143,7 +143,7 @@ export default async function CategoryDetailPage({ params }: CategoryPageProps) 
           </div>
 
           <Button asChild size="sm" className="h-8 text-xs shrink-0 font-medium">
-            <Link href="/admin/upload">
+            <Link href="/workspace/upload">
               Upload in {category}
             </Link>
           </Button>
@@ -168,7 +168,7 @@ export default async function CategoryDetailPage({ params }: CategoryPageProps) 
                 No public projects uploaded in {catInfo.nameEn} yet.
               </p>
               <Button asChild size="sm" className="h-8 text-xs">
-                <Link href="/admin/upload">Be the first to publish</Link>
+                <Link href="/workspace/upload">Be the first to publish</Link>
               </Button>
             </div>
           ) : (
