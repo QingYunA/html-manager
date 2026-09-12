@@ -2,13 +2,19 @@
 
 import { useState, useActionState, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { loginAdmin, loginWithEmailAction } from "@/app/actions/auth";
+import {
+  loginAdmin,
+  loginWithEmailAction,
+  verifyEmailOtpAction,
+  resendVerificationOtpAction,
+} from "@/app/actions/auth";
 import { createSupabaseClient, isClientCloudMode } from "@/lib/supabase/client";
 import Link from "next/link";
-import { ArrowLeft, Key, Loader2 } from "lucide-react";
+import { ArrowLeft, MailCheck, RefreshCw, KeyRound, Loader2 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useLanguage } from "@/lib/i18n/context";
@@ -19,10 +25,20 @@ function LoginForm() {
   const from = searchParams.get("from") || "/workspace";
   const errorParam = searchParams.get("error");
   const errorMsg = searchParams.get("msg");
-  const initialTab = searchParams.get("tab") === "signup";
+  const initialTab = searchParams.get("tab") === "signup" ? "signup" : "signin";
+
   const [adminState, adminFormAction, isAdminPending] = useActionState(loginAdmin, null);
   const [emailState, emailFormAction, isEmailPending] = useActionState(loginWithEmailAction, null);
-  const [isSignUp, setIsSignUp] = useState(initialTab);
+  const [otpState, otpFormAction, isOtpPending] = useActionState(verifyEmailOtpAction, null);
+
+  const [activeTab, setActiveTab] = useState<"signin" | "signup">(initialTab);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [countdown, setCountdown] = useState(0);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
+  const [showSelfhostOverride, setShowSelfhostOverride] = useState(false);
+
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [isCloud, setIsCloud] = useState(false);
@@ -30,6 +46,24 @@ function LoginForm() {
   useEffect(() => {
     setIsCloud(isClientCloudMode());
   }, []);
+
+  // Sync verification trigger from server action
+  useEffect(() => {
+    if (emailState?.needsVerification && emailState.email) {
+      setPendingEmail(emailState.email);
+      setNeedsVerification(true);
+      setCountdown(60);
+    }
+  }, [emailState]);
+
+  // Handle resend countdown
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const handleOAuthLogin = async (provider: "github" | "google") => {
     setOauthError(null);
@@ -61,21 +95,153 @@ function LoginForm() {
     }
   };
 
-  // 1. CLOUD SAAS AUTHENTICATION (Authentic shadcn/ui minimal clean design)
-  if (isCloud) {
+  const handleResendOtp = async () => {
+    if (!pendingEmail || countdown > 0 || isResending) return;
+    setIsResending(true);
+    setResendStatus(null);
+    try {
+      const res = await resendVerificationOtpAction(pendingEmail);
+      if (res && "error" in res && res.error) {
+        setResendStatus(res.error);
+      } else {
+        setResendStatus(t.auth.resendSuccess);
+        setCountdown(60);
+      }
+    } catch (err: unknown) {
+      setResendStatus((err as Error)?.message || "Failed to resend");
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // 1. EMAIL VERIFICATION STATE (6-digit OTP code input + mail link notice)
+  if (isCloud && needsVerification) {
     return (
       <div className="space-y-6">
-        {/* Title & Subtitle */}
         <div className="flex flex-col space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {isSignUp ? t.auth.signupTitle : t.auth.loginTitle}
+          <div className="w-10 h-10 rounded-full border border-border bg-muted/40 flex items-center justify-center mx-auto text-foreground">
+            <MailCheck className="w-5 h-5" />
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {t.auth.verifyEmailTitle}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {isSignUp ? t.auth.signupSubtitle : t.auth.loginSubtitle}
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {t.auth.verifyEmailSubtitle.replace("{email}", pendingEmail)}
           </p>
         </div>
 
-        {/* OAuth Buttons */}
+        <div className="p-3 bg-muted/30 border border-border rounded-md text-[11px] text-muted-foreground leading-relaxed">
+          {t.auth.verifyPrompt}
+        </div>
+
+        {/* 6-digit OTP verification form */}
+        <form action={otpFormAction} className="space-y-3.5">
+          <input type="hidden" name="from" value={from} />
+          <input type="hidden" name="email" value={pendingEmail} />
+
+          <div className="space-y-1.5">
+            <label htmlFor="otp-token" className="text-xs font-medium text-foreground">
+              {t.auth.otpCodeLabel}
+            </label>
+            <Input
+              id="otp-token"
+              name="token"
+              type="text"
+              inputMode="numeric"
+              maxLength={8}
+              required
+              autoFocus
+              placeholder={t.auth.otpCodePlaceholder}
+              className="h-10 text-center tracking-[0.35em] font-mono text-sm uppercase"
+            />
+          </div>
+
+          {otpState?.error && (
+            <p role="alert" className="text-[11px] text-destructive font-medium text-center">
+              {otpState.error}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            disabled={isOtpPending}
+            className="w-full h-9 text-xs font-medium cursor-pointer"
+          >
+            {isOtpPending ? t.auth.loading : t.auth.verifyBtn}
+          </Button>
+        </form>
+
+        {/* Resend button & Change email */}
+        <div className="flex flex-col space-y-3 text-center text-xs pt-1">
+          {resendStatus && (
+            <p className="text-[11px] text-muted-foreground font-medium">
+              {resendStatus}
+            </p>
+          )}
+
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={countdown > 0 || isResending}
+              onClick={handleResendOtp}
+              className="h-8 text-xs gap-1.5 cursor-pointer font-normal border-border"
+            >
+              <RefreshCw className={`w-3 h-3 ${isResending ? "animate-spin" : ""}`} />
+              <span>
+                {isResending
+                  ? t.auth.resending
+                  : countdown > 0
+                  ? t.auth.resendCountdown.replace("{seconds}", String(countdown))
+                  : t.auth.resendCode}
+              </span>
+            </Button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setNeedsVerification(false)}
+            className="text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer text-[11px]"
+          >
+            {t.auth.changeEmail}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. CLOUD SAAS AUTHENTICATION (Tabs: Sign In vs Sign Up)
+  if (isCloud && !showSelfhostOverride) {
+    return (
+      <div className="space-y-6">
+        {/* Prominent shadcn Tabs for Sign In vs Sign Up */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as "signin" | "signup")}
+          className="w-full"
+        >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="signin" className="cursor-pointer">
+              {t.auth.tabSignIn}
+            </TabsTrigger>
+            <TabsTrigger value="signup" className="cursor-pointer">
+              {t.auth.tabSignUp}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {/* Dynamic Title & Subtitle based on active tab */}
+        <div className="flex flex-col space-y-1.5 text-center">
+          <h1 className="text-xl font-semibold tracking-tight">
+            {activeTab === "signup" ? t.auth.signupTitle : t.auth.loginTitle}
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {activeTab === "signup" ? t.auth.signupSubtitle : t.auth.loginSubtitle}
+          </p>
+        </div>
+
+        {/* OAuth Buttons (GitHub & Google) */}
         <div className="grid grid-cols-2 gap-3">
           <Button
             type="button"
@@ -127,7 +293,7 @@ function LoginForm() {
         {/* Email & Password Form */}
         <form action={emailFormAction} className="space-y-3.5">
           <input type="hidden" name="from" value={from} />
-          <input type="hidden" name="isSignUp" value={String(isSignUp)} />
+          <input type="hidden" name="isSignUp" value={String(activeTab === "signup")} />
 
           <div className="space-y-1.5">
             <label htmlFor="login-email" className="text-xs font-medium text-foreground">
@@ -145,14 +311,22 @@ function LoginForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="login-password" className="text-xs font-medium text-foreground">
-              {t.auth.passwordLabel}
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="login-password" className="text-xs font-medium text-foreground">
+                {t.auth.passwordLabel}
+              </label>
+              {activeTab === "signup" && (
+                <span className="text-[10px] text-muted-foreground">
+                  {t.auth.passwordMinNotice}
+                </span>
+              )}
+            </div>
             <Input
               id="login-password"
               type="password"
               name="password"
               required
+              minLength={6}
               placeholder={t.auth.passwordPlaceholder}
               className="h-9 text-xs"
             />
@@ -174,7 +348,7 @@ function LoginForm() {
                 <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
                 <span>{t.auth.loading}</span>
               </>
-            ) : isSignUp ? (
+            ) : activeTab === "signup" ? (
               t.auth.signupBtn
             ) : (
               t.auth.loginBtn
@@ -183,22 +357,25 @@ function LoginForm() {
         </form>
 
         <div className="flex flex-col space-y-2 text-center text-xs">
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer"
-          >
-            {isSignUp ? t.auth.hasAccount : t.auth.noAccount}
-          </button>
           <p className="text-[11px] text-muted-foreground px-4 leading-relaxed">
             {t.auth.termsNotice}
           </p>
+
+          {/* Master Admin Password Fallback Access */}
+          <button
+            type="button"
+            onClick={() => setShowSelfhostOverride(true)}
+            className="text-[11px] text-muted-foreground/80 hover:text-foreground inline-flex items-center justify-center gap-1 pt-1 cursor-pointer"
+          >
+            <KeyRound className="w-3 h-3" />
+            <span>{t.auth.selfhostTitle}</span>
+          </button>
         </div>
       </div>
     );
   }
 
-  // 2. SELFHOSTED ADMIN AUTH (Pure, minimal password input without AI feel)
+  // 3. SELFHOSTED ADMIN AUTH (Pure, minimal password input without AI feel)
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-1.5 text-center">
@@ -248,6 +425,18 @@ function LoginForm() {
           )}
         </Button>
       </form>
+
+      {isCloud && showSelfhostOverride && (
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setShowSelfhostOverride(false)}
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer"
+          >
+            返回云端多租户登录
+          </button>
+        </div>
+      )}
     </div>
   );
 }
