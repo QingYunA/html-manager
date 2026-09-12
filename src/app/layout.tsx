@@ -96,6 +96,13 @@ const rootJsonLd = {
   },
 };
 
+const umamiScriptUrl =
+  process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL ||
+  "https://umami-kappa-silk.vercel.app/script.js";
+const umamiWebsiteId =
+  process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID ||
+  "c7ee55df-938f-4800-b6cb-18622970fe64";
+
 export default function RootLayout({
   children,
 }: {
@@ -108,6 +115,13 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(rootJsonLd) }}
         />
+        {umamiWebsiteId && (
+          <script
+            defer
+            src={umamiScriptUrl}
+            data-website-id={umamiWebsiteId}
+          />
+        )}
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans overflow-x-hidden w-full max-w-full">
         <ThemeProvider
