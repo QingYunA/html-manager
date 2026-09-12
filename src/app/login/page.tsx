@@ -71,11 +71,10 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // OTP resend & UI overrides
+  // OTP resend & UI state
   const [countdown, setCountdown] = useState(0);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
-  const [showSelfhostOverride, setShowSelfhostOverride] = useState(false);
 
   // OAuth states
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
@@ -338,7 +337,7 @@ function LoginForm() {
                 required
                 autoFocus
                 minLength={6}
-                placeholder={t.auth.passwordPlaceholder}
+                autoComplete="new-password"
                 className="h-9 text-xs pr-9"
               />
               <button
@@ -373,7 +372,7 @@ function LoginForm() {
                 onChange={(e) => setResetConfirmPassword(e.target.value)}
                 required
                 minLength={6}
-                placeholder={t.auth.confirmPasswordPlaceholder}
+                autoComplete="new-password"
                 className={`h-9 text-xs pr-9 ${
                   isResetPasswordMismatch ? "border-destructive/60 focus-visible:ring-destructive/30" : ""
                 }`}
@@ -524,7 +523,7 @@ function LoginForm() {
   }
 
   // 4. CLOUD SAAS AUTHENTICATION (shadcn/ui Authentication Block: Tabs, Confirm Password, Eye Toggles)
-  if (isCloud && !showSelfhostOverride) {
+  if (isCloud) {
     return (
       <div className="space-y-6">
         {/* Prominent shadcn Tabs for Sign In vs Sign Up */}
@@ -655,7 +654,7 @@ function LoginForm() {
                 onChange={activeTab === "signup" ? (e) => setSignupPassword(e.target.value) : undefined}
                 required
                 minLength={6}
-                placeholder={t.auth.passwordPlaceholder}
+                autoComplete={activeTab === "signup" ? "new-password" : "current-password"}
                 className="h-9 text-xs pr-9"
               />
               <button
@@ -692,7 +691,7 @@ function LoginForm() {
                   onChange={(e) => setSignupConfirmPassword(e.target.value)}
                   required
                   minLength={6}
-                  placeholder={t.auth.confirmPasswordPlaceholder}
+                  autoComplete="new-password"
                   className={`h-9 text-xs pr-9 ${
                     isSignupPasswordMismatch ? "border-destructive/60 focus-visible:ring-destructive/30" : ""
                   }`}
@@ -738,16 +737,6 @@ function LoginForm() {
           <p className="text-[11px] text-muted-foreground px-4 leading-relaxed">
             {t.auth.termsNotice}
           </p>
-
-          {/* Master Admin Password Fallback Access */}
-          <button
-            type="button"
-            onClick={() => setShowSelfhostOverride(true)}
-            className="text-[11px] text-muted-foreground/80 hover:text-foreground inline-flex items-center justify-center gap-1 pt-1 cursor-pointer transition-colors"
-          >
-            <KeyRound className="w-3 h-3" />
-            <span>{t.auth.selfhostTitle}</span>
-          </button>
         </div>
       </div>
     );
@@ -779,7 +768,7 @@ function LoginForm() {
               name="password"
               required
               autoFocus
-              placeholder="••••••••••••"
+              autoComplete="current-password"
               className="h-9 text-xs pr-9"
             />
             <button
@@ -814,18 +803,6 @@ function LoginForm() {
           )}
         </Button>
       </form>
-
-      {isCloud && showSelfhostOverride && (
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => setShowSelfhostOverride(false)}
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer transition-colors"
-          >
-            返回云端多租户登录
-          </button>
-        </div>
-      )}
     </div>
   );
 }
