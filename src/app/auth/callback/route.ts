@@ -42,6 +42,9 @@ export async function GET(request: Request) {
       token_hash,
     });
     if (!error && data?.session) {
+      if (type === "recovery") {
+        return NextResponse.redirect(`${origin}/login?step=reset-password`);
+      }
       return NextResponse.redirect(`${origin}${safeNext}`);
     }
     console.error("Supabase email token verification failed:", error);
