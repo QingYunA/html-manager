@@ -128,6 +128,7 @@ const SQL_PROJECTS = `
     visibility TEXT NOT NULL DEFAULT 'public',
     is_pinned BOOLEAN NOT NULL DEFAULT false,
     view_count INTEGER NOT NULL DEFAULT 0,
+    screenshot_url TEXT,
     is_encrypted BOOLEAN NOT NULL DEFAULT false,
     encryption_iv TEXT,
     key_mode TEXT NOT NULL DEFAULT 'legacy-server',
@@ -142,9 +143,14 @@ const SQL_PROJECTS = `
 
 // Idempotent additive migrations for existing databases (ADD COLUMN IF NOT EXISTS)
 const SQL_PROJECTS_MIGRATIONS = [
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS screenshot_url TEXT;`,
   `ALTER TABLE projects ADD COLUMN IF NOT EXISTS key_mode TEXT NOT NULL DEFAULT 'legacy-server';`,
   `ALTER TABLE projects ADD COLUMN IF NOT EXISTS kdf_salt TEXT;`,
   `ALTER TABLE projects ADD COLUMN IF NOT EXISTS kdf_iterations INTEGER;`,
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_encrypted BOOLEAN NOT NULL DEFAULT false;`,
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS encryption_iv TEXT;`,
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS file_size INTEGER DEFAULT 0;`,
+  `ALTER TABLE projects ADD COLUMN IF NOT EXISTS plan_tier TEXT DEFAULT 'free';`,
 ];
 
 const SQL_SETTINGS = `
@@ -191,11 +197,22 @@ async function ensurePostgresTables() {
 }
 
 async function withTableFallback<T>(fn: () => Promise<T>): Promise<T> {
+  // Proactively run table and column auto-migrations on cold start when connected to Postgres
+  if (!tablesInitialized && dbUrl) {
+    await ensurePostgresTables();
+  }
+
   try {
     return await fn();
   } catch (err: unknown) {
     const error = err as { code?: string; message?: string };
-    if (error?.code === "42P01" || error?.message?.includes("does not exist") || error?.message?.includes("relation")) {
+    if (
+      error?.code === "42P01" ||
+      error?.code === "42703" ||
+      error?.message?.includes("does not exist") ||
+      error?.message?.includes("relation") ||
+      error?.message?.includes("column")
+    ) {
       tablesInitialized = false;
       await ensurePostgresTables();
       return await fn();
