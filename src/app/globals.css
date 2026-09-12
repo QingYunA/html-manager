@@ -1,19 +1,19 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
-/* Explicit keyframes with both 0% and 100% to fix matrix decomposition deadlock in Chrome/Safari */
-@keyframes spin {
-  from {
+/* Explicit custom keyframe to prevent Tailwind v4 compiler from collapsing spin into identity matrix rotate(1turn) */
+@keyframes pagepod-spin {
+  0% {
     transform: rotate(0deg);
   }
-  to {
+  100% {
     transform: rotate(360deg);
   }
 }
 
 .animate-spin {
-  animation: spin 1s linear infinite;
-  transform-origin: center;
+  animation: pagepod-spin 0.8s linear infinite !important;
+  transform-origin: center !important;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));

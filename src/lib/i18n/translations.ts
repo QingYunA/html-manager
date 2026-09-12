@@ -215,6 +215,11 @@ export const translations = {
       updatingPassword: "正在更新...",
       passwordUpdatedSuccess: "密码修改成功，正在为你登录...",
       emailAlreadyRegistered: "该邮箱已被注册，请直接登录或使用忘记密码找回",
+      accountExistsTitle: "该邮箱已关联现有账号",
+      accountExistsDesc: "该邮箱已通过第三方快捷登录（如 GitHub 或 Google）注册。你可以直接使用快捷登录，或为该账号设置独立的邮箱密码。",
+      actionSignInNow: "切换到登录",
+      actionSetPassword: "找回/设置密码",
+      creatingAccount: "正在创建账号...",
     },
     pricing: {
       badge: "终身买断 · 透明方案",
@@ -598,6 +603,11 @@ export const translations = {
       updatingPassword: "Updating...",
       passwordUpdatedSuccess: "Password updated! Redirecting to workspace...",
       emailAlreadyRegistered: "This email is already registered. Please sign in or reset your password.",
+      accountExistsTitle: "Account Already Exists",
+      accountExistsDesc: "This email is already associated with an account (e.g. via GitHub or Google). You can sign in directly or set an email password.",
+      actionSignInNow: "Switch to Sign In",
+      actionSetPassword: "Forgot / Set Password",
+      creatingAccount: "Creating account...",
     },
     pricing: {
       badge: "Lifetime Deals · Transparent",
