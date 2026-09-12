@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { processAndCreateProject } from "@/lib/services/project-service";
+import { createProject, ProjectDomainError } from "@/lib/services/project-service";
 import { uploadPayloadSchema, MAX_UPLOAD_BYTES } from "@/lib/validation";
 import type { Project } from "@/db/schema";
 
@@ -53,8 +53,7 @@ export async function POST(request: Request) {
         );
       }
 
-      project = await processAndCreateProject({
-        userId: currentUser.id === "selfhost-admin" ? undefined : currentUser.id,
+      project = await createProject(currentUser, {
         title: body.title,
         slug: body.slug,
         description: body.description,
@@ -102,8 +101,7 @@ export async function POST(request: Request) {
 
         const arrayBuffer = await file.arrayBuffer();
         const fileBuffer = Buffer.from(arrayBuffer);
-        project = await processAndCreateProject({
-          userId: currentUser.id === "selfhost-admin" ? undefined : currentUser.id,
+        project = await createProject(currentUser, {
           title: body.title,
           slug: body.slug,
           description: body.description,
@@ -115,8 +113,7 @@ export async function POST(request: Request) {
           fileName: file.name,
         });
       } else if (htmlContent && htmlContent.trim()) {
-        project = await processAndCreateProject({
-          userId: currentUser.id === "selfhost-admin" ? undefined : currentUser.id,
+        project = await createProject(currentUser, {
           title: body.title,
           slug: body.slug,
           description: body.description,
@@ -155,14 +152,18 @@ export async function POST(request: Request) {
       visibility: project.visibility,
     });
   } catch (err: unknown) {
+    if (err instanceof ProjectDomainError) {
+      return NextResponse.json(
+        { success: false, error: err.message },
+        { status: err.statusCode }
+      );
+    }
     const errorObj = err as Error;
     console.error("API upload error:", errorObj);
     return NextResponse.json(
       {
         success: false,
         error: errorObj?.message || "Failed to process and store project",
-        stack: errorObj?.stack,
-        details: String(err),
       },
       { status: 500 }
     );

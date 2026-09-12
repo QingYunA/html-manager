@@ -1,8 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
-import { processAndCreateProject } from "@/lib/services/project-service";
+import { createProject, ProjectDomainError } from "@/lib/services/project-service";
 import { uploadPayloadSchema, MAX_UPLOAD_BYTES } from "@/lib/validation";
 
 export interface UploadActionResult {
@@ -60,8 +59,7 @@ export async function handleUploadAction(
         return { error: `HTML 内容过大：最大允许 ${MAX_UPLOAD_BYTES / (1024 * 1024)}MB` };
       }
 
-      const project = await processAndCreateProject({
-        userId: user.id,
+      const project = await createProject(user, {
         title,
         slug,
         description,
@@ -72,9 +70,6 @@ export async function handleUploadAction(
         htmlContent,
       });
 
-      revalidatePath("/");
-      revalidatePath("/workspace");
-      revalidatePath("/admin");
       return { success: true, slug: project.slug };
     } else {
       const file = formData.get("file");
@@ -88,8 +83,7 @@ export async function handleUploadAction(
       const arrayBuffer = await file.arrayBuffer();
       const fileBuffer = Buffer.from(arrayBuffer);
 
-      const project = await processAndCreateProject({
-        userId: user.id,
+      const project = await createProject(user, {
         title,
         slug,
         description,
@@ -101,13 +95,13 @@ export async function handleUploadAction(
         fileName: file.name,
       });
 
-      revalidatePath("/");
-      revalidatePath("/workspace");
-      revalidatePath("/admin");
       return { success: true, slug: project.slug };
     }
   } catch (err: unknown) {
     console.error("Upload error:", err);
+    if (err instanceof ProjectDomainError) {
+      return { error: err.message };
+    }
     return { error: (err as Error)?.message || "上传失败，请检查文件或重试" };
   }
 }

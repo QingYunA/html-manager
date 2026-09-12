@@ -1,66 +1,38 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { getCurrentUser, assertCanManageProject } from "@/lib/auth";
-import { deleteProject, getProjectById, updateProject } from "@/db";
-import { getStorage } from "@/lib/storage";
+import { getCurrentUser } from "@/lib/auth";
+import {
+  togglePin,
+  updateVisibility,
+  deleteProject,
+  updateProject,
+  ProjectForbiddenError,
+} from "@/lib/services/project-service";
 
-export async function togglePinAction(id: string, currentPinned: boolean) {
+async function requireUser() {
   const user = await getCurrentUser();
-  const project = await getProjectById(id);
-  if (!project) throw new Error("Project not found");
+  if (!user) {
+    throw new ProjectForbiddenError("Unauthorized: Authentication required");
+  }
+  return user;
+}
 
-  assertCanManageProject(user, project);
-
-  await updateProject(id, { isPinned: !currentPinned });
-  revalidatePath("/");
-  revalidatePath("/workspace");
-  revalidatePath("/admin");
+export async function togglePinAction(id: string, _currentPinned?: boolean) {
+  const user = await requireUser();
+  await togglePin(user, id);
 }
 
 export async function updateVisibilityAction(id: string, visibility: "public" | "unlisted" | "private") {
-  const user = await getCurrentUser();
-  const project = await getProjectById(id);
-  if (!project) throw new Error("Project not found");
-
-  assertCanManageProject(user, project);
-
-  await updateProject(id, { visibility });
-  revalidatePath("/");
-  revalidatePath("/workspace");
-  revalidatePath("/admin");
+  const user = await requireUser();
+  await updateVisibility(user, id, visibility);
 }
 
 export async function deleteProjectAction(id: string) {
-  const user = await getCurrentUser();
-  const project = await getProjectById(id);
-  if (!project) throw new Error("Project not found");
-
-  assertCanManageProject(user, project);
-
-  try {
-    const storage = getStorage();
-    await storage.deleteDirectory(project.storagePrefix);
-  } catch (e) {
-    console.error("Failed to cleanup storage directory:", e);
-  }
-
-  await deleteProject(id);
-  revalidatePath("/");
-  revalidatePath("/workspace");
-  revalidatePath("/admin");
+  const user = await requireUser();
+  await deleteProject(user, id);
 }
 
 export async function saveProjectHtmlAction(id: string, newHtml: string) {
-  const user = await getCurrentUser();
-  const project = await getProjectById(id);
-  if (!project) throw new Error("Project not found");
-
-  assertCanManageProject(user, project);
-
-  const { updateProjectHtml } = await import("@/lib/services/project-service");
-  await updateProjectHtml(id, newHtml, user);
-  revalidatePath(`/p/${project.slug}`);
-  revalidatePath("/workspace");
-  revalidatePath("/admin");
+  const user = await requireUser();
+  await updateProject(user, id, { htmlCode: newHtml });
 }

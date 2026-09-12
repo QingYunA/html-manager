@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
-import { getProjectById } from "@/db";
-import { getStorage } from "@/lib/storage";
 import { getCurrentUser, canManageProject } from "@/lib/auth";
+import { getProjectSource } from "@/lib/services/project-service";
 import ProjectEditorClient from "./editor-client";
 
 interface EditPageProps {
@@ -15,21 +14,19 @@ export const dynamic = "force-dynamic";
 export default async function ProjectEditPage({ params }: EditPageProps) {
   const { id } = await params;
   const currentUser = await getCurrentUser();
-  const project = await getProjectById(id);
 
-  if (!project || !canManageProject(currentUser, project)) {
+  try {
+    const { project, html } = await getProjectSource(id, currentUser);
+    if (!canManageProject(currentUser, project)) {
+      notFound();
+    }
+    return (
+      <ProjectEditorClient
+        project={project}
+        initialCode={project.assetType === "single_html" ? html : ""}
+      />
+    );
+  } catch {
     notFound();
   }
-
-  let initialCode = "";
-  if (project.assetType === "single_html") {
-    const storage = getStorage();
-    const filePath = `${project.storagePrefix}/${project.entryPath}`;
-    const file = await storage.getFile(filePath);
-    if (file) {
-      initialCode = file.data.toString("utf-8");
-    }
-  }
-
-  return <ProjectEditorClient project={project} initialCode={initialCode} />;
 }

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProjectBySlug, incrementViewCount } from "@/db";
-import { getStorage } from "@/lib/storage";
+import { getProjectStorage } from "@/lib/storage";
 import { getCurrentUser } from "@/lib/auth";
-import { assertSafeStorageKey } from "@/lib/storage/path-safety";
 
 interface RouteParams {
   params: Promise<{
@@ -40,15 +39,14 @@ export async function GET(request: Request, context: RouteParams) {
   }
 
   const subpath = subPaths && subPaths.length > 0 ? subPaths.join("/") : project.entryPath;
-  let storagePath: string;
+  const projectStorage = getProjectStorage(project.slug);
+  let file: { data: Buffer | Uint8Array; contentType: string } | null = null;
   try {
-    storagePath = assertSafeStorageKey(`${project.storagePrefix}/${subpath}`, project.storagePrefix);
+    file = await projectStorage.readFile(subpath);
   } catch {
     return new NextResponse("Invalid resource path", { status: 400 });
   }
 
-  const storage = getStorage();
-  const file = await storage.getFile(storagePath);
   if (!file) {
     return new NextResponse(`File not found: ${subpath}`, { status: 404 });
   }

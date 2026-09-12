@@ -10,6 +10,15 @@ import { getStorage } from "@/lib/storage";
 
 const execFileAsync = promisify(execFile);
 
+// --- Ports & Adapters Architecture ---
+
+/**
+ * Pure rendering port interface for converting HTML content to a 1280x720 PNG buffer.
+ */
+export interface ScreenshotRenderer {
+  render(htmlContent: string, options?: { publicUrl?: string }): Promise<Buffer | null>;
+}
+
 export function findChromePath(): string | null {
   if (process.env.CHROME_PATH && fsSync.existsSync(process.env.CHROME_PATH)) {
     return process.env.CHROME_PATH;
@@ -46,16 +55,152 @@ export function findChromePath(): string | null {
   return null;
 }
 
-function revalidateProjectViews(slug: string) {
-  revalidatePath("/");
-  revalidatePath("/explore");
-  revalidatePath("/workspace");
-  revalidatePath(`/p/${slug}`);
+/**
+ * Local Headless Chrome / Chromium Adapter (Fast, High-Fidelity, Zero-Cost).
+ */
+export class HeadlessChromeRenderer implements ScreenshotRenderer {
+  constructor(private readonly chromePath = findChromePath()) {}
+
+  isAvailable(): boolean {
+    return Boolean(this.chromePath);
+  }
+
+  async render(htmlContent: string): Promise<Buffer | null> {
+    if (!this.chromePath) return null;
+
+    const tempDir = os.tmpdir();
+    const timestamp = Date.now();
+    const tempHtmlPath = path.join(tempDir, `pagepod_cap_${timestamp}.html`);
+    const tempScreenshotPath = path.join(tempDir, `pagepod_cap_${timestamp}.png`);
+
+    try {
+      await fs.writeFile(tempHtmlPath, htmlContent, "utf-8");
+
+      await execFileAsync(
+        this.chromePath,
+        [
+          "--headless",
+          "--hide-scrollbars",
+          "--virtual-time-budget=1500",
+          `--screenshot=${tempScreenshotPath}`,
+          "--window-size=1280,720",
+          `file://${tempHtmlPath}`,
+        ],
+        { timeout: 10000 }
+      );
+
+      if (fsSync.existsSync(tempScreenshotPath)) {
+        return await fs.readFile(tempScreenshotPath);
+      }
+      return null;
+    } catch (err) {
+      console.warn("[HeadlessChromeRenderer] Capture failed:", err instanceof Error ? err.message : err);
+      return null;
+    } finally {
+      try {
+        await Promise.allSettled([
+          fs.unlink(tempHtmlPath),
+          fs.unlink(tempScreenshotPath),
+        ]);
+      } catch {
+        // Ignore unlink error
+      }
+    }
+  }
 }
 
 /**
- * Capture a 1280x720 static screenshot for a project and save to storage.
- * Supports local headless Chrome/Chromium and optional cloud fallback.
+ * Cloud Microlink Renderer Fallback for environments lacking Headless Chrome.
+ */
+export class CloudFallbackRenderer implements ScreenshotRenderer {
+  async render(_htmlContent: string, options?: { publicUrl?: string }): Promise<Buffer | null> {
+    const publicUrl = options?.publicUrl;
+    if (!publicUrl) return null;
+
+    try {
+      const cloudApiUrl = `https://api.microlink.io?url=${encodeURIComponent(publicUrl)}&screenshot=true&meta=false&embed=screenshot.url`;
+      const res = await fetch(cloudApiUrl, {
+        headers: { "user-agent": "Pagepod-AutoScreenshot/1.0" },
+        signal: AbortSignal.timeout(12000),
+      });
+
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        const imgBuffer = Buffer.from(arrayBuffer);
+        if (imgBuffer.length > 1000) {
+          return imgBuffer;
+        }
+      }
+      return null;
+    } catch (err) {
+      console.warn("[CloudFallbackRenderer] Cloud capture failed:", err instanceof Error ? err.message : err);
+      return null;
+    }
+  }
+}
+
+/**
+ * Composite Auto-Renderer: prefers local Headless Chrome; falls back to cloud for accessible URLs.
+ */
+export class AutoScreenshotRenderer implements ScreenshotRenderer {
+  private local = new HeadlessChromeRenderer();
+  private cloud = new CloudFallbackRenderer();
+
+  async render(htmlContent: string, options?: { publicUrl?: string }): Promise<Buffer | null> {
+    if (this.local.isAvailable()) {
+      const buffer = await this.local.render(htmlContent);
+      if (buffer) return buffer;
+    }
+    if (options?.publicUrl) {
+      return await this.cloud.render(htmlContent, options);
+    }
+    return null;
+  }
+}
+
+const defaultRenderer = new AutoScreenshotRenderer();
+
+/**
+ * Renders a 1280x720 screenshot buffer from raw HTML markup.
+ * Pure rendering function with zero database or storage side-effects.
+ */
+export async function renderProjectScreenshot(
+  htmlContent: string,
+  publicUrl?: string
+): Promise<Buffer | null> {
+  return defaultRenderer.render(htmlContent, { publicUrl });
+}
+
+/**
+ * Stores a screenshot PNG buffer under the project's storage directory.
+ * Returns the public relative asset URL.
+ */
+export async function saveProjectScreenshotFile(
+  storagePrefix: string,
+  slug: string,
+  imageBuffer: Buffer
+): Promise<string> {
+  const storage = getStorage();
+  const screenshotStoragePath = `${storagePrefix}/screenshot.png`;
+  await storage.uploadFile(screenshotStoragePath, imageBuffer, "image/png");
+  return `/raw/${slug}/screenshot.png?v=${Date.now()}`;
+}
+
+// --- Legacy & Standalone Orchestration (For CLI scripts and direct endpoints) ---
+
+function revalidateProjectViews(slug: string) {
+  try {
+    revalidatePath("/");
+    revalidatePath("/explore");
+    revalidatePath("/workspace");
+    revalidatePath(`/p/${slug}`);
+  } catch {
+    // Non-fatal if outside Next.js request context
+  }
+}
+
+/**
+ * Convenience orchestrator for capturing and committing a project screenshot by slug.
  */
 export async function captureProjectScreenshot(slug: string): Promise<string | null> {
   const project = await getProjectBySlug(slug);
@@ -72,105 +217,44 @@ export async function captureProjectScreenshot(slug: string): Promise<string | n
     return null;
   }
 
-  const chromePath = findChromePath();
+  const htmlContent = Buffer.isBuffer(file.data)
+    ? file.data.toString("utf-8")
+    : String(file.data);
 
-  // Channel 1: Local Headless Chrome / Chromium (Fast, High-Fidelity, Zero-Cost)
-  if (chromePath) {
-    const tempDir = os.tmpdir();
-    const tempHtmlPath = path.join(tempDir, `pagepod_cap_${project.slug}_${Date.now()}.html`);
-    const tempScreenshotPath = path.join(tempDir, `pagepod_cap_${project.slug}_${Date.now()}.png`);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
+  const publicUrl = project.visibility === "public" ? `${siteUrl}/raw/${project.slug}` : undefined;
 
-    try {
-      await fs.writeFile(tempHtmlPath, file.data);
+  const imageBuffer = await renderProjectScreenshot(htmlContent, publicUrl);
+  if (!imageBuffer) return null;
 
-      // Run Chrome with 1.5s simulated render budget to let CSS animations and Canvas settle.
-      // Use array args (no shell execution) and 10s timeout to prevent command injection & server lockup.
-      await execFileAsync(
-        chromePath,
-        [
-          "--headless",
-          "--hide-scrollbars",
-          "--virtual-time-budget=1500",
-          `--screenshot=${tempScreenshotPath}`,
-          "--window-size=1280,720",
-          `file://${tempHtmlPath}`,
-        ],
-        { timeout: 10000 }
-      );
+  const newScreenshotUrl = await saveProjectScreenshotFile(
+    project.storagePrefix,
+    project.slug,
+    imageBuffer
+  );
 
-      if (fsSync.existsSync(tempScreenshotPath)) {
-        const imgBuffer = await fs.readFile(tempScreenshotPath);
-        const screenshotStoragePath = `${project.storagePrefix}/screenshot.png`;
-        await storage.uploadFile(screenshotStoragePath, imgBuffer, "image/png");
-
-        const newScreenshotUrl = `/raw/${project.slug}/screenshot.png?v=${Date.now()}`;
-        await updateProject(project.id, { screenshotUrl: newScreenshotUrl });
-
-        revalidateProjectViews(project.slug);
-        return newScreenshotUrl;
-      }
-    } catch (localErr) {
-      console.warn(`[ScreenshotService] Local capture failed for ${slug}:`, localErr instanceof Error ? localErr.message : localErr);
-    } finally {
-      try {
-        await Promise.allSettled([
-          fs.unlink(tempHtmlPath),
-          fs.unlink(tempScreenshotPath),
-        ]);
-      } catch {
-        // Ignore cleanup notice
-      }
-    }
-  }
-
-  // Channel 2: Serverless Cloud Capture Fallback (For public projects on platforms without Chrome)
-  if (project.visibility === "public") {
-    try {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
-      const rawUrl = `${siteUrl}/raw/${project.slug}`;
-      const cloudApiUrl = `https://api.microlink.io?url=${encodeURIComponent(rawUrl)}&screenshot=true&meta=false&embed=screenshot.url`;
-
-      const res = await fetch(cloudApiUrl, {
-        headers: { "user-agent": "Pagepod-AutoScreenshot/1.0" },
-        signal: AbortSignal.timeout(12000),
-      });
-
-      if (res.ok) {
-        const arrayBuffer = await res.arrayBuffer();
-        const imgBuffer = Buffer.from(arrayBuffer);
-        if (imgBuffer.length > 1000) {
-          const screenshotStoragePath = `${project.storagePrefix}/screenshot.png`;
-          await storage.uploadFile(screenshotStoragePath, imgBuffer, "image/png");
-
-          const newScreenshotUrl = `/raw/${project.slug}/screenshot.png?v=${Date.now()}`;
-          await updateProject(project.id, { screenshotUrl: newScreenshotUrl });
-
-          revalidateProjectViews(project.slug);
-          return newScreenshotUrl;
-        }
-      }
-    } catch (cloudErr) {
-      console.warn(`[ScreenshotService] Cloud capture fallback failed for ${slug}:`, cloudErr instanceof Error ? cloudErr.message : cloudErr);
-    }
-  }
-
-  return null;
+  await updateProject(project.id, { screenshotUrl: newScreenshotUrl });
+  revalidateProjectViews(project.slug);
+  return newScreenshotUrl;
 }
 
 /**
- * Save an uploaded image buffer as the project screenshot.
+ * Saves a custom image upload as the project's screenshot poster.
  */
-export async function saveCustomScreenshot(slug: string, imageBuffer: Buffer): Promise<string | null> {
+export async function saveCustomScreenshot(
+  slug: string,
+  imageBuffer: Buffer
+): Promise<string | null> {
   const project = await getProjectBySlug(slug);
   if (!project) return null;
 
-  const storage = getStorage();
-  const screenshotStoragePath = `${project.storagePrefix}/screenshot.png`;
-  await storage.uploadFile(screenshotStoragePath, imageBuffer, "image/png");
+  const newScreenshotUrl = await saveProjectScreenshotFile(
+    project.storagePrefix,
+    project.slug,
+    imageBuffer
+  );
 
-  const newScreenshotUrl = `/raw/${project.slug}/screenshot.png?v=${Date.now()}`;
   await updateProject(project.id, { screenshotUrl: newScreenshotUrl });
-
   revalidateProjectViews(project.slug);
   return newScreenshotUrl;
 }

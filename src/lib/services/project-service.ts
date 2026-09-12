@@ -1,9 +1,63 @@
 import { nanoid } from "nanoid";
-import { createProject, getProjectBySlug, updateProject } from "@/db";
-import { getStorage, getStorageType } from "@/lib/storage";
+import {
+  createProject as dbCreateProject,
+  getProjectBySlug as dbGetProjectBySlug,
+  getProjectById as dbGetProjectById,
+  updateProject as dbUpdateProject,
+  deleteProject as dbDeleteProject,
+} from "@/db";
+import { getProjectStorage, getStorageType } from "@/lib/storage";
 import { extractMetadataFromHtml, unpackZipBundle } from "@/lib/parser";
-import { captureProjectScreenshot } from "@/lib/services/screenshot-service";
+import { renderProjectScreenshot } from "@/lib/services/screenshot-service";
+import { assertCanCreateProject } from "@/lib/services/billing-service";
+import { assertCanManageProject, type CurrentUser } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 import type { Project } from "@/db/schema";
+
+// --- Domain Errors ---
+
+export class ProjectDomainError extends Error {
+  constructor(message: string, public readonly statusCode = 400) {
+    super(message);
+    this.name = "ProjectDomainError";
+  }
+}
+
+export class ProjectNotFoundError extends ProjectDomainError {
+  constructor(message = "Project not found") {
+    super(message, 404);
+    this.name = "ProjectNotFoundError";
+  }
+}
+
+export class ProjectForbiddenError extends ProjectDomainError {
+  constructor(message = "Forbidden: You do not have permission to access or modify this project") {
+    super(message, 403);
+    this.name = "ProjectForbiddenError";
+  }
+}
+
+export class ProjectValidationError extends ProjectDomainError {
+  constructor(message: string) {
+    super(message, 400);
+    this.name = "ProjectValidationError";
+  }
+}
+
+export class ProjectPayloadTooLargeError extends ProjectDomainError {
+  constructor(message: string) {
+    super(message, 413);
+    this.name = "ProjectPayloadTooLargeError";
+  }
+}
+
+// --- Interfaces & Types ---
+
+export type ProjectVisibility = "public" | "unlisted" | "private";
+
+export interface ProjectServiceOptions {
+  skipRevalidate?: boolean;
+}
 
 export interface CreateProjectInput {
   userId?: string;
@@ -12,14 +66,23 @@ export interface CreateProjectInput {
   description?: string;
   category?: string;
   tags?: string[];
-  visibility?: "public" | "unlisted" | "private";
+  visibility?: ProjectVisibility;
   isPinned?: boolean;
   screenshotUrl?: string;
-  // Payload: either htmlContent, or fileBuffer with filename
   htmlContent?: string;
   fileBuffer?: Buffer;
   fileName?: string;
   fileSize?: number;
+}
+
+export interface UpdateProjectInput {
+  title?: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  visibility?: ProjectVisibility;
+  isPinned?: boolean;
+  htmlCode?: string;
 }
 
 export function sanitizeSlug(input: string): string {
@@ -32,35 +95,69 @@ export function sanitizeSlug(input: string): string {
   return cleaned || nanoid(8).toLowerCase();
 }
 
-export async function processAndCreateProject(input: CreateProjectInput): Promise<Project> {
+function revalidateProjectPaths(slug?: string) {
+  try {
+    revalidatePath("/");
+    revalidatePath("/workspace");
+    revalidatePath("/admin");
+    revalidatePath("/explore");
+    if (slug) {
+      revalidatePath(`/p/${slug}`);
+    }
+  } catch {
+    // Non-fatal if invoked outside of Next.js request context
+  }
+}
+
+// --- High-Leverage Lifecycle Methods ---
+
+/**
+ * Ingests a new project: validates plan quota entitlements, uploads assets to scoped storage,
+ * generates poster screenshot, performs single atomic DB insertion, and invalidates cache.
+ */
+export async function createProject(
+  actor: CurrentUser,
+  input: CreateProjectInput,
+  options?: ProjectServiceOptions
+): Promise<Project> {
+  if (!actor || !actor.id) {
+    throw new ProjectForbiddenError("Unauthorized: Authentication required to create a project");
+  }
+
   let title = input.title?.trim() || "";
   let description = input.description?.trim() || "";
   let initialHtml = "";
   let assetType: "single_html" | "zip_bundle" = "single_html";
   let entryPath = "index.html";
-  const storage = getStorage();
   const storageType = getStorageType();
 
-  // Generate unique slug
+  // 1. Calculate and verify payload size & project count limits against user tier
+  const declaredSize =
+    input.fileSize ||
+    (input.fileBuffer
+      ? input.fileBuffer.length
+      : input.htmlContent
+      ? Buffer.byteLength(input.htmlContent, "utf-8")
+      : 0);
+
+  await assertCanCreateProject(actor, declaredSize);
+
+  // 2. Generate unique slug
   let slug = input.slug ? sanitizeSlug(input.slug) : "";
   if (!slug) {
-    if (title) {
-      slug = sanitizeSlug(title);
-    } else {
-      slug = nanoid(8).toLowerCase();
-    }
+    slug = title ? sanitizeSlug(title) : nanoid(8).toLowerCase();
   }
 
   // Ensure slug uniqueness
-  const existing = await getProjectBySlug(slug);
+  const existing = await dbGetProjectBySlug(slug);
   if (existing) {
     slug = `${slug}-${nanoid(4).toLowerCase()}`;
   }
 
-  const storagePrefix = `sites/${slug}`;
+  const projectStorage = getProjectStorage(slug);
 
+  // 3. Process & persist assets to scoped storage
   if (input.htmlContent) {
-    // 1. Direct HTML content
     assetType = "single_html";
     entryPath = "index.html";
     initialHtml = input.htmlContent;
@@ -69,12 +166,11 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
     if (!title) title = extracted.title;
     if (!description) description = extracted.description;
 
-    await storage.uploadFile(`${storagePrefix}/index.html`, initialHtml, "text/html; charset=utf-8");
+    await projectStorage.writeEntryFile(initialHtml, entryPath);
   } else if (input.fileBuffer && input.fileName) {
     const isZip = input.fileName.toLowerCase().endsWith(".zip");
 
     if (isZip) {
-      // 2. Zip bundle
       assetType = "zip_bundle";
       const unpacked = await unpackZipBundle(input.fileBuffer);
       entryPath = unpacked.entryPath;
@@ -86,9 +182,8 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
         if (!description) description = extracted.description;
       }
 
-      await storage.uploadBundle(storagePrefix, unpacked.files);
+      await projectStorage.writeBundle(unpacked.files);
     } else {
-      // 3. Single HTML file
       assetType = "single_html";
       entryPath = "index.html";
       initialHtml = input.fileBuffer.toString("utf-8");
@@ -97,19 +192,37 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
       if (!title) title = extracted.title;
       if (!description) description = extracted.description;
 
-      await storage.uploadFile(`${storagePrefix}/index.html`, input.fileBuffer, "text/html; charset=utf-8");
+      await projectStorage.writeEntryFile(input.fileBuffer, entryPath);
     }
   } else {
-    throw new Error("Must provide either htmlContent or valid fileBuffer");
+    throw new ProjectValidationError("Must provide either htmlContent or valid fileBuffer");
   }
 
   if (!title) {
     title = "未命名项目";
   }
 
-  const project = await createProject({
+  // 4. Generate poster screenshot directly before initial DB write (Single Atomic Commit)
+  let screenshotUrl = input.screenshotUrl || null;
+  if (!screenshotUrl && initialHtml) {
+    try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
+      const publicUrl = (input.visibility || "public") === "public" ? `${siteUrl}/raw/${slug}` : undefined;
+      const imgBuffer = await renderProjectScreenshot(initialHtml, publicUrl);
+      if (imgBuffer) {
+        await projectStorage.writeAsset("screenshot.png", imgBuffer, "image/png");
+        screenshotUrl = `/raw/${slug}/screenshot.png?v=${Date.now()}`;
+      }
+    } catch (screenshotErr) {
+      console.warn(`[ProjectService] Auto screenshot capture skipped for ${slug}:`, screenshotErr);
+    }
+  }
+
+  const projectUserId = actor.id === "selfhost-admin" ? null : actor.id;
+
+  const project = await dbCreateProject({
     id: nanoid(12),
-    userId: input.userId || null,
+    userId: projectUserId,
     title,
     slug,
     description,
@@ -118,70 +231,233 @@ export async function processAndCreateProject(input: CreateProjectInput): Promis
     assetType,
     entryPath,
     storageType,
-    storagePrefix,
+    storagePrefix: projectStorage.storagePrefix,
     visibility: input.visibility || "public",
     isPinned: Boolean(input.isPinned),
     viewCount: 0,
-    screenshotUrl: input.screenshotUrl || null,
+    screenshotUrl,
     isEncrypted: false,
     encryptionIv: null,
-    fileSize: input.fileSize || 0,
-    planTier: "free",
+    fileSize: declaredSize,
+    planTier: actor.planTier || "free",
   });
 
-  // Automatically capture initial screenshot if not already provided
-  if (!project.screenshotUrl) {
-    try {
-      const capturedUrl = await captureProjectScreenshot(project.slug);
-      if (capturedUrl) {
-        project.screenshotUrl = capturedUrl;
-      }
-    } catch (screenshotErr) {
-      console.warn(`[ProjectService] Auto screenshot capture skipped for ${project.slug}:`, screenshotErr);
-    }
+  if (!options?.skipRevalidate) {
+    revalidateProjectPaths(project.slug);
   }
 
   return project;
 }
 
+/**
+ * Updates project metadata and optionally its entry HTML content.
+ * Enforces authorization invariants, updates storage if code changed,
+ * generates poster screenshot, and executes atomic DB commit.
+ */
+export async function updateProject(
+  actor: CurrentUser,
+  id: string,
+  input: UpdateProjectInput,
+  options?: ProjectServiceOptions
+): Promise<Project> {
+  if (!id || typeof id !== "string") {
+    throw new ProjectValidationError("Invalid project id");
+  }
+
+  const project = await dbGetProjectById(id);
+  if (!project) {
+    throw new ProjectNotFoundError();
+  }
+
+  assertCanManageProject(actor, project);
+
+  const projectStorage = getProjectStorage(project.slug);
+  let newScreenshotUrl: string | undefined = undefined;
+
+  // If HTML code is provided and it's single_html, update storage and re-capture screenshot
+  if (input.htmlCode && project.assetType === "single_html") {
+    await projectStorage.writeEntryFile(input.htmlCode, project.entryPath);
+
+    try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.pagepod.dev";
+      const targetVisibility = input.visibility !== undefined ? input.visibility : project.visibility;
+      const publicUrl = targetVisibility === "public" ? `${siteUrl}/raw/${project.slug}` : undefined;
+      const imgBuffer = await renderProjectScreenshot(input.htmlCode, publicUrl);
+      if (imgBuffer) {
+        await projectStorage.writeAsset("screenshot.png", imgBuffer, "image/png");
+        newScreenshotUrl = `/raw/${project.slug}/screenshot.png?v=${Date.now()}`;
+      }
+    } catch (screenshotErr) {
+      console.warn(`[ProjectService] Re-capture screenshot skipped for ${project.slug}:`, screenshotErr);
+    }
+  }
+
+  const patch: Partial<Project> = {};
+  if (input.title !== undefined) patch.title = input.title;
+  if (input.description !== undefined) patch.description = input.description;
+  if (input.category !== undefined) patch.category = input.category;
+  if (input.tags !== undefined) patch.tags = input.tags;
+  if (input.visibility !== undefined) patch.visibility = input.visibility;
+  if (input.isPinned !== undefined) patch.isPinned = input.isPinned;
+  if (newScreenshotUrl) patch.screenshotUrl = newScreenshotUrl;
+
+  const updated = await dbUpdateProject(id, patch);
+  const result = updated || project;
+
+  if (!options?.skipRevalidate) {
+    revalidateProjectPaths(project.slug);
+  }
+
+  return result;
+}
+
+/**
+ * Deletes a project, purges physical assets in scoped storage, and deletes DB record.
+ */
+export async function deleteProject(
+  actor: CurrentUser,
+  id: string,
+  options?: ProjectServiceOptions
+): Promise<void> {
+  if (!id || typeof id !== "string") {
+    throw new ProjectValidationError("Invalid project id");
+  }
+
+  const project = await dbGetProjectById(id);
+  if (!project) {
+    throw new ProjectNotFoundError();
+  }
+
+  assertCanManageProject(actor, project);
+
+  const projectStorage = getProjectStorage(project.slug);
+  try {
+    await projectStorage.deleteProjectFiles();
+  } catch (err) {
+    console.error(`[ProjectService] Failed to clean up storage for ${project.slug}:`, err);
+  }
+
+  await dbDeleteProject(id);
+
+  if (!options?.skipRevalidate) {
+    revalidateProjectPaths(project.slug);
+  }
+}
+
+/**
+ * Toggles a project's pinned status with proper authorization.
+ */
+export async function togglePin(
+  actor: CurrentUser,
+  id: string,
+  options?: ProjectServiceOptions
+): Promise<Project> {
+  const project = await dbGetProjectById(id);
+  if (!project) {
+    throw new ProjectNotFoundError();
+  }
+
+  assertCanManageProject(actor, project);
+
+  const updated = await dbUpdateProject(id, { isPinned: !project.isPinned });
+  const result = updated || project;
+
+  if (!options?.skipRevalidate) {
+    revalidateProjectPaths(project.slug);
+  }
+
+  return result;
+}
+
+/**
+ * Updates a project's visibility tier with proper authorization.
+ */
+export async function updateVisibility(
+  actor: CurrentUser,
+  id: string,
+  visibility: ProjectVisibility,
+  options?: ProjectServiceOptions
+): Promise<Project> {
+  const project = await dbGetProjectById(id);
+  if (!project) {
+    throw new ProjectNotFoundError();
+  }
+
+  assertCanManageProject(actor, project);
+
+  const updated = await dbUpdateProject(id, { visibility });
+  const result = updated || project;
+
+  if (!options?.skipRevalidate) {
+    revalidateProjectPaths(project.slug);
+  }
+
+  return result;
+}
+
+/**
+ * Reads project source HTML with strict creator privacy enforcement for private resources.
+ */
+export async function getProjectSource(
+  idOrSlug: string,
+  actor?: CurrentUser | null
+): Promise<{ project: Project; html: string }> {
+  let project = await dbGetProjectById(idOrSlug);
+  if (!project) {
+    project = await dbGetProjectBySlug(idOrSlug);
+  }
+  if (!project) {
+    throw new ProjectNotFoundError();
+  }
+
+  if (project.visibility === "private") {
+    const isExactCreator = Boolean(
+      actor &&
+        (project.userId
+          ? actor.id === project.userId
+          : actor.id === "selfhost-admin")
+    );
+    if (!isExactCreator) {
+      throw new ProjectForbiddenError("403 Forbidden: Private Resource. Only the project owner can access this content.");
+    }
+  }
+
+  const projectStorage = getProjectStorage(project.slug);
+  const file = await projectStorage.readFile(project.entryPath);
+  if (!file) {
+    throw new ProjectNotFoundError(`Entry HTML not found: ${project.entryPath}`);
+  }
+
+  const html = Buffer.isBuffer(file.data)
+    ? file.data.toString("utf-8")
+    : String(file.data);
+
+  return { project, html };
+}
+
+// --- Backward Compatibility Wrappers ---
+
+/**
+ * @deprecated Use createProject(actor, input) instead
+ */
+export async function processAndCreateProject(input: CreateProjectInput): Promise<Project> {
+  const actor: CurrentUser = {
+    id: input.userId || "selfhost-admin",
+    role: input.userId ? "user" : "admin",
+  };
+  return createProject(actor, input);
+}
+
+/**
+ * @deprecated Use updateProject(actor, id, { htmlCode: newHtml }) instead
+ */
 export async function updateProjectHtml(
   id: string,
   newHtml: string,
   expectedUser?: { id: string; role?: string }
 ): Promise<Project> {
-  const { getProjectById } = await import("@/db");
-  const project = await getProjectById(id);
-  if (!project) {
-    throw new Error("Project not found");
-  }
-
-  if (expectedUser) {
-    const isAllowed =
-      expectedUser.role === "admin" ||
-      expectedUser.id === "selfhost-admin" ||
-      (project.userId && project.userId === expectedUser.id);
-    if (!isAllowed) {
-      throw new Error("Forbidden: You do not have permission to modify this project");
-    }
-  }
-
-  const storage = getStorage();
-  const filePath = `${project.storagePrefix}/${project.entryPath}`;
-  await storage.uploadFile(filePath, newHtml, "text/html; charset=utf-8");
-
-  // Re-capture screenshot because HTML content has been updated
-  let updatedScreenshotUrl: string | undefined = undefined;
-  try {
-    const captured = await captureProjectScreenshot(project.slug);
-    if (captured) {
-      updatedScreenshotUrl = captured;
-    }
-  } catch (screenshotErr) {
-    console.warn(`[ProjectService] Re-capture on HTML update skipped for ${project.slug}:`, screenshotErr);
-  }
-
-  const updated = await updateProject(id, {
-    ...(updatedScreenshotUrl ? { screenshotUrl: updatedScreenshotUrl } : {}),
-  });
-  return updated || project;
+  const actor: CurrentUser = expectedUser
+    ? { id: expectedUser.id, role: expectedUser.role === "admin" ? "admin" : "user" }
+    : { id: "selfhost-admin", role: "admin" };
+  return updateProject(actor, id, { htmlCode: newHtml });
 }
