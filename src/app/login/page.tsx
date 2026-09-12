@@ -167,7 +167,14 @@ function LoginForm() {
             disabled={isOtpPending}
             className="w-full h-9 text-xs font-medium cursor-pointer"
           >
-            {isOtpPending ? t.auth.loading : t.auth.verifyBtn}
+            {isOtpPending ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                <span>{t.auth.loading}</span>
+              </>
+            ) : (
+              t.auth.verifyBtn
+            )}
           </Button>
         </form>
 
