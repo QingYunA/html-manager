@@ -5,7 +5,16 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { eq, desc, and, sql } from "drizzle-orm";
 import * as schema from "./schema";
-import type { Project, NewProject, ApiToken, NewApiToken } from "./schema";
+import type {
+  Project,
+  NewProject,
+  ApiToken,
+  NewApiToken,
+  Order,
+  NewOrder,
+  UserSubscription,
+  NewUserSubscription,
+} from "./schema";
 
 const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
@@ -40,6 +49,8 @@ interface LocalData {
   projects: Project[];
   settings: Record<string, string>;
   apiTokens?: ApiToken[];
+  orders?: Order[];
+  userSubscriptions?: UserSubscription[];
 }
 
 function readLocalData(): LocalData {
@@ -50,7 +61,13 @@ function readLocalData(): LocalData {
       fs.mkdirSync(dbDir, { recursive: true });
     }
     if (!fs.existsSync(dbFile)) {
-      const initial: LocalData = { projects: [], settings: {}, apiTokens: [] };
+      const initial: LocalData = {
+        projects: [],
+        settings: {},
+        apiTokens: [],
+        orders: [],
+        userSubscriptions: [],
+      };
       try {
         fs.writeFileSync(dbFile, JSON.stringify(initial, null, 2), "utf-8");
       } catch {
@@ -74,10 +91,19 @@ function readLocalData(): LocalData {
       createdAt: new Date(t.createdAt),
       lastUsedAt: t.lastUsedAt ? new Date(t.lastUsedAt) : null,
     }));
+    data.orders = (data.orders || []).map((o) => ({
+      ...o,
+      createdAt: new Date(o.createdAt),
+      updatedAt: new Date(o.updatedAt),
+    }));
+    data.userSubscriptions = (data.userSubscriptions || []).map((s) => ({
+      ...s,
+      updatedAt: new Date(s.updatedAt),
+    }));
     return data;
   } catch (err) {
     console.error("Failed to read local data:", err);
-    return { projects: [], settings: {}, apiTokens: [] };
+    return { projects: [], settings: {}, apiTokens: [], orders: [], userSubscriptions: [] };
   }
 }
 
@@ -173,6 +199,31 @@ const SQL_API_TOKENS = `
   );
 `;
 
+const SQL_ORDERS = `
+  CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    user_email TEXT,
+    plan_tier TEXT NOT NULL,
+    amount TEXT NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    status TEXT NOT NULL DEFAULT 'created',
+    paypal_order_id TEXT NOT NULL UNIQUE,
+    paypal_capture_id TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+`;
+
+const SQL_USER_SUBSCRIPTIONS = `
+  CREATE TABLE IF NOT EXISTS user_subscriptions (
+    user_id TEXT PRIMARY KEY,
+    plan_tier TEXT NOT NULL DEFAULT 'free',
+    order_id TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+`;
+
 async function ensurePostgresTables() {
   if (tablesInitialized || !dbUrl) return;
   try {
@@ -183,7 +234,14 @@ async function ensurePostgresTables() {
       });
     }
     // Execute separately to prevent multi-statement transaction pooler/PgBouncer failures
-    for (const sql of [SQL_PROJECTS, SQL_SETTINGS, SQL_API_TOKENS, ...SQL_PROJECTS_MIGRATIONS]) {
+    for (const sql of [
+      SQL_PROJECTS,
+      SQL_SETTINGS,
+      SQL_API_TOKENS,
+      SQL_ORDERS,
+      SQL_USER_SUBSCRIPTIONS,
+      ...SQL_PROJECTS_MIGRATIONS,
+    ]) {
       try {
         await pgPool.query(sql);
       } catch (tableErr) {
@@ -640,4 +698,229 @@ export async function deleteApiTokenById(id: string, userId: string): Promise<bo
     writeLocalData(local);
     return (local.apiTokens || []).length < beforeLen;
   }
+}
+
+// ----------------------------------------------------
+// Orders & User Subscriptions Operations (PayPal)
+// ----------------------------------------------------
+
+export async function createOrderRecord(data: NewOrder): Promise<Order> {
+  const db = getDatabase();
+  const now = new Date();
+  const existing = await getOrderByPayPalId(data.paypalOrderId);
+  if (existing) {
+    return existing;
+  }
+
+  const newRecord: Order = {
+    id: data.id,
+    userId: data.userId,
+    userEmail: data.userEmail ?? null,
+    planTier: data.planTier,
+    amount: data.amount,
+    currency: data.currency ?? "USD",
+    status: data.status ?? "created",
+    paypalOrderId: data.paypalOrderId,
+    paypalCaptureId: data.paypalCaptureId ?? null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  if (db) {
+    try {
+      const rows = await withTableFallback(() =>
+        db.insert(schema.orders).values(newRecord).returning()
+      );
+      return rows[0];
+    } catch (err) {
+      console.error("createOrderRecord DB error, fallback to local:", err);
+      const local = readLocalData();
+      if (!local.orders) local.orders = [];
+      local.orders.push(newRecord);
+      writeLocalData(local);
+      return newRecord;
+    }
+  } else {
+    const local = readLocalData();
+    if (!local.orders) local.orders = [];
+    local.orders.push(newRecord);
+    writeLocalData(local);
+    return newRecord;
+  }
+}
+
+export async function getOrderByPayPalId(paypalOrderId: string): Promise<Order | null> {
+  const db = getDatabase();
+  if (db) {
+    try {
+      const rows = await withTableFallback(() =>
+        db
+          .select()
+          .from(schema.orders)
+          .where(eq(schema.orders.paypalOrderId, paypalOrderId))
+          .limit(1)
+      );
+      return rows[0] || null;
+    } catch (err) {
+      console.error("getOrderByPayPalId DB error, fallback to local:", err);
+      const local = readLocalData();
+      return (local.orders || []).find((o) => o.paypalOrderId === paypalOrderId) || null;
+    }
+  } else {
+    const local = readLocalData();
+    return (local.orders || []).find((o) => o.paypalOrderId === paypalOrderId) || null;
+  }
+}
+
+export async function completeOrderRecord(
+  paypalOrderId: string,
+  paypalCaptureId: string
+): Promise<Order | null> {
+  const db = getDatabase();
+  const now = new Date();
+
+  if (db) {
+    try {
+      const updated = await withTableFallback(() =>
+        db
+          .update(schema.orders)
+          .set({
+            status: "completed",
+            paypalCaptureId,
+            updatedAt: now,
+          })
+          .where(eq(schema.orders.paypalOrderId, paypalOrderId))
+          .returning()
+      );
+      if (updated[0]) {
+        await setUserPlanTier(
+          updated[0].userId,
+          updated[0].planTier as "lite" | "pro",
+          updated[0].id
+        );
+        return updated[0];
+      }
+      return null;
+    } catch (err) {
+      console.error("completeOrderRecord DB error, fallback to local:", err);
+    }
+  }
+
+  const local = readLocalData();
+  if (!local.orders) local.orders = [];
+  const target = local.orders.find((o) => o.paypalOrderId === paypalOrderId);
+  if (!target) return null;
+
+  target.status = "completed";
+  target.paypalCaptureId = paypalCaptureId;
+  target.updatedAt = now;
+  writeLocalData(local);
+
+  await setUserPlanTier(target.userId, target.planTier as "lite" | "pro", target.id);
+  return target;
+}
+
+export async function getUserPlanTier(userId: string): Promise<"free" | "lite" | "pro"> {
+  const db = getDatabase();
+  if (db) {
+    try {
+      const rows = await withTableFallback(() =>
+        db
+          .select()
+          .from(schema.userSubscriptions)
+          .where(eq(schema.userSubscriptions.userId, userId))
+          .limit(1)
+      );
+      if (rows[0]?.planTier) {
+        return rows[0].planTier as "free" | "lite" | "pro";
+      }
+    } catch (err) {
+      console.error("getUserPlanTier DB error, fallback to local:", err);
+    }
+  }
+
+  const local = readLocalData();
+  const sub = (local.userSubscriptions || []).find((s) => s.userId === userId);
+  if (sub?.planTier) {
+    return sub.planTier as "free" | "lite" | "pro";
+  }
+
+  return "free";
+}
+
+export async function setUserPlanTier(
+  userId: string,
+  planTier: "free" | "lite" | "pro",
+  orderId?: string
+): Promise<void> {
+  const db = getDatabase();
+  const now = new Date();
+
+  if (db) {
+    try {
+      await withTableFallback(() =>
+        db
+          .insert(schema.userSubscriptions)
+          .values({
+            userId,
+            planTier,
+            orderId: orderId || null,
+            updatedAt: now,
+          })
+          .onConflictDoUpdate({
+            target: schema.userSubscriptions.userId,
+            set: {
+              planTier,
+              orderId: orderId || null,
+              updatedAt: now,
+            },
+          })
+      );
+      return;
+    } catch (err) {
+      console.error("setUserPlanTier DB error, fallback to local:", err);
+    }
+  }
+
+  const local = readLocalData();
+  if (!local.userSubscriptions) local.userSubscriptions = [];
+  const idx = local.userSubscriptions.findIndex((s) => s.userId === userId);
+  if (idx !== -1) {
+    local.userSubscriptions[idx] = {
+      userId,
+      planTier,
+      orderId: orderId || null,
+      updatedAt: now,
+    };
+  } else {
+    local.userSubscriptions.push({
+      userId,
+      planTier,
+      orderId: orderId || null,
+      updatedAt: now,
+    });
+  }
+  writeLocalData(local);
+}
+
+export async function getUserOrders(userId: string): Promise<Order[]> {
+  const db = getDatabase();
+  if (db) {
+    try {
+      return await withTableFallback(() =>
+        db
+          .select()
+          .from(schema.orders)
+          .where(eq(schema.orders.userId, userId))
+          .orderBy(desc(schema.orders.createdAt))
+      );
+    } catch (err) {
+      console.error("getUserOrders DB error, fallback to local:", err);
+    }
+  }
+
+  const local = readLocalData();
+  return (local.orders || [])
+    .filter((o) => o.userId === userId)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }

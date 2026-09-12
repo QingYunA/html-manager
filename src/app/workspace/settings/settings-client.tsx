@@ -19,6 +19,9 @@ import {
   ExternalLink,
   HelpCircle,
   Unlink,
+  Sparkles,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 import type { CurrentUser } from "@/lib/auth";
 import { useLanguage } from "@/lib/i18n/context";
@@ -368,6 +371,14 @@ export default function SettingsClient({
                   >
                     {isSelfhost ? "OWNER" : user.role}
                   </Badge>
+                  {user.planTier && (
+                    <Badge
+                      variant={user.planTier === "pro" ? "default" : "secondary"}
+                      className="text-[10px] font-mono uppercase shrink-0"
+                    >
+                      {user.planTier}
+                    </Badge>
+                  )}
                 </div>
                 {user.email && (
                   <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
@@ -401,7 +412,107 @@ export default function SettingsClient({
         </CardContent>
       </Card>
 
-      {/* 2. Connected Accounts Card (Supabase OAuth Linking) */}
+      {/* 2. Membership & Plan Details Card */}
+      <Card>
+        <CardHeader className="p-5 pb-4 border-b border-border/50 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              {user.planTier === "pro" ? (
+                <Sparkles className="w-4 h-4 text-foreground" />
+              ) : user.planTier === "lite" ? (
+                <Zap className="w-4 h-4 text-foreground" />
+              ) : (
+                <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+              )}
+              <span>{t.settings.plan.title}</span>
+            </CardTitle>
+            {user.planTier === "pro" ? (
+              <Badge variant="outline" className="font-mono text-[10px] uppercase font-bold tracking-wider">
+                {t.settings.plan.proBadge}
+              </Badge>
+            ) : user.planTier === "lite" ? (
+              <Badge variant="outline" className="font-mono text-[10px] uppercase font-bold tracking-wider">
+                {t.settings.plan.liteBadge}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="font-mono text-[10px] uppercase">
+                {t.settings.plan.freeBadge}
+              </Badge>
+            )}
+          </div>
+          <CardDescription className="text-xs mt-1">
+            {user.planTier === "pro"
+              ? t.settings.plan.proDesc
+              : user.planTier === "lite"
+              ? t.settings.plan.liteDesc
+              : t.settings.plan.freeDesc}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg border border-border bg-card flex items-start gap-2.5">
+              <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-xs font-semibold text-foreground">
+                  {user.planTier === "pro"
+                    ? t.settings.plan.proStorageTitle
+                    : user.planTier === "lite"
+                    ? t.settings.plan.liteStorageTitle
+                    : t.settings.plan.freeStorageTitle}
+                </span>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                  {user.planTier === "pro"
+                    ? t.settings.plan.proStorageDesc
+                    : user.planTier === "lite"
+                    ? t.settings.plan.liteStorageDesc
+                    : t.settings.plan.freeStorageDesc}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg border border-border bg-card flex items-start gap-2.5">
+              <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-xs font-semibold text-foreground">
+                  {user.planTier === "pro"
+                    ? t.settings.plan.proFeatureTitle
+                    : user.planTier === "lite"
+                    ? t.settings.plan.liteFeatureTitle
+                    : t.settings.plan.freeFeatureTitle}
+                </span>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                  {user.planTier === "pro"
+                    ? t.settings.plan.proFeatureDesc
+                    : user.planTier === "lite"
+                    ? t.settings.plan.liteFeatureDesc
+                    : t.settings.plan.freeFeatureDesc}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-border/50">
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span>{t.settings.plan.lifetimeNotice}</span>
+            </div>
+            {user.planTier !== "pro" && (
+              <Button size="sm" asChild className="h-8 text-xs gap-1.5 shadow-sm self-start sm:self-auto">
+                <Link href="/pricing">
+                  <span>
+                    {user.planTier === "lite"
+                      ? t.settings.plan.upgradeToPro
+                      : t.settings.plan.upgradePlan}
+                  </span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3. Connected Accounts Card (Supabase OAuth Linking) */}
       <Card>
         <CardHeader className="p-5 pb-4 border-b border-border/50 bg-muted/20">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">

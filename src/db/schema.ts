@@ -46,7 +46,32 @@ export const apiTokens = pgTable("api_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const orders = pgTable("orders", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  userEmail: text("user_email"),
+  planTier: text("plan_tier").notNull(), // 'lite' | 'pro'
+  amount: text("amount").notNull(), // '4.90' | '9.90'
+  currency: text("currency").notNull().default("USD"),
+  status: text("status").notNull().default("created"), // 'created' | 'completed' | 'failed'
+  paypalOrderId: text("paypal_order_id").notNull().unique(),
+  paypalCaptureId: text("paypal_capture_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const userSubscriptions = pgTable("user_subscriptions", {
+  userId: text("user_id").primaryKey(),
+  planTier: text("plan_tier").notNull().default("free"), // 'free' | 'lite' | 'pro'
+  orderId: text("order_id"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type NewApiToken = typeof apiTokens.$inferInsert;
+export type Order = typeof orders.$inferSelect;
+export type NewOrder = typeof orders.$inferInsert;
+export type UserSubscription = typeof userSubscriptions.$inferSelect;
+export type NewUserSubscription = typeof userSubscriptions.$inferInsert;

@@ -1,24 +1,115 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Check, Shield, Sparkles, Zap, ArrowRight, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/lib/i18n/context";
+import PayPalCheckoutDialog from "@/components/pricing/paypal-checkout-dialog";
 
 export default function PricingClient() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isZh = locale === "zh";
+  const searchParams = useSearchParams();
+
+  const [checkoutTier, setCheckoutTier] = useState<"lite" | "pro" | null>(null);
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    email?: string;
+    fullName?: string;
+    planTier?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/user/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.authenticated && data?.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Auto-open checkout modal if redirected back with ?tier=...
+  useEffect(() => {
+    const tierParam = searchParams.get("tier");
+    if (tierParam === "lite" || tierParam === "pro") {
+      if (currentUser) {
+        if (currentUser.planTier !== "pro" && (tierParam === "pro" || currentUser.planTier !== "lite")) {
+          setCheckoutTier(tierParam);
+        }
+      }
+    }
+  }, [currentUser, searchParams]);
+
+  const currentTier = currentUser?.planTier || "free";
+  const isLite = currentTier === "lite";
+  const isPro = currentTier === "pro";
+
+  const handleBuyClick = (tier: "lite" | "pro") => {
+    if (!currentUser) {
+      window.location.href = `/login?from=${encodeURIComponent(`/pricing?tier=${tier}`)}`;
+      return;
+    }
+    setCheckoutTier(tier);
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-8 py-12 md:py-16">
       {/* Header Hero Section */}
-      <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
+      <div className="text-center max-w-2xl mx-auto mb-6 space-y-3">
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
           {t.pricing.title}
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           {t.pricing.desc}
         </p>
+      </div>
+
+      {/* Account Status Pill */}
+      <div className="flex justify-center mb-12">
+        {currentUser ? (
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-card/80 text-xs shadow-xs">
+            <span className="text-muted-foreground">{isZh ? "当前账号：" : "Account:"}</span>
+            <span className="font-semibold text-foreground">
+              {currentUser.email || currentUser.fullName || (isZh ? "管理员" : "Admin")}
+            </span>
+            <span className="text-border">·</span>
+            {isPro ? (
+              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                <Sparkles className="w-3 h-3" />
+                {isZh ? "PRO 终身版 (已生效)" : "PRO Lifetime (Active)"}
+              </span>
+            ) : isLite ? (
+              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                <Zap className="w-3 h-3" />
+                {isZh ? "LITE 终身版 (已生效) · 可升级 Pro" : "LITE Lifetime (Active) · Upgradable"}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {isZh ? "Starter 免费版 (购买后将绑定到此账号)" : "Starter Free Plan"}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-card/60 text-xs text-muted-foreground shadow-xs">
+            <Shield className="w-3.5 h-3.5 text-muted-foreground" />
+            <span>
+              {isZh
+                ? "当前尚未登录，升级前将先引导登录以绑定账号"
+                : "Not signed in · Please sign in first to bind your account"}
+            </span>
+            <Link
+              href={`/login?from=${encodeURIComponent("/pricing")}`}
+              className="font-medium text-foreground hover:underline ml-1"
+            >
+              {isZh ? "立即登录 →" : "Sign In →"}
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Pricing Cards Grid (3 Columns) */}
@@ -99,11 +190,33 @@ export default function PricingClient() {
             </ul>
           </div>
 
-          <Button variant="outline" asChild className="w-full h-9 text-xs font-medium border-border hover:bg-muted hover:border-foreground/30">
-            <Link href="/workspace/upload">
-              {t.pricing.litePlan.cta}
-            </Link>
-          </Button>
+          {isLite ? (
+            <Button
+              variant="outline"
+              disabled
+              className="w-full h-9 text-xs font-medium border-border opacity-70"
+            >
+              {isZh ? "当前生效套餐" : "Current Plan"}
+            </Button>
+          ) : isPro ? (
+            <Button
+              variant="outline"
+              disabled
+              className="w-full h-9 text-xs font-medium border-border opacity-70"
+            >
+              {isZh ? "已包含在 Pro 中" : "Included in Pro"}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => handleBuyClick("lite")}
+              className="w-full h-9 text-xs font-medium border-border hover:bg-muted hover:border-foreground/30 cursor-pointer"
+            >
+              {!currentUser
+                ? (isZh ? "登录后选择 Lite 方案" : "Sign in & Get Lite")
+                : t.pricing.litePlan.cta}
+            </Button>
+          )}
         </div>
 
         {/* Pro Lifetime Plan */}
@@ -145,14 +258,42 @@ export default function PricingClient() {
             </ul>
           </div>
 
-          <Button asChild className="w-full h-9 text-xs font-medium gap-1.5 shadow-sm">
-            <Link href="/workspace/upload">
-              <span>{t.pricing.proPlan.cta}</span>
+          {isPro ? (
+            <Button
+              variant="outline"
+              disabled
+              className="w-full h-9 text-xs font-medium border-border opacity-70"
+            >
+              {isZh ? "当前生效套餐" : "Current Plan"}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => handleBuyClick("pro")}
+              className="w-full h-9 text-xs font-medium gap-1.5 shadow-sm cursor-pointer"
+            >
+              <span>
+                {!currentUser
+                  ? (isZh ? "登录后选择 Pro 方案" : "Sign in & Get Pro")
+                  : isLite
+                  ? (isZh ? "升级至 Pro 终身版" : "Upgrade to Pro")
+                  : t.pricing.proPlan.cta}
+              </span>
               <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </Button>
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* PayPal Checkout Dialog */}
+      <PayPalCheckoutDialog
+        isOpen={Boolean(checkoutTier)}
+        planTier={checkoutTier || "lite"}
+        onClose={() => setCheckoutTier(null)}
+        user={currentUser}
+        onSuccess={(newTier) => {
+          setCurrentUser((prev) => (prev ? { ...prev, planTier: newTier } : null));
+        }}
+      />
 
       {/* High-Value SEO FAQ Accordion Section */}
       <div className="max-w-3xl mx-auto pt-6 border-t border-border">
