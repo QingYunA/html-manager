@@ -57,12 +57,23 @@ export async function loginWithEmailAction(
 ): Promise<EmailAuthState | undefined> {
   const email = formString(formData, "email").trim();
   const password = formString(formData, "password").trim();
+  const confirmPassword = formString(formData, "confirmPassword").trim();
   const isSignUp = formData.get("isSignUp") === "true";
+  const lang = formString(formData, "lang") || "zh";
   const rawRedirectPath = formString(formData, "from") || "/workspace";
   const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/workspace");
 
   if (!email || !password) {
-    return { error: "请输入邮箱与密码" };
+    return { error: lang === "en" ? "Please enter your email and password" : "请输入邮箱与密码" };
+  }
+
+  if (isSignUp) {
+    if (password.length < 6) {
+      return { error: lang === "en" ? "Password must be at least 6 characters" : "密码至少需要 6 位字符" };
+    }
+    if (password !== confirmPassword) {
+      return { error: lang === "en" ? "Passwords do not match" : "两次输入的密码不一致，请重新确认" };
+    }
   }
 
   const supabase = await createSupabaseServerClient();
@@ -78,6 +89,18 @@ export async function loginWithEmailAction(
     if (error) {
       return { error: error.message };
     }
+
+    // In Supabase, if an email is already registered, signUp returns a user with
+    // identities: [] (empty array) to prevent email enumeration, and sends NO confirmation email!
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return {
+        error:
+          lang === "en"
+            ? "This email is already registered. Please switch to Sign In or use a new email to test."
+            : "该邮箱已注册，请直接切换到【登录】Tab 登录，或使用新邮箱测试",
+      };
+    }
+
     // If email confirmation is required, session is not immediately returned
     if (!data.session) {
       return {
@@ -93,6 +116,91 @@ export async function loginWithEmailAction(
     if (error) {
       return { error: error.message };
     }
+  }
+
+  redirect(redirectPath);
+}
+
+export interface ForgotPasswordState {
+  error?: string;
+  success?: boolean;
+  message?: string;
+}
+
+export async function forgotPasswordAction(
+  prevState: ForgotPasswordState | null | undefined,
+  formData: FormData
+): Promise<ForgotPasswordState | undefined> {
+  const email = formString(formData, "email").trim();
+  const origin = formString(formData, "origin").trim() || "https://pagepod.dev";
+  const lang = formString(formData, "lang") || "zh";
+
+  if (!email) {
+    return { error: lang === "en" ? "Please enter your email address" : "请输入邮箱地址" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "当前未配置 Supabase 认证环境变量" };
+  }
+
+  const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent("/login?step=reset-password")}`;
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {
+    success: true,
+    message:
+      lang === "en"
+        ? "Password reset email sent! Please check your inbox and click the link to reset your password."
+        : "重置邮件已成功发送！请前往你的邮箱查收并点击重置链接。",
+  };
+}
+
+export interface ResetPasswordState {
+  error?: string;
+  success?: boolean;
+}
+
+export async function resetPasswordAction(
+  prevState: ResetPasswordState | null | undefined,
+  formData: FormData
+): Promise<ResetPasswordState | undefined> {
+  const password = formString(formData, "password").trim();
+  const confirmPassword = formString(formData, "confirmPassword").trim();
+  const lang = formString(formData, "lang") || "zh";
+  const rawRedirectPath = formString(formData, "from") || "/workspace";
+  const redirectPath = sanitizeRedirectPath(rawRedirectPath, "/workspace");
+
+  if (!password || !confirmPassword) {
+    return { error: lang === "en" ? "Please enter and confirm your new password" : "请输入并确认新密码" };
+  }
+
+  if (password.length < 6) {
+    return { error: lang === "en" ? "Password must be at least 6 characters" : "密码至少需要 6 位字符" };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: lang === "en" ? "Passwords do not match" : "两次输入的密码不一致" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "当前未配置 Supabase 认证环境变量" };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (error) {
+    return { error: error.message };
   }
 
   redirect(redirectPath);

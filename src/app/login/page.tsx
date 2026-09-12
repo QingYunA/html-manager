@@ -7,10 +7,21 @@ import {
   loginWithEmailAction,
   verifyEmailOtpAction,
   resendVerificationOtpAction,
+  forgotPasswordAction,
+  resetPasswordAction,
 } from "@/app/actions/auth";
 import { createSupabaseClient, isClientCloudMode } from "@/lib/supabase/client";
 import Link from "next/link";
-import { ArrowLeft, MailCheck, RefreshCw, KeyRound, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  MailCheck,
+  RefreshCw,
+  KeyRound,
+  Loader2,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+} from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,8 +30,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useLanguage } from "@/lib/i18n/context";
 
+type AuthStep = "auth" | "forgot" | "reset-password" | "verify";
+
 function LoginForm() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/workspace";
   const errorParam = searchParams.get("error");
@@ -29,40 +42,86 @@ function LoginForm() {
   const emailParam = searchParams.get("email") || "";
   const initialTab = searchParams.get("tab") === "signup" ? "signup" : "signin";
 
+  const initialStep: AuthStep =
+    stepParam === "reset-password"
+      ? "reset-password"
+      : stepParam === "forgot"
+      ? "forgot"
+      : stepParam === "verify" && Boolean(emailParam)
+      ? "verify"
+      : "auth";
+
+  const [step, setStep] = useState<AuthStep>(initialStep);
+  const [activeTab, setActiveTab] = useState<"signin" | "signup">(initialTab);
+  const [pendingEmail, setPendingEmail] = useState(emailParam);
+  const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
+
+  // Action states
   const [adminState, adminFormAction, isAdminPending] = useActionState(loginAdmin, null);
   const [emailState, emailFormAction, isEmailPending] = useActionState(loginWithEmailAction, null);
   const [otpState, otpFormAction, isOtpPending] = useActionState(verifyEmailOtpAction, null);
+  const [forgotState, forgotFormAction, isForgotPending] = useActionState(forgotPasswordAction, null);
+  const [resetState, resetFormAction, isResetPending] = useActionState(resetPasswordAction, null);
 
-  const [activeTab, setActiveTab] = useState<"signin" | "signup">(initialTab);
-  const [needsVerification, setNeedsVerification] = useState(stepParam === "verify" && Boolean(emailParam));
-  const [pendingEmail, setPendingEmail] = useState(emailParam);
+  // Form input & visibility state
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // OTP resend & UI overrides
   const [countdown, setCountdown] = useState(0);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
   const [showSelfhostOverride, setShowSelfhostOverride] = useState(false);
 
+  // OAuth states
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
-  const [isCloud, setIsCloud] = useState(false);
+  const [isCloud] = useState(() => isClientCloudMode());
 
-  useEffect(() => {
-    setIsCloud(isClientCloudMode());
-  }, []);
+  // Derived effective state when server action returns needsVerification
+  const isServerVerification = Boolean(emailState?.needsVerification && emailState.email);
+  const effectiveStep: AuthStep = isServerVerification ? "verify" : step;
+  const effectiveEmail = isServerVerification && emailState?.email ? emailState.email : pendingEmail;
 
-  // Sync verification trigger from server action
+  // Sync step change to browser URL without full reloads
+  const switchStep = (nextStep: AuthStep, emailVal?: string) => {
+    setStep(nextStep);
+    try {
+      const url = new URL(window.location.href);
+      if (nextStep === "auth") {
+        url.searchParams.delete("step");
+        url.searchParams.delete("email");
+      } else {
+        url.searchParams.set("step", nextStep);
+        if (emailVal) {
+          url.searchParams.set("email", emailVal);
+        }
+      }
+      window.history.replaceState({}, "", url.toString());
+    } catch {
+      // Safe fallback
+    }
+  };
+
+  // Sync verification trigger URL and countdown from server action
   useEffect(() => {
     if (emailState?.needsVerification && emailState.email) {
-      setPendingEmail(emailState.email);
-      setNeedsVerification(true);
-      setCountdown(60);
+      const timer = setTimeout(() => {
+        setCountdown(60);
+      }, 0);
       try {
         const url = new URL(window.location.href);
         url.searchParams.set("step", "verify");
         url.searchParams.set("email", emailState.email);
         window.history.replaceState({}, "", url.toString());
       } catch {
-        // Safe fallback in SSR or older browsers
+        // Safe fallback
       }
+      return () => clearTimeout(timer);
     }
   }, [emailState]);
 
@@ -76,18 +135,9 @@ function LoginForm() {
   }, [countdown]);
 
   const handleBackFromVerification = () => {
-    setNeedsVerification(false);
     setPendingEmail("");
     setResendStatus(null);
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("step");
-      url.searchParams.delete("email");
-      url.searchParams.set("tab", "signup");
-      window.history.replaceState({}, "", url.toString());
-    } catch {
-      // Safe fallback
-    }
+    switchStep("auth");
   };
 
   const handleOAuthLogin = async (provider: "github" | "google") => {
@@ -121,17 +171,16 @@ function LoginForm() {
   };
 
   const handleResendOtp = async () => {
-    if (!pendingEmail || countdown > 0 || isResending) return;
+    if (!effectiveEmail || countdown > 0 || isResending) return;
     setIsResending(true);
     setResendStatus(null);
 
-    // Prefer client supabase directly to avoid Server Action RSC revalidation resetting UI state
     const supabase = createSupabaseClient();
     if (supabase) {
       try {
         const { error } = await supabase.auth.resend({
           type: "signup",
-          email: pendingEmail,
+          email: effectiveEmail,
         });
         if (error) {
           setResendStatus(error.message);
@@ -148,7 +197,7 @@ function LoginForm() {
     }
 
     try {
-      const res = await resendVerificationOtpAction(pendingEmail);
+      const res = await resendVerificationOtpAction(effectiveEmail);
       if (res && "error" in res && res.error) {
         setResendStatus(res.error);
       } else {
@@ -162,8 +211,223 @@ function LoginForm() {
     }
   };
 
-  // 1. EMAIL VERIFICATION STATE (6-digit OTP code input + mail link notice)
-  if (isCloud && needsVerification) {
+  const isSignupPasswordMismatch =
+    activeTab === "signup" &&
+    signupPassword.length > 0 &&
+    signupConfirmPassword.length > 0 &&
+    signupPassword !== signupConfirmPassword;
+
+  const isResetPasswordMismatch =
+    resetPassword.length > 0 &&
+    resetConfirmPassword.length > 0 &&
+    resetPassword !== resetConfirmPassword;
+
+  // 1. FORGOT PASSWORD VIEW
+  if (isCloud && step === "forgot") {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col space-y-2 text-center">
+          <div className="w-10 h-10 rounded-full border border-border bg-muted/40 flex items-center justify-center mx-auto text-foreground">
+            <KeyRound className="w-5 h-5" />
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {t.auth.forgotPasswordTitle}
+          </h1>
+          <p className="text-xs text-muted-foreground leading-relaxed px-2">
+            {t.auth.forgotPasswordSubtitle}
+          </p>
+        </div>
+
+        <form action={forgotFormAction} className="space-y-3.5">
+          <input type="hidden" name="lang" value={locale} />
+          <input type="hidden" name="origin" value={origin} />
+
+          <div className="space-y-1.5">
+            <label htmlFor="forgot-email" className="text-xs font-medium text-foreground">
+              {t.auth.emailLabel}
+            </label>
+            <Input
+              id="forgot-email"
+              type="email"
+              name="email"
+              required
+              autoFocus
+              placeholder={t.auth.emailPlaceholder}
+              className="h-9 text-xs"
+            />
+          </div>
+
+          {forgotState?.error && (
+            <p role="alert" className="text-[11px] text-destructive font-medium text-center">
+              {forgotState.error}
+            </p>
+          )}
+
+          {forgotState?.success && (
+            <div className="p-3 bg-muted/40 border border-border rounded-md text-[11px] text-foreground leading-relaxed text-center">
+              {forgotState.message || t.auth.resetLinkSent}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            disabled={isForgotPending || Boolean(forgotState?.success)}
+            className="w-full h-9 text-xs font-medium cursor-pointer"
+          >
+            {isForgotPending ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                <span>{t.auth.sendingResetLink}</span>
+              </>
+            ) : (
+              t.auth.sendResetLink
+            )}
+          </Button>
+        </form>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => switchStep("auth")}
+            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>{t.auth.backToSignIn}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. SET NEW PASSWORD VIEW (arrived from recovery callback)
+  if (isCloud && step === "reset-password") {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col space-y-2 text-center">
+          <div className="w-10 h-10 rounded-full border border-border bg-muted/40 flex items-center justify-center mx-auto text-foreground">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {t.auth.setNewPasswordTitle}
+          </h1>
+          <p className="text-xs text-muted-foreground leading-relaxed px-2">
+            {t.auth.setNewPasswordSubtitle}
+          </p>
+        </div>
+
+        <form action={resetFormAction} className="space-y-3.5">
+          <input type="hidden" name="from" value={from} />
+          <input type="hidden" name="lang" value={locale} />
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="new-password" className="text-xs font-medium text-foreground">
+                {t.auth.newPasswordLabel}
+              </label>
+              <span className="text-[10px] text-muted-foreground">
+                {t.auth.passwordMinNotice}
+              </span>
+            </div>
+            <div className="relative">
+              <Input
+                id="new-password"
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                required
+                autoFocus
+                minLength={6}
+                placeholder={t.auth.passwordPlaceholder}
+                className="h-9 text-xs pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors p-0.5 rounded cursor-pointer"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label htmlFor="confirm-new-password" className="text-xs font-medium text-foreground">
+                {t.auth.confirmNewPasswordLabel}
+              </label>
+              {isResetPasswordMismatch && (
+                <span className="text-[10px] text-destructive font-medium">
+                  {t.auth.passwordMismatch}
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <Input
+                id="confirm-new-password"
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={resetConfirmPassword}
+                onChange={(e) => setResetConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                placeholder={t.auth.confirmPasswordPlaceholder}
+                className={`h-9 text-xs pr-9 ${
+                  isResetPasswordMismatch ? "border-destructive/60 focus-visible:ring-destructive/30" : ""
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                tabIndex={-1}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors p-0.5 rounded cursor-pointer"
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+              >
+                {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          {resetState?.error && (
+            <p role="alert" className="text-[11px] text-destructive font-medium text-center">
+              {resetState.error}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            disabled={isResetPending || isResetPasswordMismatch}
+            className="w-full h-9 text-xs font-medium cursor-pointer"
+          >
+            {isResetPending ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                <span>{t.auth.updatingPassword}</span>
+              </>
+            ) : (
+              t.auth.updatePasswordBtn
+            )}
+          </Button>
+        </form>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => switchStep("auth")}
+            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>{t.auth.backToSignIn}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. EMAIL VERIFICATION STATE (6-digit OTP code input + mail link notice)
+  if (isCloud && effectiveStep === "verify") {
     return (
       <div className="space-y-6">
         <div className="flex flex-col space-y-2 text-center">
@@ -174,7 +438,7 @@ function LoginForm() {
             {t.auth.verifyEmailTitle}
           </h1>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            {t.auth.verifyEmailSubtitle.replace("{email}", pendingEmail)}
+            {t.auth.verifyEmailSubtitle.replace("{email}", effectiveEmail)}
           </p>
         </div>
 
@@ -185,7 +449,7 @@ function LoginForm() {
         {/* 6-digit OTP verification form */}
         <form action={otpFormAction} className="space-y-3.5">
           <input type="hidden" name="from" value={from} />
-          <input type="hidden" name="email" value={pendingEmail} />
+          <input type="hidden" name="email" value={effectiveEmail} />
 
           <div className="space-y-1.5">
             <label htmlFor="otp-token" className="text-xs font-medium text-foreground">
@@ -266,14 +530,18 @@ function LoginForm() {
     );
   }
 
-  // 2. CLOUD SAAS AUTHENTICATION (Tabs: Sign In vs Sign Up)
+  // 4. CLOUD SAAS AUTHENTICATION (shadcn/ui Authentication Block: Tabs, Confirm Password, Eye Toggles)
   if (isCloud && !showSelfhostOverride) {
     return (
       <div className="space-y-6">
         {/* Prominent shadcn Tabs for Sign In vs Sign Up */}
         <Tabs
           value={activeTab}
-          onValueChange={(val) => setActiveTab(val as "signin" | "signup")}
+          onValueChange={(val) => {
+            setActiveTab(val as "signin" | "signup");
+            setSignupPassword("");
+            setSignupConfirmPassword("");
+          }}
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2">
@@ -349,6 +617,7 @@ function LoginForm() {
         <form action={emailFormAction} className="space-y-3.5">
           <input type="hidden" name="from" value={from} />
           <input type="hidden" name="isSignUp" value={String(activeTab === "signup")} />
+          <input type="hidden" name="lang" value={locale} />
 
           <div className="space-y-1.5">
             <label htmlFor="login-email" className="text-xs font-medium text-foreground">
@@ -370,22 +639,83 @@ function LoginForm() {
               <label htmlFor="login-password" className="text-xs font-medium text-foreground">
                 {t.auth.passwordLabel}
               </label>
-              {activeTab === "signup" && (
+              {activeTab === "signin" ? (
+                <button
+                  type="button"
+                  onClick={() => switchStep("forgot")}
+                  className="text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                >
+                  {t.auth.forgotPassword}
+                </button>
+              ) : (
                 <span className="text-[10px] text-muted-foreground">
                   {t.auth.passwordMinNotice}
                 </span>
               )}
             </div>
-            <Input
-              id="login-password"
-              type="password"
-              name="password"
-              required
-              minLength={6}
-              placeholder={t.auth.passwordPlaceholder}
-              className="h-9 text-xs"
-            />
+            <div className="relative">
+              <Input
+                id="login-password"
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={activeTab === "signup" ? signupPassword : undefined}
+                onChange={activeTab === "signup" ? (e) => setSignupPassword(e.target.value) : undefined}
+                required
+                minLength={6}
+                placeholder={t.auth.passwordPlaceholder}
+                className="h-9 text-xs pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors p-0.5 rounded cursor-pointer"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           </div>
+
+          {/* Confirm Password field in signup tab */}
+          {activeTab === "signup" && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="login-confirm-password" className="text-xs font-medium text-foreground">
+                  {t.auth.confirmPasswordLabel}
+                </label>
+                {isSignupPasswordMismatch && (
+                  <span className="text-[10px] text-destructive font-medium">
+                    {t.auth.passwordMismatch}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <Input
+                  id="login-confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  value={signupConfirmPassword}
+                  onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder={t.auth.confirmPasswordPlaceholder}
+                  className={`h-9 text-xs pr-9 ${
+                    isSignupPasswordMismatch ? "border-destructive/60 focus-visible:ring-destructive/30" : ""
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  tabIndex={-1}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors p-0.5 rounded cursor-pointer"
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+          )}
 
           {emailState?.error && (
             <p role="alert" className="text-[11px] text-destructive font-medium">
@@ -395,7 +725,7 @@ function LoginForm() {
 
           <Button
             type="submit"
-            disabled={isEmailPending}
+            disabled={isEmailPending || isSignupPasswordMismatch}
             className="w-full h-9 text-xs font-medium cursor-pointer"
           >
             {isEmailPending ? (
@@ -420,7 +750,7 @@ function LoginForm() {
           <button
             type="button"
             onClick={() => setShowSelfhostOverride(true)}
-            className="text-[11px] text-muted-foreground/80 hover:text-foreground inline-flex items-center justify-center gap-1 pt-1 cursor-pointer"
+            className="text-[11px] text-muted-foreground/80 hover:text-foreground inline-flex items-center justify-center gap-1 pt-1 cursor-pointer transition-colors"
           >
             <KeyRound className="w-3 h-3" />
             <span>{t.auth.selfhostTitle}</span>
@@ -430,7 +760,7 @@ function LoginForm() {
     );
   }
 
-  // 3. SELFHOSTED ADMIN AUTH (Pure, minimal password input without AI feel)
+  // 5. SELFHOSTED ADMIN AUTH (Pure, minimal password input without AI feel)
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-1.5 text-center">
@@ -449,15 +779,26 @@ function LoginForm() {
           <label htmlFor="admin-password" className="text-xs font-medium text-foreground">
             {t.auth.adminPasswordLabel}
           </label>
-          <Input
-            id="admin-password"
-            type="password"
-            name="password"
-            required
-            autoFocus
-            placeholder="••••••••••••"
-            className="h-9 text-xs"
-          />
+          <div className="relative">
+            <Input
+              id="admin-password"
+              type={showPassword ? "text" : "password"}
+              name="password"
+              required
+              autoFocus
+              placeholder="••••••••••••"
+              className="h-9 text-xs pr-9"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              tabIndex={-1}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors p-0.5 rounded cursor-pointer"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          </div>
           {adminState?.error && (
             <p role="alert" className="text-[11px] text-destructive font-medium">
               {adminState.error}
@@ -486,7 +827,7 @@ function LoginForm() {
           <button
             type="button"
             onClick={() => setShowSelfhostOverride(false)}
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer"
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer transition-colors"
           >
             返回云端多租户登录
           </button>
