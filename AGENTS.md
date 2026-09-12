@@ -45,6 +45,12 @@
 - **列表删除项过渡态**：
   - 在卡片或表格列表执行删除时，被操作项在执行期间必须即时呈现半透明过渡态（如 `opacity-40 scale-[0.98] pointer-events-none transition-all duration-200`），避免直接生硬截断移除。
 
+### 4. 反浮夸文案与工程高级感 (Anti-Slop & Editorial Voice)
+- ❌ **严禁页游与土豪“VIP”套话**：坚决禁止在产品文案中出现“尊享”、“特权”、“VIP”、“自由扩容”、“神级”、“无敌”等浮夸廉价词汇；
+- ✅ **倡导中性、克制的技术质感词汇**：统一使用“功能”、“权益”、“配额”、“Features”、“Perks”；
+- ❌ **严禁会员付费元素彩虹化**：会员状态标签、价格方案与横幅禁止使用金色渐变（如 `from-amber-500/10`）或厚重阴影（`shadow-2xl`），统一遵守 Zinc 单色黑白灰调、1px 细线边框与 shadcn `<Badge variant="outline">` 原语；
+- ✅ **双语国际化零死角**：全链路必须响应式切换；严禁在英文模式下漏译或硬编码中文回退值（如默认未命名账号必须动态适配为 `"Admin"`，严禁硬编码 `"管理员"`）。
+
 ---
 
 ## 🏗️ 二、核心架构与安全规范
@@ -87,6 +93,22 @@
 4. **Git Worktree 与 Turbopack 协同避坑 (Worktree Build Discipline)**：
    - Git Worktree 中由于 `node_modules` 软链接特性，Next.js Turbopack 会触发内部 Panic。Worktree 下本地构建测试必须使用 `npx next build --webpack`，或直接切至主仓库目录运行；
    - 分支合并遵循无冲突流程：Worktree 提 PR 并 squash merge，主仓库 pull，Worktree reset hard 对齐。
+
+---
+
+## 💳 四、商业化支付与交易安全规范 (Commercial Payment & Security Standards)
+
+1. **前置强制鉴权与意图无缝恢复 (Auth Gate & Payment Resumption)**：
+   - 未登录用户严禁初始化或唤起真实支付 SDK；
+   - 点击付费方案若未登录，必须通过 URL 编码携带意图跳转：`/login?from=${encodeURIComponent('/pricing?tier=' + tier)}`；
+   - 登录成功回跳后，定价页必须自动响应式解析 `tier` 参数并自动弹出对应结账弹窗，实现零二次点击的无缝闭环；
+   - 定价与支付客户端组件必须外层包裹 `<Suspense fallback={null}>`，避免 Next.js 静态预渲染 de-opt。
+
+2. **支付捕获防越权与幂等短路防御 (IDOR & Idempotency Defense)**：
+   - **IDOR 所有权核验**：支付捕获端点（如 `/api/payments/*/capture-order`）必须比对本地订单 `order.userId` 与当前 Session `currentUser.id`（管理员除外），不匹配严禁向支付渠道发起 capture，直接返回 `403 Forbidden`；
+   - **本地订单存在性验证**：若本地无此订单直接返回 `404 Not Found`，绝不盲目向上游发起扣款；
+   - **短路防重复扣款**：捕获接口必须前置检查本地订单状态，若已为 `completed` 则立即短路返回已有 `captureId`，严禁重复调用上游支付渠道扣款 API；
+   - **建单入库幂等查重**：在创建本地订单记录时必须前置检查外部渠道 `orderId`，防止并发重试插入重复记录。
 
 
 <!-- BEGIN:nextjs-agent-rules -->
