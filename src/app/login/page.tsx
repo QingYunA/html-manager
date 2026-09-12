@@ -21,6 +21,8 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
+  AlertCircle,
+  LogIn,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useLanguage } from "@/lib/i18n/context";
+import { cn } from "@/lib/utils";
 
 type AuthStep = "auth" | "forgot" | "reset-password" | "verify";
 
@@ -54,6 +57,8 @@ function LoginForm() {
   const [step, setStep] = useState<AuthStep>(initialStep);
   const [activeTab, setActiveTab] = useState<"signin" | "signup">(initialTab);
   const [pendingEmail, setPendingEmail] = useState(emailParam);
+  const [emailInput, setEmailInput] = useState(emailParam);
+  const [dismissedErrorMsg, setDismissedErrorMsg] = useState<string | null>(null);
   const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
 
   // Action states
@@ -62,6 +67,8 @@ function LoginForm() {
   const [otpState, otpFormAction, isOtpPending] = useActionState(verifyEmailOtpAction, null);
   const [forgotState, forgotFormAction, isForgotPending] = useActionState(forgotPasswordAction, null);
   const [resetState, resetFormAction, isResetPending] = useActionState(resetPasswordAction, null);
+
+  const currentEmailError = emailState?.error && emailState.error !== dismissedErrorMsg ? emailState.error : null;
 
   // Form input & visibility state
   const [signupPassword, setSignupPassword] = useState("");
@@ -540,21 +547,22 @@ function LoginForm() {
             setActiveTab(val as "signin" | "signup");
             setSignupPassword("");
             setSignupConfirmPassword("");
+            setDismissedErrorMsg(emailState?.error || "");
           }}
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin" className="cursor-pointer">
+            <TabsTrigger value="signin" className="cursor-pointer transition-all duration-200">
               {t.auth.tabSignIn}
             </TabsTrigger>
-            <TabsTrigger value="signup" className="cursor-pointer">
+            <TabsTrigger value="signup" className="cursor-pointer transition-all duration-200">
               {t.auth.tabSignUp}
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {/* Dynamic Title & Subtitle based on active tab */}
-        <div className="flex flex-col space-y-1.5 text-center">
+        {/* Dynamic Title & Subtitle based on active tab with smooth transition */}
+        <div className="flex flex-col space-y-1.5 text-center transition-all duration-200 ease-in-out">
           <h1 className="text-xl font-semibold tracking-tight">
             {activeTab === "signup" ? t.auth.signupTitle : t.auth.loginTitle}
           </h1>
@@ -626,6 +634,11 @@ function LoginForm() {
               id="login-email"
               type="email"
               name="email"
+              value={emailInput}
+              onChange={(e) => {
+                setEmailInput(e.target.value);
+                setDismissedErrorMsg(emailState?.error || "");
+              }}
               required
               autoFocus
               placeholder={t.auth.emailPlaceholder}
@@ -641,7 +654,7 @@ function LoginForm() {
               {activeTab === "signin" ? (
                 <button
                   type="button"
-                  onClick={() => switchStep("forgot")}
+                  onClick={() => switchStep("forgot", emailInput)}
                   className="text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   {t.auth.forgotPassword}
@@ -658,7 +671,10 @@ function LoginForm() {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 value={activeTab === "signup" ? signupPassword : undefined}
-                onChange={activeTab === "signup" ? (e) => setSignupPassword(e.target.value) : undefined}
+                onChange={(e) => {
+                  if (activeTab === "signup") setSignupPassword(e.target.value);
+                  setDismissedErrorMsg(emailState?.error || "");
+                }}
                 required
                 minLength={6}
                 autoComplete={activeTab === "signup" ? "new-password" : "current-password"}
@@ -676,15 +692,22 @@ function LoginForm() {
             </div>
           </div>
 
-          {/* Confirm Password field in signup tab */}
-          {activeTab === "signup" && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+          {/* Confirm Password field with smooth expandable CSS grid transition */}
+          <div
+            className={cn(
+              "grid transition-all duration-300 ease-in-out",
+              activeTab === "signup"
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0 pointer-events-none"
+            )}
+          >
+            <div className="overflow-hidden space-y-1.5">
+              <div className="flex items-center justify-between pt-0.5">
                 <label htmlFor="login-confirm-password" className="text-xs font-medium text-foreground">
                   {t.auth.confirmPasswordLabel}
                 </label>
                 {isSignupPasswordMismatch && (
-                  <span className="text-[10px] text-destructive font-medium">
+                  <span className="text-[10px] text-destructive font-medium animate-in fade-in-0 duration-150">
                     {t.auth.passwordMismatch}
                   </span>
                 )}
@@ -695,13 +718,17 @@ function LoginForm() {
                   type={showConfirmPassword ? "text" : "password"}
                   name="confirmPassword"
                   value={signupConfirmPassword}
-                  onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                  required
-                  minLength={6}
+                  onChange={(e) => {
+                    setSignupConfirmPassword(e.target.value);
+                    setDismissedErrorMsg(emailState?.error || "");
+                  }}
+                  required={activeTab === "signup"}
+                  minLength={activeTab === "signup" ? 6 : undefined}
                   autoComplete="new-password"
-                  className={`h-9 text-xs pr-9 ${
-                    isSignupPasswordMismatch ? "border-destructive/60 focus-visible:ring-destructive/30" : ""
-                  }`}
+                  className={cn(
+                    "h-9 text-xs pr-9 transition-colors",
+                    isSignupPasswordMismatch && "border-destructive/60 focus-visible:ring-destructive/30"
+                  )}
                 />
                 <button
                   type="button"
@@ -714,24 +741,105 @@ function LoginForm() {
                 </button>
               </div>
             </div>
-          )}
+          </div>
 
-          {emailState?.error && (
-            <p role="alert" className="text-[11px] text-destructive font-medium">
-              {emailState.error}
-            </p>
-          )}
+          {/* Polished, Actionable Error Notification */}
+          {currentEmailError && (() => {
+            const isAccountExistsError = Boolean(
+              currentEmailError.includes("GitHub") ||
+              currentEmailError.includes("Google") ||
+              currentEmailError.includes("already associated") ||
+              currentEmailError.includes("已关联") ||
+              currentEmailError.includes("已被注册")
+            );
+
+            return isAccountExistsError ? (
+              <div
+                role="alert"
+                className="rounded-lg border border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10 p-3 space-y-2.5 text-xs text-foreground animate-in fade-in-0 slide-in-from-top-2 duration-200"
+              >
+                <div className="flex items-start gap-2.5">
+                  <div className="p-1 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 space-y-1 text-left">
+                    <p className="font-semibold text-foreground text-xs tracking-tight">
+                      {t.auth.accountExistsTitle || "该邮箱已关联现有账号"}
+                    </p>
+                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                      {currentEmailError}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedErrorMsg(currentEmailError)}
+                    className="text-muted-foreground/60 hover:text-foreground text-xs p-0.5 cursor-pointer ml-1"
+                    title="Dismiss"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* Direct Action Buttons for Immediate 1-Click Resolution */}
+                <div className="flex items-center gap-2 pt-1 border-t border-amber-500/20">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setActiveTab("signin");
+                      setDismissedErrorMsg(currentEmailError);
+                    }}
+                    className="h-7 text-xs font-medium px-2.5 bg-background hover:bg-muted border-border cursor-pointer gap-1.5 shadow-xs"
+                  >
+                    <LogIn className="w-3 h-3 text-muted-foreground" />
+                    <span>{t.auth.actionSignInNow || "切换到登录"}</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => switchStep("forgot", emailInput)}
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-1.5"
+                  >
+                    <KeyRound className="w-3 h-3 text-muted-foreground" />
+                    <span>{t.auth.actionSetPassword || "找回/设置密码"}</span>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive/5 dark:bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2.5 animate-in fade-in-0 slide-in-from-top-1 duration-200"
+              >
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span className="leading-relaxed flex-1 text-left">{currentEmailError}</span>
+                <button
+                  type="button"
+                  onClick={() => setDismissedErrorMsg(currentEmailError)}
+                  className="text-muted-foreground/60 hover:text-foreground text-xs p-0.5 cursor-pointer ml-1"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })()}
 
           <Button
             type="submit"
-            disabled={isEmailPending || isSignupPasswordMismatch}
-            className="w-full h-9 text-xs font-medium cursor-pointer"
+            disabled={isEmailPending || (activeTab === "signup" && isSignupPasswordMismatch)}
+            className="w-full h-9 text-xs font-medium cursor-pointer transition-all duration-150 active:scale-[0.99]"
           >
             {isEmailPending ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                <span>{t.auth.loading}</span>
-              </>
+              <span className="inline-flex items-center gap-1.5">
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                <span>
+                  {activeTab === "signup"
+                    ? t.auth.creatingAccount || "正在创建账号..."
+                    : t.auth.loading}
+                </span>
+              </span>
             ) : activeTab === "signup" ? (
               t.auth.signupBtn
             ) : (
