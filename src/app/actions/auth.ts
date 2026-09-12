@@ -96,8 +96,8 @@ export async function loginWithEmailAction(
       return {
         error:
           lang === "en"
-            ? "This email is already registered. Please sign in or reset your password."
-            : "该邮箱已被注册，请直接登录或使用忘记密码找回",
+            ? "This email is already associated with an account (e.g. created via GitHub or Google). Please sign in using the buttons above, or use 'Forgot password' to set an email password."
+            : "该邮箱已关联现有账号（可能通过 GitHub 或 Google 快捷登录创建）。请直接使用上方第三方登录；或通过【忘记密码】为该账号设置独立的邮箱密码。",
       };
     }
 
@@ -303,5 +303,53 @@ export async function logoutAdmin() {
   }
 
   return { success: true };
+}
+
+export interface UpdateAccountPasswordState {
+  error?: string;
+  success?: boolean;
+  message?: string;
+}
+
+export async function updateAccountPasswordAction(
+  prevState: UpdateAccountPasswordState | null | undefined,
+  formData: FormData
+): Promise<UpdateAccountPasswordState | undefined> {
+  const password = formString(formData, "password").trim();
+  const confirmPassword = formString(formData, "confirmPassword").trim();
+  const lang = formString(formData, "lang") || "zh";
+
+  if (!password || !confirmPassword) {
+    return { error: lang === "en" ? "Please enter and confirm your new password" : "请输入并确认新密码" };
+  }
+
+  if (password.length < 6) {
+    return { error: lang === "en" ? "Password must be at least 6 characters" : "密码至少需要 6 位字符" };
+  }
+
+  if (password !== confirmPassword) {
+    return { error: lang === "en" ? "Passwords do not match" : "两次输入的密码不一致" };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { error: "当前未配置 Supabase 认证环境变量" };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {
+    success: true,
+    message:
+      lang === "en"
+        ? "Password updated successfully! You can now sign in with your email and password."
+        : "密码设置成功！您现在可以使用该邮箱与密码直接登录了。",
+  };
 }
 
