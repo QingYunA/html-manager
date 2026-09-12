@@ -65,3 +65,26 @@
 3. **数据库兼容性**：
    - 采用 Drizzle ORM，原生适配 PostgreSQL（Vercel Postgres / Neon / Supabase）；
    - 在未配置外部数据库的本地开发环境中，通过 `.data/db.json` 自动 fallback，保证开箱即用零报错。
+
+---
+
+## ✉️ 三、认证与系统事务邮件规范 (Auth & Transactional Email Standards)
+
+1. **双语国际化排版规范 (English First, Chinese Second)**：
+   - 面向国际化与出海标准，所有系统事务邮件、模版与双语通知一律遵循“**英文为主（首行/主标题）、中文为辅（次行/辅助说明）**”，如 `Confirm your email address / 验证您的邮箱账号`；
+   - 按钮文案统一采用双语格式：`Confirm & Sign In / 验证邮箱并登录`。
+
+2. **官方品牌形象与邮件客户端兼容 (Branded Email Assets)**：
+   - 邮件头部必须引入生产环境全球 CDN 托管的官方 Logo（`https://www.pagepod.dev/logo.png`），以 30x30 Retina 视网膜规格配合 1px 精细微边框与圆角呈现；
+   - **严禁使用 Base64 Data URI**（防范主流邮件服务商 Gmail、Outlook、QQ、网易的垃圾拦截）；
+   - 操作按钮下方必须保留纯文本链接回退通道，确保极端环境下用户仍可复制 URL 完成验证。
+
+3. **自适应验证码与剪贴板容错 (Adaptive Verification Token)**：
+   - **严禁文案硬编码位数**：前端提示、占位符与邮件文案中严禁硬编码“6 位数字验证码”或“000000”，统一采用自适应的“数字验证码 / Verification Code”；
+   - **全链路空格清洗**：前端 OTP 输入框与后端 Action 必须在处理前通过 `.replace(/[\s-]+/g, "")` 自动清洗剪贴板带入的视觉空格与连字符；
+   - **输入框宽度自适应**：前端输入框上限放宽至 10 位，完美兼容 Supabase 后端配置的 6~10 位 OTP。
+
+4. **Git Worktree 与 Turbopack 协同避坑 (Worktree Build Discipline)**：
+   - Git Worktree 中由于 `node_modules` 软链接特性，Next.js Turbopack 会触发内部 Panic。Worktree 下本地构建测试必须使用 `npx next build --webpack`，或直接切至主仓库目录运行；
+   - 分支合并遵循无冲突流程：Worktree 提 PR 并 squash merge，主仓库 pull，Worktree reset hard 对齐。
+
