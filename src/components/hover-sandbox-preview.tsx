@@ -81,6 +81,9 @@ export default function HoverSandboxPreview({
 
   // For table-cell floating popover: tracks active popover locally so it doesn't overlap forever
   const [isCellActive, setIsCellActive] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
+  const effectiveScreenshot = screenshotUrl || `/screenshots/${slug}.png`;
+  const activeScreenshot = !imgFailed ? effectiveScreenshot : null;
 
   const chargeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const timeoutTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -242,11 +245,12 @@ export default function HoverSandboxPreview({
         }}
         className="w-14 aspect-video rounded overflow-hidden bg-neutral-900/90 border border-border/80 shrink-0 relative flex items-center justify-center cursor-pointer select-none group/cell shadow-2xs hover:border-neutral-500 transition-colors"
       >
-        {screenshotUrl ? (
+        {activeScreenshot ? (
           <img
-            src={screenshotUrl}
+            src={activeScreenshot}
             alt=""
             aria-hidden="true"
+            onError={() => setImgFailed(true)}
             className="absolute inset-0 w-full h-full object-cover object-top opacity-50 group-hover/cell:opacity-80 transition-opacity"
           />
         ) : (
@@ -311,11 +315,12 @@ export default function HoverSandboxPreview({
             style={{ top: popoverPos.top, left: popoverPos.left }}
             className="fixed z-[9999] w-72 aspect-video bg-neutral-950 border border-neutral-700 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
           >
-            {screenshotUrl && !iframeLoaded && (
+            {activeScreenshot && !iframeLoaded && (
               <img
-                src={screenshotUrl}
+                src={activeScreenshot}
                 alt=""
                 aria-hidden="true"
+                onError={() => setImgFailed(true)}
                 className="absolute inset-0 w-full h-full object-cover object-top opacity-50 pointer-events-none"
               />
             )}
@@ -384,11 +389,12 @@ export default function HoverSandboxPreview({
       {/* 1. Active Sandboxed iframe Layer */}
       {isCardActive && (
         <>
-          {screenshotUrl && !iframeLoaded && !hasTimedOut && !hasScriptError && (
+          {activeScreenshot && !iframeLoaded && !hasTimedOut && !hasScriptError && (
             <img
-              src={screenshotUrl}
+              src={activeScreenshot}
               alt=""
               aria-hidden="true"
+              onError={() => setImgFailed(true)}
               className="absolute inset-0 w-full h-full object-cover object-top opacity-50 pointer-events-none"
             />
           )}
@@ -521,13 +527,14 @@ export default function HoverSandboxPreview({
       {/* 2. Idle State: High-End Static Screenshot Poster or Blueprint Poster (Zero iframe Overhead) */}
       {!isCardActive && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#070709] transition-colors">
-          {screenshotUrl ? (
+          {activeScreenshot ? (
             <div className="absolute inset-0 overflow-hidden bg-neutral-950">
               <img
-                src={screenshotUrl}
+                src={activeScreenshot}
                 alt={title}
                 loading="lazy"
                 decoding="async"
+                onError={() => setImgFailed(true)}
                 className="w-full h-full object-cover object-top transition-transform duration-500 ease-out group-hover/sandbox:scale-[1.03]"
               />
               {/* Subtle gradient vignette at bottom so pills & actions remain legible */}
