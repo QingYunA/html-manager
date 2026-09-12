@@ -57,6 +57,7 @@ export const translations = {
       privacy: "隐私政策",
       terms: "服务条款",
       status: "系统状态",
+      contact: "联系我们",
     },
     runner: {
       back: "返回画廊",
@@ -264,6 +265,10 @@ export const translations = {
           title: "5. 数据保留与随时删除权",
           content: "您对上传的所有代码享有 100% 的全部所有权。您可以随时在个人工作区控制台中彻底删除任何项目，删除操作将永久彻底清除数据库元数据与对象存储文件。",
         },
+        {
+          title: "6. 隐私诉求与联系我们",
+          content: "如您对数据安全、隐私政策有任何疑问，或需申请注销账户与清理历史数据，可随时发送邮件至官方支持邮箱 contact@pagepod.dev，我们将在 48 小时内给予答复与处理。",
+        },
       ],
     },
     termsPage: {
@@ -289,7 +294,7 @@ export const translations = {
         },
         {
           title: "5. 侵权与下架机制 (DMCA)",
-          content: "我们充分尊重知识产权。如果您发现平台上托管的作品侵犯了您的著作权，请通过 GitHub 仓库或工单提交下架申请，管理员将在核实后迅速处理。",
+          content: "我们充分尊重知识产权。如果您发现平台上托管的作品侵犯了您的著作权或合法权益，请通过官方审核与举报邮箱 contact@pagepod.dev 或 GitHub 提交下架申请，管理员将在核实后迅速处理并下线相关作品。",
         },
       ],
     },
@@ -350,6 +355,7 @@ export const translations = {
       privacy: "Privacy Policy",
       terms: "Terms of Service",
       status: "System Status",
+      contact: "Contact",
     },
     runner: {
       back: "Back to Gallery",
@@ -557,6 +563,10 @@ export const translations = {
           title: "5. Data Retention & Deletion Rights",
           content: "You retain 100% ownership of your code. You can delete any uploaded project at any time from your Workspace dashboard. Deletion permanently purges metadata from the database and assets from storage buckets.",
         },
+        {
+          title: "6. Privacy Inquiries & Erasure Requests",
+          content: "For privacy inquiries, security questions, or data erasure requests, please contact our compliance team directly at contact@pagepod.dev.",
+        },
       ],
     },
     termsPage: {
@@ -581,8 +591,8 @@ export const translations = {
           content: "While Pagepod enforces strict sandbox restrictions on embedded frames to prevent cookie and localStorage theft, public web execution carries inherent risks. Pagepod is provided as-is without warranty of any kind.",
         },
         {
-          title: "5. Termination & Takedowns",
-          content: "We reserve the right to remove any public project or suspend accounts that violate our acceptable use policy. Copyright owners may submit takedown notices via GitHub issues or directly to platform administrators.",
+          title: "5. Termination & Takedowns (DMCA)",
+          content: "We reserve the right to remove any public project or suspend accounts that violate our acceptable use policy. Copyright owners and rightsholders may submit takedown notices directly to contact@pagepod.dev or via GitHub issues.",
         },
       ],
     },

@@ -46,6 +46,12 @@ export function SiteFooter() {
             <Link href="/pricing" className="hover:text-foreground transition-colors">
               {t.nav.pricing}
             </Link>
+            <a
+              href="mailto:contact@pagepod.dev"
+              className="hover:text-foreground transition-colors"
+            >
+              {t.footer.contact}
+            </a>
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-muted-foreground">

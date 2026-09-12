@@ -1,0 +1,38 @@
+{
+  "brand": "Pagepod",
+  "canonicalUrl": "https://pagepod.dev",
+  "targetUrl": "https://pagepod.dev",
+  "githubUrl": "https://github.com/QingYunA/Pagepod",
+  "contactEmail": "contact@pagepod.dev",
+  "submitterName": "Cyan Chan",
+  "firstName": "Cyan",
+  "lastName": "Chan",
+  "twitterHandle": "@smk7z",
+  "role": "developer",
+  "pricing": "Free",
+  "tagline": {
+    "en": "Save, Run, and Share Your HTML Apps",
+    "zh": "保存、运行并分享你的 HTML"
+  },
+  "descriptions": {
+    "short50": "Pagepod is a zero-config hosting and showcase platform for HTML web applications. Safely save, run, and share your interactive tools, games, and frontend creations in an isolated sandbox.",
+    "short150": "Pagepod is a zero-config hosting and showcase platform for HTML web applications. Safely save, run, and share your interactive tools, games, and frontend creations in an isolated sandbox with instant previews and clean embeddable widgets.",
+    "medium500": "Pagepod provides instant, zero-config hosting and a public discovery gallery for HTML web applications. Designed to save, run, and share interactive utilities, browser games, visual dashboards, and frontend creations (including code generated with Claude and ChatGPT Canvas). The platform executes code inside hardened CSP iframe sandboxes, ensuring complete client-side security with zero egress fees, responsive previews, theme toggling, and clean embeddable widgets.",
+    "long800": "Pagepod provides instant, zero-config hosting and a public discovery gallery for HTML web applications. Designed to save, run, and share interactive utilities, browser games, visual dashboards, and frontend creations (including code generated with Claude and ChatGPT Canvas). The platform executes code inside hardened CSP iframe sandboxes, ensuring complete client-side security with zero egress fees, responsive previews, theme toggling, and clean embeddable widgets. Unlike heavy multi-file IDEs or complex deployment pipelines, Pagepod is lightweight and purpose-built for saving, running, and sharing standalone HTML applications.",
+    "shortZh": "Pagepod 是专为 HTML 网页与交互应用打造的轻量托管与展示平台。安全沙箱隔离，零配置保存、在线运行并一键分享你的前端工具、微游戏与代码成果。",
+    "longZh": "Pagepod 专注于 HTML 网页应用的即时云端托管与发现画廊。支持极速保存、在线运行与公开分享各类交互式工具、微游戏、数据图表及前端产物（兼容 Claude、ChatGPT Canvas 与 v0 生成的网页代码）。平台采用严格的 CSP 安全沙箱隔离保护，提供零流量费用消耗、暗黑与浅色主题适配，并支持一键生成响应式嵌入代码。"
+  },
+  "uniqueSellingPoint": "Unlike heavy multi-file IDEs or complex deployment pipelines, Pagepod is lightweight and purpose-built for saving, running, and sharing standalone HTML applications. It features instant zero-config publishing, hardened iframe sandboxing without origin leakage, and embeddable responsive players.",
+  "categories": [
+    "Developer Tools",
+    "Web Applications",
+    "HTML Utilities"
+  ],
+  "tags": [
+    "#html-runner",
+    "#web-showcase",
+    "#developer-tools",
+    "#web-apps",
+    "#code-sharing"
+  ]
+}
