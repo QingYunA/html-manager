@@ -96,8 +96,8 @@ export async function loginWithEmailAction(
       return {
         error:
           lang === "en"
-            ? "This email is already registered. Please switch to Sign In or use a new email to test."
-            : "该邮箱已注册，请直接切换到【登录】Tab 登录，或使用新邮箱测试",
+            ? "This email is already registered. Please sign in or reset your password."
+            : "该邮箱已被注册，请直接登录或使用忘记密码找回",
       };
     }
 
