@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   LayoutGrid,
@@ -10,6 +11,7 @@ import {
   Edit3,
   Trash2,
   Pin,
+  Camera,
   FileCode2,
   FolderArchive,
   Eye,
@@ -82,6 +84,32 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [capturingId, setCapturingId] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleRegenerateScreenshot = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (capturingId) return;
+    setCapturingId(id);
+    try {
+      const res = await fetch(`/api/projects/${id}/screenshot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "capture" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setToastMessage({ text: data.error || "生成截图失败", type: "error" });
+      } else {
+        setToastMessage({ text: "静态实景截图已更新！", type: "success" });
+        router.refresh();
+      }
+    } catch {
+      setToastMessage({ text: "网络异常，生成截图失败", type: "error" });
+    } finally {
+      setCapturingId(null);
+    }
+  };
 
   // Auto-dismiss toast after 3.5s
   useEffect(() => {
@@ -416,6 +444,21 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                           <Button
                             variant="ghost"
                             size="icon"
+                            disabled={capturingId === item.id || isPending}
+                            onClick={(e) => handleRegenerateScreenshot(item.id, e)}
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
+                            title="重新生成高清静态截图"
+                          >
+                            {capturingId === item.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-foreground" />
+                            ) : (
+                              <Camera className="w-3.5 h-3.5" />
+                            )}
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-foreground"
                             asChild
                           >
@@ -598,6 +641,21 @@ export default function AdminTable({ initialProjects }: AdminTableProps) {
                             <Link href={`/workspace/projects/${item.id}/edit`} title="在线编辑代码">
                               <Edit3 className="w-3.5 h-3.5" />
                             </Link>
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={capturingId === item.id || isPending}
+                            onClick={(e) => handleRegenerateScreenshot(item.id, e)}
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
+                            title="重新生成高清静态截图"
+                          >
+                            {capturingId === item.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-foreground" />
+                            ) : (
+                              <Camera className="w-3.5 h-3.5" />
+                            )}
                           </Button>
 
                           <Button

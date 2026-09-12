@@ -20,6 +20,7 @@ import {
   Layers,
   Loader2,
   RotateCw,
+  Camera,
 } from "lucide-react";
 import type { Project } from "@/db/schema";
 
@@ -73,7 +74,32 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
   const [previewLoading, setPreviewLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [capturingScreenshot, setCapturingScreenshot] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const handleManualScreenshot = async () => {
+    if (capturingScreenshot) return;
+    setCapturingScreenshot(true);
+    setErrorMsg("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}/screenshot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "capture" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.error || "更新截图失败");
+      } else {
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 3000);
+      }
+    } catch {
+      setErrorMsg("网络异常，更新截图失败");
+    } finally {
+      setCapturingScreenshot(false);
+    }
+  };
 
   // Public Risk Dialog states
   const [showRiskDialog, setShowRiskDialog] = useState(false);
@@ -175,6 +201,22 @@ export default function ProjectEditorClient({ project, initialCode }: EditorClie
               <span>运行台</span>
               <ExternalLink className="w-3 h-3 ml-1" />
             </Link>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleManualScreenshot}
+            disabled={capturingScreenshot || isPending}
+            className="h-7 text-xs gap-1.5 cursor-pointer"
+            title="手动重新截取并更新静态封面图"
+          >
+            {capturingScreenshot ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-foreground" />
+            ) : (
+              <Camera className="w-3.5 h-3.5" />
+            )}
+            <span>更新截图</span>
           </Button>
 
           <Button
