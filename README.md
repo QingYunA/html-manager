@@ -1,104 +1,287 @@
-# HTML Manager 🚀
+<div align="center">
 
-> **专为 AI 创意单页打造的开源自建托管与展示平台。**
-> 无论是 Claude Artifacts、ChatGPT Canvas 还是本地编写的交互式小工具、小游戏、数据可视化与页面原型，都可以一键上传、分类管理并优雅展示。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/brand/pagepod-logo-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="public/brand/pagepod-logo-monochrome.png">
+  <img src="public/brand/pagepod-logo-monochrome.png" alt="Pagepod Logo" width="76" height="76">
+</picture>
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FQingYunA%2Fhtml-manager&env=ADMIN_PASSWORD&envDescription=Set%20a%20master%20password%20for%20accessing%20the%20admin%20dashboard&stores=%5B%7B%22type%22%3A%22postgres%22%7D%2C%7B%22type%22%3A%22blob%22%7D%5D)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-15+-black?style=flat&logo=next.js)](https://nextjs.org/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind-CSS-38bdf8?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
+# Pagepod
 
----
+<p><strong>An open-source & self-hostable showcase, hardened sandbox, and hosting platform for AI artifacts & single-page HTML apps.</strong><br>
+Host, run, and showcase your Claude Artifacts, ChatGPT Canvas, v0, Bolt, and Cursor web apps on your own infrastructure — with zero build step, physical sandbox isolation, and zero egress cost.</p>
 
-## ✨ 核心特性
+<p>
+  <a href="https://github.com/QingYunA/html-manager/releases"><img src="https://img.shields.io/badge/version-1.0.0-18181b?style=flat" alt="Version"></a>
+  <a href="https://hub.docker.com/"><img src="https://img.shields.io/badge/Docker-ready-2496ED?style=flat&logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="https://coolify.io/"><img src="https://img.shields.io/badge/Deploy%20on-Coolify-6366F1?style=flat" alt="Coolify"></a>
+  <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FQingYunA%2Fhtml-manager&env=ADMIN_PASSWORD&envDescription=Set%20a%20master%20password%20for%20accessing%20the%20admin%20dashboard&stores=%5B%7B%22type%22%3A%22postgres%22%7D%2C%7B%22type%22%3A%22blob%22%7D%5D"><img src="https://img.shields.io/badge/Deploy%20with-Vercel-000000?style=flat&logo=vercel" alt="Deploy with Vercel"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-18181b?style=flat" alt="License"></a>
+</p>
 
-- 🎨 **精美公开画廊 (Showcase)**：
-  - 高质感渐变卡片、分类导航（实用工具、互动游戏、数据可视化、页面原型、动效演示等）；
-  - 毫秒级即时搜索、多标签联动过滤、网格 (Grid) 与紧凑列表 (List) 自由切换；
-  - 置顶推荐 (Pin) 与秒级弹窗即时试玩预览。
-- 🖥️ **全功能交互式运行台 (Runner `/p/[slug]`)**：
-  - 多端响应式视口一键切换：**桌面端 (100%)**、**平板端 (768px)**、**手机端 (375px)**；
-  - 浏览器原生全屏模式、HTML 源码查看与一键复制、直达链接与二维码分享；
-  - 独立洁净沙箱直链 `/raw/[slug]/` 供外链直接引用或嵌入。
-- 🛡️ **严格安全沙箱防护**：
-  - Iframe 隔离沙箱 (`sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-modals"`，配置 `allow="fullscreen; clipboard-write"`)；
-  - 物理切断外部脚本访问宿主 LocalStorage、Cookies 与 Session 的途径，内置安全透明的内存 Storage Polyfill；
-  - 纯净端点自动注入严格 `Content-Security-Policy`。
-- ⚡ **多形态极速入库**：
-  - 单文件 `.html` 拖拽或选择上传；
-  - 多资源静态 `.zip` 压缩包（自动解压并平铺静态相对路径资源，如本地图片、CSS、JS）；
-  - 直接粘贴 AI 代码，智能自动提取 `<title>` 与 `<meta description>`；
-  - 内置基于 CodeMirror 的在线代码微调编辑器与即时效果预览。
-- 🤖 **自动化与 AI Agent 友好**：
-  - 提供 `POST /api/upload` 开放端点（支持 Bearer Token 鉴权）；
-  - 支持通过 `curl` 或在 Cursor / Claude Code 中编写命令，生成 HTML 后一行命令自动推送到平台并返回直达链接。
-- ☁️ **零门槛一键部署 (Vercel 1-Click Deploy)**：
-  - 存储抽象层（Storage Adapter）：内置 **Vercel Blob** 与 **Cloudflare R2** 双驱动；
-  - 数据库：支持 Vercel Postgres、Neon、Supabase（本地开发自动 fallback 到零配置轻量存储）。
+<p>
+  <a href="https://pagepod.dev">Website</a> ·
+  <a href="https://pagepod.dev/explore">Live Demo</a> ·
+  <a href="#deployment">Deployment</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#comparison">Comparison</a> ·
+  <a href="https://pagepod.dev/api/docs">API Docs</a> ·
+  <a href="README_zh.md">简体中文</a>
+</p>
+
+</div>
 
 ---
 
-## 🚀 快速开始
+## About the Project
 
-### 方式一：Vercel 一键部署（推荐）
+Pagepod is an open-source, self-hostable alternative to CodePen, JSFiddle, and cloud artifact viewers — engineered specifically for the AI era.
 
-1. 点击上方的 **[Deploy with Vercel]** 按钮；
-2. 按照 Vercel 向导创建仓库，并在创建项目时关联 **Vercel Postgres** 与 **Vercel Blob**（免费开通）；
-3. 填入你的管理员密码环境变量 `ADMIN_PASSWORD=xxxx`；
-4. 部署完成，立即获得属于你自己的 HTML Manager 专属站点！
+Large language models (Claude, ChatGPT, v0, Bolt, Cursor) produce high-fidelity interactive web applications, mini-games, visual dashboards, and utility tools in seconds. However, hosting and showcasing them poses three practical challenges:
 
-### 方式二：本地开发运行
+1. **Lost in chat histories:** Generative artifacts disappear once a conversation is archived or deleted.
+2. **Security hazards of raw hosting:** Running untrusted, AI-generated JavaScript on your primary domain risks exposing sensitive cookies, local storage, and session tokens.
+3. **Vendor lock-in and storage fees:** Public pastebins and playground platforms enforce monthly subscriptions for multi-file assets or charge bandwidth egress.
 
-项目自带零配置轻量持久化能力，初次启动无需配置任何远端数据库即可完整运行：
+**Pagepod solves this by giving you a sovereign, self-hosted platform:**
+- **No vendor lock-in:** All HTML files, assets, and database records remain on your own server or your own S3/R2 bucket.
+- **Hardened iframe sandbox:** Untrusted scripts execute strictly within dedicated sandboxed endpoints with zero access to parent cookies or administrator sessions.
+- **Zero build pipelines:** Drop a single `.html` file or multi-file `.zip` archive, and it runs immediately.
+- **Hardware freedom:** Deploy on a $4/month VPS (Hetzner, DigitalOcean), in a Docker container via Coolify/Portainer, on a home lab / Raspberry Pi, or for free on Vercel.
+
+---
+
+## Self-Hosted vs. Cloud
+
+| | Self-Hosted Pagepod (This Repo) | Pagepod Cloud (Managed) |
+| :--- | :--- | :--- |
+| **Pricing** | **100% Free & Open Source (MIT)** | Free & Lifetime Tiers |
+| **Infrastructure** | Your own VPS, Coolify, Docker, or Vercel | Fully managed high-availability cloud |
+| **Data Ownership** | 100% on your hardware or your S3/R2 | Managed cloud storage |
+| **Maintenance** | Handled by you | Zero maintenance, automated backups |
+| **Custom Domains** | Unlimited (via reverse proxy / Caddy) | Custom subdomain routing included |
+| **Get Started** | [Follow deployment guide](#deployment) | [Visit pagepod.dev](https://pagepod.dev) |
+
+---
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       AI Artifact Ingestion Pipeline                        │
+│                                                                             │
+│  Claude Artifacts / ChatGPT Canvas / v0 / Cursor HTML Output                │
+│         │                                        │                          │
+│         ▼                                        ▼                          │
+│   Web Console (Drag / Zip / Paste)       POST /api/upload (CLI / PAT Auth)  │
+│         │                                        │                          │
+│         └───────────────────┬────────────────────┘                          │
+│                             ▼                                               │
+│                 Pagepod Platform Core (Next.js 16)                          │
+│                             │                                               │
+│    ┌────────────────────────┼────────────────────────┐                      │
+│    ▼                        ▼                        ▼                      │
+│  Pluggable Storage    Drizzle Database       Hardened Sandbox Guard         │
+│  • Local Disk Storage • PostgreSQL (Neon/DB) • CSP: script/form isolated    │
+│  • Cloudflare R2 ($0) • Supabase SSR Auth    • Zero-leak memory storage     │
+│  • Vercel Blob        • Local JSON Fallback  • Host cookie interception     │
+│    │                        │                        │                      │
+│    └────────────────────────┼────────────────────────┘                      │
+│                             ▼                                               │
+│         ┌───────────────────┴───────────────────┐                           │
+│         ▼                                       ▼                           │
+│  Showcase Gallery (/explore)            Interactive Runner (/p/[slug])      │
+│  • Static blueprint dot-matrix poster   • Desktop / Tablet / Mobile toggle  │
+│  • Hover-to-charge (600ms) activation   • Raw sandboxed origin (/raw/)      │
+│  • LRU pool: 6 max active iframes       • Formatted source viewer + copy    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Comparison
+
+| Feature | Pagepod (Self-Hosted) | CodePen / JSFiddle | v0 / Bolt Preview | Static S3 / R2 Bucket |
+| :--- | :---: | :---: | :---: | :---: |
+| **Self-Hostable on Own Hardware** | **Yes (VPS / Docker)** | No (SaaS only) | No (SaaS only) | Yes |
+| **Hardened CSP Sandbox** | **Yes (`/raw/` isolated)** | Partial | Partial | No (Bucket domain risk) |
+| **Multi-File Zip + Asset Mapping** | **Yes (Auto-extract)** | Paid tier only | Limited | Manual upload |
+| **Responsive Viewports (Desktop/Pad/Phone)**| **Yes (1-click switch)**| Manual resize | Yes | No |
+| **CLI & Agent Push API (`/api/upload`)** | **Yes (OpenAPI + PAT)**| No | No | S3 CLI only |
+| **Zero Initial GPU/Memory Load** | **Yes (Poster + LRU 6)** | No (Heavy iframes) | Heavy iframes | N/A |
+| **Client-Side Zero-Knowledge E2EE** | **Yes (AES-GCM)** | No | No | No |
+| **Bandwidth Egress Cost** | **$0 (R2 or local disk)** | Subscription | Subscription | Cloud provider fees |
+
+---
+
+## Features
+
+- **Hardened security sandbox:** Untrusted HTML executes in dedicated `/raw/[slug]/` origins protected by strict CSP directives (`sandbox allow-scripts allow-forms allow-downloads allow-popups allow-modals; default-src * 'unsafe-inline' 'unsafe-eval' data: blob:`) without `allow-same-origin`, physically isolating host cookies, admin sessions, and local storage.
+- **Static blueprint & dual-action capsule:** Renders low-overhead Zinc dot-matrix posters with category wireframes by default. Launches sandboxes on demand via 1-click or 600ms hover-charge, governed by an LRU pool capped at 6 active iframes to prevent memory exhaustion and GPU spikes.
+- **Resilience shield & size guard:** Micro-badges warn visitors for files exceeding 2MB, while a 6.5-second execution timeout guard automatically halts unresponsive scripts to keep host browsing responsive.
+- **Multi-format ingestion pipeline:** Ingests standalone `.html` files, multi-file `.zip` packages (with automatic relative asset extraction for images, stylesheets, and scripts), direct code pastes with intelligent `<title>`/`<meta>` extraction, and a built-in CodeMirror editor.
+- **Multi-device responsive runner (`/p/[slug]`):** Real-time viewport toggling between Desktop (100%), Tablet (768px), and Mobile (375px), native browser full-screen mode, formatted source inspector with 1-click copying, and permanent shareable links.
+- **OpenAPI 3.1 & Agent CLI automation:** Ship directly from Cursor, Claude Code, or terminal pipelines via `POST /api/upload` using Personal Access Tokens (`pp_live_...`). Interactive Scalar API documentation is served at `/api/docs`.
+- **Zero-lock-in storage & database adapters:** Pluggable `getStorage()` layer detects local disk storage (`.storage/`), Cloudflare R2 (S3-compatible, zero egress), or Vercel Blob. Drizzle ORM supports PostgreSQL (Neon, Supabase, Vercel Postgres) with zero-config local fallback (`.data/db.json`).
+- **Account-level privacy & E2EE:** Granular access control allowing artifacts to be marked Public for showcase discovery or Private for authenticated owners only. Supports client-side AES-GCM zero-knowledge encryption for sensitive tools.
+
+---
+
+## Deployment
+
+Choose the deployment method that fits your infrastructure:
+
+### 1. Docker Compose (Recommended for Self-Hosters)
+
+Deploy on any Linux VPS (Ubuntu, Debian, Hetzner, DigitalOcean) with a single command:
 
 ```bash
-# 1. 克隆代码
+# 1. Download docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/QingYunA/html-manager/main/docker-compose.yml -o docker-compose.yml
+
+# 2. Set your admin password
+sed -i 's/change_me_to_a_secure_password/your_real_password/' docker-compose.yml
+
+# 3. Start the container
+docker compose up -d
+```
+
+Pagepod is now running at `http://YOUR_SERVER_IP:3000`. Persistent files are stored in `./storage` and `./data`.
+
+### 2. Deploy on Coolify
+
+Deploy Pagepod inside your existing Coolify instance:
+
+1. In the Coolify dashboard, click **+ Create New Resource** → **Public Repository**.
+2. Enter the repository URL: `https://github.com/QingYunA/html-manager`.
+3. Coolify will detect the included `Dockerfile`. Set the internal container port to `3000`.
+4. In **Environment Variables**, add:
+   ```env
+   ADMIN_PASSWORD=your_secure_password
+   NODE_ENV=production
+   ```
+5. Click **Deploy**. Coolify provisions SSL certificates and mounts the application automatically.
+
+### 3. Deploy with Vercel (1-Click Cloud)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FQingYunA%2Fhtml-manager&env=ADMIN_PASSWORD&envDescription=Set%20a%20master%20password%20for%20accessing%20the%20admin%20dashboard&stores=%5B%7B%22type%22%3A%22postgres%22%7D%2C%7B%22type%22%3A%22blob%22%7D%5D)
+
+1. Click the button above to clone the repository into your GitHub account.
+2. Link free **Vercel Postgres** and **Vercel Blob** stores in the setup wizard.
+3. Configure `ADMIN_PASSWORD` for console access and deploy.
+
+### 4. Run from Source (Local or Bare Metal)
+
+Zero-config fallback: no external database or S3 service required.
+
+```bash
+# 1. Clone repository
 git clone https://github.com/QingYunA/html-manager.git
 cd html-manager
 
-# 2. 安装依赖 (推荐 bun 或 pnpm / npm)
+# 2. Install dependencies (bun, pnpm, or npm)
 bun install
-# 或者 npm install
 
-# 3. 启动开发服务器
+# 3. Start development server
 bun run dev
-# 或者 npm run dev
 ```
 
-打开浏览器访问 [http://localhost:3000](http://localhost:3000) 即可查看公开画廊，访问 `/admin/login` 输入默认密码（开发默认：`admin888`）进入后台。
+Visit `http://localhost:3000` to browse the public gallery. Access `/login` with password `admin888` for the workspace.
+
+To run for production on bare metal:
+
+```bash
+bun run build
+bun run start
+```
 
 ---
 
-## ⚙️ 环境变量说明
+## Agent & CLI Automation
 
-在 `.env.local` 或 Vercel 环境变量中配置：
+Pagepod includes a RESTful API and a lightweight CLI tool so that AI coding tools (Cursor, Claude Code) and terminal scripts can deploy HTML artifacts automatically.
 
-| 环境变量 | 必填 | 默认值 | 说明 |
+- **Interactive API Documentation:** Available at `/api/docs` (rendered with Scalar).
+- **OpenAPI 3.1 Spec:** Available at `/api/openapi.json`.
+
+### CLI Uploader Script
+
+Upload an HTML artifact directly from your terminal:
+
+```bash
+node scripts/upload-cli.js ./matrix-rain.html \
+  --token "YOUR_API_TOKEN" \
+  --title "Matrix Rain Animation" \
+  --category "visualization" \
+  --endpoint "http://localhost:3000"
+```
+
+### Direct cURL File Upload
+
+```bash
+curl -X POST https://your-domain.com/api/upload \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -F "file=@demo.html" \
+  -F "title=Physics Simulator" \
+  -F "category=tools" \
+  -F "tags=Canvas,Physics"
+```
+
+### Direct cURL JSON Code Push
+
+```bash
+curl -X POST https://your-domain.com/api/upload \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Interactive Calculator",
+    "html": "<!DOCTYPE html><html><head><title>Calc</title></head><body>...</body></html>",
+    "category": "tools",
+    "tags": ["Utility", "Vue"]
+  }'
+```
+
+**JSON Response:**
+
+```json
+{
+  "success": true,
+  "id": "ck89ab12cd34",
+  "title": "Interactive Calculator",
+  "slug": "interactive-calculator",
+  "url": "https://your-domain.com/p/interactive-calculator",
+  "rawUrl": "https://your-domain.com/raw/interactive-calculator/",
+  "category": "tools",
+  "visibility": "public"
+}
+```
+
+---
+
+## Environment Variables
+
+Configure these keys in your `.env.local` or container environment:
+
+| Variable | Required | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `ADMIN_PASSWORD` | **是** | `admin888` (仅dev) | 管理员登录控制台密码，也可用作 API Token |
-| `DATABASE_URL` | 生产必填 | 空 (本地自动走 `.data/db.json`) | 标准 PostgreSQL 连接串（Vercel Postgres / Neon / Supabase） |
-| `BLOB_READ_WRITE_TOKEN` | 可选 | 空 | Vercel Blob 对象存储 Token（Vercel 部署自动注入） |
-| `R2_ACCOUNT_ID` | 可选 | 空 | Cloudflare R2 Account ID（若使用 R2） |
-| `R2_ACCESS_KEY_ID` | 可选 | 空 | Cloudflare R2 Access Key ID |
-| `R2_SECRET_ACCESS_KEY` | 可选 | 空 | Cloudflare R2 Secret Access Key |
-| `R2_BUCKET_NAME` | 可选 | `html-manager` | Cloudflare R2 存储桶名称 |
-| `API_TOKEN` | 可选 | 与 `ADMIN_PASSWORD` 相同 | 自定义开放 API 专用 Token |
-| `SESSION_SECRET` | 可选 | 空 | 管理员会话 JWT 签名密钥（≥16 位）。未配置时回退使用 `ADMIN_PASSWORD` |
+| `ADMIN_PASSWORD` | **Yes** | `admin888` *(dev only)* | Master dashboard password and fallback API token. |
+| `DATABASE_URL` | Production | None *(local JSON fallback)* | PostgreSQL connection string (Neon, Supabase, Vercel Postgres). |
+| `BLOB_READ_WRITE_TOKEN` | Optional | None | Vercel Blob access token. |
+| `R2_ACCOUNT_ID` | Optional | None | Cloudflare R2 Account ID (for $0 egress cloud storage). |
+| `R2_ACCESS_KEY_ID` | Optional | None | Cloudflare R2 Access Key ID. |
+| `R2_SECRET_ACCESS_KEY` | Optional | None | Cloudflare R2 Secret Access Key. |
+| `R2_BUCKET_NAME` | Optional | `html-manager` | Cloudflare R2 bucket name. |
+| `API_TOKEN` | Optional | Inherits `ADMIN_PASSWORD` | Dedicated token for programmatic upload authentication. |
+| `SESSION_SECRET` | Optional | Fallback to password | Secret string (≥16 chars) for signing session JWT tokens. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Optional | None | Supabase URL for multi-user Google OAuth and Email OTP. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Optional | None | Supabase Anonymous Key for public client authentication. |
 
-> **提示**：若同时配置了 `BLOB_READ_WRITE_TOKEN` 和 R2 参数，系统将优先检测 Blob；若均未配置，本地开发时自动使用本地文件系统 `.storage/` 目录。
->
-> ⚠️ **存储必须显式配置**：若在 Vercel 等平台部署却未配置任何云存储，系统会回退到本地文件系统。该文件系统在 Serverless 环境中是**临时的**，重新部署或实例回收后上传内容会丢失（日志会打印 `[STORAGE]` 警告）。已配置的云存储若初始化失败，会**直接报错而非静默降级**。
+### Cloudflare R2 CORS Configuration
 
-### ☁️ Cloudflare R2 必读：CORS 配置
-
-**加密上传（E2EE）由浏览器直传 R2**，属跨域请求且使用 `Content-Type: application/octet-stream`，会先发送 `OPTIONS` 预检。**若 R2 存储桶未配置 CORS，预检会返回 403，加密上传必然失败**（报错形如 `Preflight response is not successful. Status code: 403`）。
-
-在 Cloudflare 控制台 → R2 → 你的存储桶 → **Settings → CORS Policy** 中添加：
+If using Cloudflare R2 for zero-egress object storage with direct browser uploads, add this policy in **R2 → Bucket → Settings → CORS Policy**:
 
 ```json
 [
   {
-    "AllowedOrigins": ["https://你的正式域名", "https://www.你的正式域名"],
+    "AllowedOrigins": ["https://your-domain.com"],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
     "AllowedHeaders": ["*"],
     "ExposeHeaders": ["ETag"],
@@ -107,85 +290,54 @@ bun run dev
 ]
 ```
 
-> 只需 `PUT`：读取走应用自身的 `/raw/` 端点由服务器代取，浏览器不会直连 R2 读取。
->
-> 若使用 Vercel Blob 而非 R2，则无需此配置（Blob 直传不经过 R2 的预检校验）。
-
 ---
 
-## 🔌 API 自动化推送示例
-
-通过接口直接将 AI 生成的 HTML 推送到你的平台：
-
-### 1. cURL 文件上传
-```bash
-curl -X POST https://your-domain.com/api/upload \
-  -H "Authorization: Bearer YOUR_ADMIN_PASSWORD" \
-  -F "file=@demo-artifact.html" \
-  -F "title=2048 小游戏" \
-  -F "category=games" \
-  -F "tags=Canvas,Game"
-```
-
-### 2. JSON 代码推送 (供 Cursor / AI 脚本)
-```bash
-curl -X POST https://your-domain.com/api/upload \
-  -H "Authorization: Bearer YOUR_ADMIN_PASSWORD" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "简易计算器",
-    "html": "<!DOCTYPE html><html><head><title>Calculator</title></head><body>...</body></html>",
-    "category": "tools",
-    "tags": ["Calculator", "Vue"]
-  }'
-```
-
-**响应示例**：
-```json
-{
-  "success": true,
-  "id": "ck89ab12cd34",
-  "title": "简易计算器",
-  "slug": "calculator",
-  "url": "https://your-domain.com/p/calculator",
-  "rawUrl": "https://your-domain.com/raw/calculator/",
-  "category": "tools",
-  "visibility": "public"
-}
-```
-
----
-
-## 📂 项目结构
+## Project Structure
 
 ```
 html-manager/
+├── Dockerfile                     # Multi-stage production container image
+├── docker-compose.yml             # 1-command container deployment recipe
+├── public/
+│   ├── brand/                     # SVG & PNG branding assets
+│   └── examples/                  # Sample HTML artifacts
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx                # 全局布局与元数据
-│   │   ├── page.tsx                  # 公开画廊首页
-│   │   ├── p/[slug]/                 # 交互式运行台 (多端视口模拟、全屏、源码)
-│   │   ├── raw/[slug]/[[...path]]/   # 严格 CSP 沙箱直链与静态资源代理
-│   │   ├── admin/                    # 管理后台 (仪表盘、项目管理表格)
-│   │   │   ├── login/                # 管理员登录
-│   │   │   ├── upload/               # 多模式上传入库 (拖拽、Zip、代码粘贴)
-│   │   │   └── projects/[id]/edit/   # 在线 CodeMirror 编辑器与元数据微调
+│   │   ├── (marketing)/           # Public gallery, explore, about, privacy routes
 │   │   ├── api/
-│   │   │   └── upload/               # 开放 REST API 上传端点
-│   │   └── actions/                  # Next.js Server Actions (鉴权、上传、管理)
-│   ├── components/                   # 公用组件 (ShowcaseGallery 等)
-│   ├── db/                           # Drizzle ORM 数据模型与统一存储层
+│   │   │   ├── docs/              # Scalar interactive API documentation
+│   │   │   ├── openapi.json/      # OpenAPI 3.1 specification endpoint
+│   │   │   └── upload/            # REST API upload and presign handlers
+│   │   ├── p/[slug]/              # Multi-viewport interactive runner
+│   │   ├── raw/[slug]/[[...path]] # Isolated CSP sandbox and static proxy
+│   │   └── workspace/             # Authenticated workspace, upload & project tables
+│   ├── components/
+│   │   ├── hover-sandbox-preview  # Dot-matrix poster & dual-action capsule
+│   │   ├── showcase-gallery.tsx   # Gallery grid with tag and category filters
+│   │   └── ui/                    # shadcn/ui & Radix UI primitives
+│   ├── db/                        # Drizzle schema, SQLite & Postgres drivers
 │   └── lib/
-│       ├── auth.ts                   # JWT 与管理员鉴权中间件
-│       ├── parser/                   # HTML 元数据提取与 Zip 自动解压
-│       ├── storage/                  # 存储抽象层 (Vercel Blob / R2 / Local)
-│       └── services/                 # 统一业务处理管道
-├── vercel.json                       # Vercel 部署配置
-└── drizzle.config.ts                 # Drizzle 迁移配置
+│       ├── parser/                # HTML title extraction & Zip unarchiver
+│       ├── storage/               # Unified storage adapter (Local / R2 / Blob)
+│       └── services/              # Business logic pipelines
+├── drizzle.config.ts              # Drizzle ORM configuration
+└── next.config.ts                 # Next.js build and routing configuration
 ```
 
 ---
 
-## 📄 开源许可证
+## Community & Contributing
 
-本项目基于 [MIT License](LICENSE) 开源发布。欢迎 Star 与 Fork，随手构建你自己的 AI 网页展厅！
+Contributions are welcome. Please open an issue or pull request to discuss proposed changes:
+
+1. Fork the repository.
+2. Create your feature branch (`git checkout -b feature/my-feature`).
+3. Commit your changes (`git commit -m 'feat: add my feature'`).
+4. Push to the branch (`git push origin feature/my-feature`).
+5. Open a Pull Request.
+
+---
+
+## License
+
+Pagepod is released under the [MIT License](LICENSE).
