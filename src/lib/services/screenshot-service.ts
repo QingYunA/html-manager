@@ -1,18 +1,22 @@
-import fs from "node:fs";
+import fsSync from "node:fs";
+import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { execSync } from "node:child_process";
+import { execSync, execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { revalidatePath } from "next/cache";
 import { getProjectBySlug, updateProject } from "@/db";
 import { getStorage } from "@/lib/storage";
 
+const execFileAsync = promisify(execFile);
+
 export function findChromePath(): string | null {
-  if (process.env.CHROME_PATH && fs.existsSync(process.env.CHROME_PATH)) {
+  if (process.env.CHROME_PATH && fsSync.existsSync(process.env.CHROME_PATH)) {
     return process.env.CHROME_PATH;
   }
 
   const macDefault = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-  if (fs.existsSync(macDefault)) {
+  if (fsSync.existsSync(macDefault)) {
     return macDefault;
   }
 
@@ -26,7 +30,7 @@ export function findChromePath(): string | null {
   ];
 
   for (const c of candidates) {
-    if (fs.existsSync(c)) return c;
+    if (fsSync.existsSync(c)) return c;
   }
 
   try {
@@ -34,12 +38,19 @@ export function findChromePath(): string | null {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "ignore"],
     }).trim();
-    if (whichChrome && fs.existsSync(whichChrome)) return whichChrome;
+    if (whichChrome && fsSync.existsSync(whichChrome)) return whichChrome;
   } catch {
     // Ignore
   }
 
   return null;
+}
+
+function revalidateProjectViews(slug: string) {
+  revalidatePath("/");
+  revalidatePath("/explore");
+  revalidatePath("/workspace");
+  revalidatePath(`/p/${slug}`);
 }
 
 /**
@@ -70,33 +81,42 @@ export async function captureProjectScreenshot(slug: string): Promise<string | n
     const tempScreenshotPath = path.join(tempDir, `pagepod_cap_${project.slug}_${Date.now()}.png`);
 
     try {
-      fs.writeFileSync(tempHtmlPath, file.data);
+      await fs.writeFile(tempHtmlPath, file.data);
 
-      // Run Chrome with 1.5s simulated render budget to let CSS animations and Canvas settle
-      const cmd = `"${chromePath}" --headless --hide-scrollbars --virtual-time-budget=1500 --screenshot="${tempScreenshotPath}" --window-size=1280,720 "file://${tempHtmlPath}"`;
-      execSync(cmd, { stdio: "ignore" });
+      // Run Chrome with 1.5s simulated render budget to let CSS animations and Canvas settle.
+      // Use array args (no shell execution) and 10s timeout to prevent command injection & server lockup.
+      await execFileAsync(
+        chromePath,
+        [
+          "--headless",
+          "--hide-scrollbars",
+          "--virtual-time-budget=1500",
+          `--screenshot=${tempScreenshotPath}`,
+          "--window-size=1280,720",
+          `file://${tempHtmlPath}`,
+        ],
+        { timeout: 10000 }
+      );
 
-      if (fs.existsSync(tempScreenshotPath)) {
-        const imgBuffer = fs.readFileSync(tempScreenshotPath);
+      if (fsSync.existsSync(tempScreenshotPath)) {
+        const imgBuffer = await fs.readFile(tempScreenshotPath);
         const screenshotStoragePath = `${project.storagePrefix}/screenshot.png`;
         await storage.uploadFile(screenshotStoragePath, imgBuffer, "image/png");
 
         const newScreenshotUrl = `/raw/${project.slug}/screenshot.png?v=${Date.now()}`;
         await updateProject(project.id, { screenshotUrl: newScreenshotUrl });
 
-        revalidatePath("/");
-        revalidatePath("/explore");
-        revalidatePath("/workspace");
-        revalidatePath(`/p/${project.slug}`);
-
+        revalidateProjectViews(project.slug);
         return newScreenshotUrl;
       }
     } catch (localErr) {
       console.warn(`[ScreenshotService] Local capture failed for ${slug}:`, localErr instanceof Error ? localErr.message : localErr);
     } finally {
       try {
-        if (fs.existsSync(tempHtmlPath)) fs.unlinkSync(tempHtmlPath);
-        if (fs.existsSync(tempScreenshotPath)) fs.unlinkSync(tempScreenshotPath);
+        await Promise.allSettled([
+          fs.unlink(tempHtmlPath),
+          fs.unlink(tempScreenshotPath),
+        ]);
       } catch {
         // Ignore cleanup notice
       }
@@ -125,11 +145,7 @@ export async function captureProjectScreenshot(slug: string): Promise<string | n
           const newScreenshotUrl = `/raw/${project.slug}/screenshot.png?v=${Date.now()}`;
           await updateProject(project.id, { screenshotUrl: newScreenshotUrl });
 
-          revalidatePath("/");
-          revalidatePath("/explore");
-          revalidatePath("/workspace");
-          revalidatePath(`/p/${project.slug}`);
-
+          revalidateProjectViews(project.slug);
           return newScreenshotUrl;
         }
       }
@@ -155,10 +171,6 @@ export async function saveCustomScreenshot(slug: string, imageBuffer: Buffer): P
   const newScreenshotUrl = `/raw/${project.slug}/screenshot.png?v=${Date.now()}`;
   await updateProject(project.id, { screenshotUrl: newScreenshotUrl });
 
-  revalidatePath("/");
-  revalidatePath("/explore");
-  revalidatePath("/workspace");
-  revalidatePath(`/p/${project.slug}`);
-
+  revalidateProjectViews(project.slug);
   return newScreenshotUrl;
 }
