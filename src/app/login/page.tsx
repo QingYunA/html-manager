@@ -25,6 +25,8 @@ function LoginForm() {
   const from = searchParams.get("from") || "/workspace";
   const errorParam = searchParams.get("error");
   const errorMsg = searchParams.get("msg");
+  const stepParam = searchParams.get("step");
+  const emailParam = searchParams.get("email") || "";
   const initialTab = searchParams.get("tab") === "signup" ? "signup" : "signin";
 
   const [adminState, adminFormAction, isAdminPending] = useActionState(loginAdmin, null);
@@ -32,8 +34,8 @@ function LoginForm() {
   const [otpState, otpFormAction, isOtpPending] = useActionState(verifyEmailOtpAction, null);
 
   const [activeTab, setActiveTab] = useState<"signin" | "signup">(initialTab);
-  const [needsVerification, setNeedsVerification] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState("");
+  const [needsVerification, setNeedsVerification] = useState(stepParam === "verify" && Boolean(emailParam));
+  const [pendingEmail, setPendingEmail] = useState(emailParam);
   const [countdown, setCountdown] = useState(0);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
@@ -53,6 +55,14 @@ function LoginForm() {
       setPendingEmail(emailState.email);
       setNeedsVerification(true);
       setCountdown(60);
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("step", "verify");
+        url.searchParams.set("email", emailState.email);
+        window.history.replaceState({}, "", url.toString());
+      } catch {
+        // Safe fallback in SSR or older browsers
+      }
     }
   }, [emailState]);
 
@@ -64,6 +74,21 @@ function LoginForm() {
     }, 1000);
     return () => clearInterval(timer);
   }, [countdown]);
+
+  const handleBackFromVerification = () => {
+    setNeedsVerification(false);
+    setPendingEmail("");
+    setResendStatus(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("step");
+      url.searchParams.delete("email");
+      url.searchParams.set("tab", "signup");
+      window.history.replaceState({}, "", url.toString());
+    } catch {
+      // Safe fallback
+    }
+  };
 
   const handleOAuthLogin = async (provider: "github" | "google") => {
     setOauthError(null);
@@ -99,6 +124,29 @@ function LoginForm() {
     if (!pendingEmail || countdown > 0 || isResending) return;
     setIsResending(true);
     setResendStatus(null);
+
+    // Prefer client supabase directly to avoid Server Action RSC revalidation resetting UI state
+    const supabase = createSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.auth.resend({
+          type: "signup",
+          email: pendingEmail,
+        });
+        if (error) {
+          setResendStatus(error.message);
+        } else {
+          setResendStatus(t.auth.resendSuccess);
+          setCountdown(60);
+        }
+      } catch (err: unknown) {
+        setResendStatus((err as Error)?.message || "Failed to resend");
+      } finally {
+        setIsResending(false);
+      }
+      return;
+    }
+
     try {
       const res = await resendVerificationOtpAction(pendingEmail);
       if (res && "error" in res && res.error) {
@@ -201,7 +249,7 @@ function LoginForm() {
 
           <button
             type="button"
-            onClick={() => setNeedsVerification(false)}
+            onClick={handleBackFromVerification}
             className="text-muted-foreground hover:text-foreground underline underline-offset-4 cursor-pointer text-[11px]"
           >
             {t.auth.changeEmail}
